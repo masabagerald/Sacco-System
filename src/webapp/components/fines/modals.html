@@ -1,0 +1,13 @@
+<!-- Issue fine -->
+<div class="modal-bg" id="m_fine" onclick="if(event.target===this)cm('m_fine')">
+  <div class="modal"><button class="x" onclick="cm('m_fine')">&times;</button>
+    <h3>Issue Fine</h3>
+    <div class="mgrid">
+      <div class="field full"><label>Member</label><select id="fn_mb"></select></div>
+      <div class="field"><label>Amount (UGX)</label><input id="fn_am" type="number" min="0"></div>
+      <div class="field"><label>Reason</label><input id="fn_rs" type="text"></div>
+    </div>
+    <div class="mact"><button class="btn" onclick="cm('m_fine')">Cancel</button><button class="btn solid" id="fn_btn" onclick="submitFine()">Issue Fine</button></div>
+    <div class="mst" id="fn_st"></div>
+  </div>
+</div>

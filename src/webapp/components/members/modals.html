@@ -1,0 +1,15 @@
+<!-- Add member -->
+<div class="modal-bg" id="m_member" onclick="if(event.target===this)cm('m_member')">
+  <div class="modal"><button class="x" onclick="cm('m_member')">&times;</button>
+    <h3>Add Member</h3>
+    <div class="mgrid">
+      <div class="field"><label>Member Number</label><input id="mb_no" type="text" placeholder="e.g. M005"></div>
+      <div class="field"><label>Role</label><select id="mb_rl"><option>Member</option><option>Admin</option></select></div>
+      <div class="field full"><label>Full Name</label><input id="mb_nm" type="text"></div>
+      <div class="field full"><label>Email (Gmail for sign-in)</label><input id="mb_em" type="email" placeholder="name@gmail.com"></div>
+      <div class="field"><label>Phone</label><input id="mb_ph" type="text" placeholder="optional"></div>
+    </div>
+    <div class="mact"><button class="btn" onclick="cm('m_member')">Cancel</button><button class="btn solid" id="mb_btn" onclick="submitMember()">Add Member</button></div>
+    <div class="mst" id="mb_st"></div>
+  </div>
+</div>

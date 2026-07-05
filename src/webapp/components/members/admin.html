@@ -1,0 +1,13 @@
+<div class="panel">
+  <div class="ph">
+    <div><h2>Members</h2><p class="sub">All members and savings balances.</p></div>
+    <div class="btn-row">
+      <button class="btn sm" onclick="openRecSavings()">Record Savings</button>
+      <button class="btn sm" onclick="openIssueLoan()">Issue Loan</button>
+      <button class="btn sm" onclick="openIssueFine()">Issue Fine</button>
+      <button class="btn sm solid" onclick="openAddMember()">+ Add Member</button>
+    </div>
+  </div>
+  <table><thead><tr><th>No.</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th class="r">Savings (UGX)</th></tr></thead>
+  <tbody id="membersTb"><tr class="empty"><td colspan="6">Loading&hellip;</td></tr></tbody></table>
+</div>

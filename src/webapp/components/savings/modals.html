@@ -1,0 +1,38 @@
+<!-- Record savings -->
+<div class="modal-bg" id="m_savings" onclick="if(event.target===this)cm('m_savings')">
+  <div class="modal"><button class="x" onclick="cm('m_savings')">&times;</button>
+    <h3>Record Savings Transaction</h3>
+    <div class="mgrid">
+      <div class="field full"><label>Member</label><select id="sv_mb"></select></div>
+      <div class="field"><label>Type</label><select id="sv_ty"><option>Deposit</option><option>Withdrawal</option></select></div>
+      <div class="field"><label>Amount (UGX)</label><input id="sv_am" type="number" min="0"></div>
+      <div class="field full"><label>Reference</label><input id="sv_rf" type="text" placeholder="optional"></div>
+      <div class="field full"><label>Notes</label><input id="sv_nt" type="text" placeholder="optional"></div>
+    </div>
+    <div class="mact"><button class="btn" onclick="cm('m_savings')">Cancel</button><button class="btn solid" id="sv_btn" onclick="submitSavings()">Save</button></div>
+    <div class="mst" id="sv_st"></div>
+  </div>
+</div>
+
+<!-- Request withdrawal -->
+<div class="modal-bg" id="m_reqWd" onclick="if(event.target===this)cm('m_reqWd')">
+  <div class="modal"><button class="x" onclick="cm('m_reqWd')">&times;</button>
+    <h3>Request Withdrawal</h3><p class="sub" id="wd_bal"></p>
+    <div class="mgrid">
+      <div class="field full"><label>Amount (UGX)</label><input id="wd_am" type="number" min="0"></div>
+      <div class="field full"><label>Reason</label><input id="wd_rs" type="text" placeholder="e.g. Medical, School fees"></div>
+    </div>
+    <div class="mact"><button class="btn" onclick="cm('m_reqWd')">Cancel</button><button class="btn solid" id="wd_btn" onclick="submitReqWd()">Submit Request</button></div>
+    <div class="mst" id="wd_st"></div>
+  </div>
+</div>
+
+<!-- Reject withdrawal -->
+<div class="modal-bg" id="m_rejectWd" onclick="if(event.target===this)cm('m_rejectWd')">
+  <div class="modal"><button class="x" onclick="cm('m_rejectWd')">&times;</button>
+    <h3>Reject Withdrawal Request</h3>
+    <div class="mgrid"><div class="field full"><label>Reason</label><input id="rjwd_rs" type="text"></div></div>
+    <div class="mact"><button class="btn" onclick="cm('m_rejectWd')">Cancel</button><button class="btn danger" id="rjwd_btn" onclick="submitRejectWd()">Reject</button></div>
+    <div class="mst" id="rjwd_st"></div>
+  </div>
+</div>

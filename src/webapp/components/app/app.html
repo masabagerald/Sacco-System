@@ -1,0 +1,49 @@
+<!-- ═══════════════════ APP ═══════════════════ -->
+<div class="hidden" id="appView">
+  <header>
+    <div class="brand">
+      <div class="logo">K</div>
+      <div>
+        <h1>Kira SACCO</h1>
+        <div class="sub">Member savings &amp; loans</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <span><b id="whoName"></b> &middot; <span id="whoRole"></span></span>
+      <button class="btn sm" id="logoutBtn" onclick="doLogout()">Sign out</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-t="my" onclick="showTab('my')">My Account</button>
+      <button class="tab hidden" data-t="admin" id="adminTab" onclick="showTab('admin')">Admin</button>
+      <button class="tab hidden" data-t="audit" id="auditTab" onclick="showTab('audit')">Audit Log</button>
+    </div>
+
+    <!-- ── MY ACCOUNT ── -->
+    <div id="tab-my">
+      <?!= include('src/webapp/components/dashboard/my') ?>
+      <?!= include('src/webapp/components/reports/my') ?>
+      <?!= include('src/webapp/components/loans/my') ?>
+      <?!= include('src/webapp/components/savings/my') ?>
+      <?!= include('src/webapp/components/fines/my') ?>
+    </div>
+
+    <!-- ── ADMIN ── -->
+    <div id="tab-admin" class="hidden">
+      <?!= include('src/webapp/components/dashboard/admin') ?>
+      <?!= include('src/webapp/components/reports/admin') ?>
+      <?!= include('src/webapp/components/loans/admin') ?>
+      <?!= include('src/webapp/components/savings/admin') ?>
+      <?!= include('src/webapp/components/members/admin') ?>
+      <?!= include('src/webapp/components/fines/admin') ?>
+    </div>
+
+    <!-- ── AUDIT LOG ── -->
+    <div id="tab-audit" class="hidden">
+      <?!= include('src/webapp/components/dashboard/audit') ?>
+    </div>
+
+  </main>
+</div>

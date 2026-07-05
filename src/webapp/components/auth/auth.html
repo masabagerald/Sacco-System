@@ -1,0 +1,59 @@
+<!-- ═══════════════════ LOGIN STATES ═══════════════════ -->
+<div class="center" id="loginView">
+
+  <div class="info-card" id="s_loading">
+    <div class="logo">K</div>
+    <h1>Kira SACCO</h1>
+    <p>Checking your account&hellip;</p>
+  </div>
+
+  <div class="info-card hidden" id="s_confirm">
+    <div class="logo">K</div>
+    <h1>Kira SACCO</h1>
+    <p>We detected the following Google account:</p>
+    <p style="font-size:15px;font-weight:700;color:var(--goldsft);margin:10px 0 16px;word-break:break-all" id="detectedEmail"></p>
+    <p>Is this your registered SACCO email?</p>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap">
+      <button class="btn solid" onclick="doConfirm()">Yes, continue</button>
+      <button class="btn" onclick="showManual()">Use a different email</button>
+    </div>
+    <div class="err" id="confirmErr"></div>
+  </div>
+
+  <div class="info-card hidden" id="s_manual">
+    <div class="logo">K</div>
+    <h1>Kira SACCO</h1>
+    <p>Enter your registered Gmail address. We will send you a one-time sign-in code.</p>
+    <div class="field" style="margin-top:14px">
+      <label>Email address</label>
+      <input id="manualEmail" type="email" placeholder="your.name@gmail.com" autocomplete="email">
+    </div>
+    <button class="btn solid" style="width:100%;margin-top:4px" id="sendOtpBtn" onclick="doSendOtp()">Send code</button>
+    <div class="err" id="manualErr"></div>
+  </div>
+
+  <div class="info-card hidden" id="s_otp">
+    <div class="logo">K</div>
+    <h1>Check your email</h1>
+    <p>We sent a 6-digit code to <b id="otpMasked"></b>. Enter it below &mdash; expires in 10 minutes.</p>
+    <div class="field" style="margin-top:14px">
+      <label>Sign-in code</label>
+      <input id="otpCode" type="text" maxlength="6" placeholder="000000" autocomplete="one-time-code"
+        style="font-size:22px;letter-spacing:7px;font-family:'IBM Plex Mono',monospace;text-align:center">
+    </div>
+    <button class="btn solid" style="width:100%;margin-top:4px" id="verifyBtn" onclick="doVerify()">Verify &amp; sign in</button>
+    <button class="btn" style="width:100%;margin-top:8px" onclick="showManual()">Use a different email</button>
+    <div class="err" id="otpErr"></div>
+    <div style="margin-top:12px;font-size:12px;color:var(--dim)">Didn&#39;t receive it? Check spam, or
+      <span style="color:var(--goldsft);cursor:pointer;text-decoration:underline" onclick="doSendOtp()">resend code</span>.
+    </div>
+  </div>
+
+  <div class="info-card hidden" id="s_noreg">
+    <div class="logo">K</div>
+    <h1>Not Registered</h1>
+    <p id="noregMsg"></p>
+    <button class="btn" style="margin-top:12px" onclick="showManual()">Try a different email</button>
+  </div>
+
+</div>

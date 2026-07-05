@@ -1,0 +1,14 @@
+<div class="panel">
+  <div class="ph">
+    <div><h2>Withdrawal Requests</h2><p class="sub">Request a withdrawal from your savings. Admin must approve.</p></div>
+    <button class="btn sm solid" onclick="openReqWd()">Request Withdrawal</button>
+  </div>
+  <table><thead><tr><th>ID</th><th class="r">Amount</th><th>Reason</th><th>Status</th><th>Notes</th></tr></thead>
+  <tbody id="wdReqTb"><tr class="empty"><td colspan="5">Loading&hellip;</td></tr></tbody></table>
+</div>
+
+<div class="panel">
+  <h2>Savings History</h2><p class="sub">All deposits and withdrawals.</p>
+  <table><thead><tr><th>Date</th><th>Type</th><th>Reference</th><th class="r">Amount (UGX)</th></tr></thead>
+  <tbody id="savingsTb"><tr class="empty"><td colspan="4">Loading&hellip;</td></tr></tbody></table>
+</div>
