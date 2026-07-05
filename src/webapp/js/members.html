@@ -1,0 +1,18 @@
+// ── ADMIN: MEMBERS ────────────────────────────────────────────────────────────
+function loadMembers(){
+  Api.getAllMembersSummary(res=>{
+    if(!res.ok)return; MEMBERS=res.members;
+    $('#membersTb').innerHTML=res.members.map(m=>'<tr><td>'+esc(m.memberNo)+'</td><td>'+esc(m.name)+'</td><td>'+esc(m.email)+'</td><td>'+badge(m.role,BMAP)+'</td><td>'+esc(m.status)+'</td><td class="r">'+Math.round(n(m.savingsBalance)).toLocaleString('en-US')+'</td></tr>').join('');
+  });
+}
+function openAddMember(){['mb_no','mb_nm','mb_em','mb_ph'].forEach(i=>$('#'+i).value='');$('#mb_rl').value='Member';mst('mb_st','','');om('m_member');}
+function submitMember(){
+  const no=$('#mb_no').value.trim(),nm=$('#mb_nm').value.trim(),em=$('#mb_em').value.trim();
+  if(!no||!nm||!em)return mst('mb_st','err','Member number, name and email are required.');
+  $('#mb_btn').disabled=true;mst('mb_st','','Saving…');
+  Api.addMember(no,nm,em,$('#mb_ph').value.trim(),$('#mb_rl').value, res=>{
+    $('#mb_btn').disabled=false;
+    if(!res.ok)return mst('mb_st','err',res.error);
+    mst('mb_st','ok','Member added.');loadAdmin();setTimeout(()=>cm('m_member'),900);
+  }, e=>{$('#mb_btn').disabled=false;mst('mb_st','err','Error: '+e.message);});
+}

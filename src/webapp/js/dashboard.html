@@ -1,0 +1,23 @@
+// ── ADMIN DASHBOARD ───────────────────────────────────────────────────────────
+function loadAdmin(){
+  Api.getAdminDashboard(res=>{
+    if(!res.ok)return;
+    $('#d_mem').textContent=res.totalMembers;$('#d_sav').textContent=fmt(res.totalSavings);
+    $('#d_out').textContent=fmt(res.totalLoansOutstanding);$('#d_lc').textContent=res.activeLoanCount+' active';
+    $('#d_fin').textContent=fmt(res.unpaidFinesTotal);$('#d_plr').textContent=res.pendingLoanRequests;
+    $('#d_pwr').textContent=res.pendingWithdrawalRequests;
+    const ot=$('#overdueTb');
+    ot.innerHTML=res.overdueLoans.length?res.overdueLoans.map(l=>'<tr><td>'+esc(l.loanId)+'</td><td>'+esc(l.memberName)+'</td><td class="r">'+Math.round(l.outstandingBalance).toLocaleString('en-US')+'</td><td>'+l.monthsElapsed+'/'+l.term+'</td></tr>').join(''):'<tr class="empty"><td colspan="4">None &mdash; all good.</td></tr>';
+  });
+  loadMembers(); loadLoanReqAdmin(); loadWdReqAdmin(); loadFinesAdmin();
+}
+
+// ── AUDIT LOG ─────────────────────────────────────────────────────────────────
+function loadAudit(){
+  Api.getAuditLog(200, res=>{
+    if(!res.ok)return;
+    const tb=$('#auditTb');
+    if(!res.entries.length){tb.innerHTML='<tr class="empty"><td colspan="6">No audit entries yet.</td></tr>';return;}
+    tb.innerHTML=res.entries.map(e=>'<tr><td>'+esc(e.timestamp)+'</td><td>'+esc(e.action)+'</td><td>'+esc(e.member)+'</td><td>'+esc(e.performedBy)+'</td><td>'+esc(e.details)+'</td><td>'+esc(e.refId)+'</td></tr>').join('');
+  });
+}

@@ -1,0 +1,46 @@
+// ── LOGIN FLOW ──────────────────────────────────────────────────────────────────
+let DET_EMAIL='', OTP_EMAIL='';
+function showOnly(id){
+  ['s_loading','s_confirm','s_manual','s_otp','s_noreg'].forEach(s=>$('#'+s).classList.toggle('hidden',s!==id));
+}
+window.addEventListener('load',()=>{
+  Api.tryAutoDetect(res=>{
+    if(res.detected&&res.email){DET_EMAIL=res.email;$('#detectedEmail').textContent=res.email;showOnly('s_confirm');}
+    else showManual();
+  }, ()=>showManual());
+});
+function doConfirm(){
+  $('#confirmErr').textContent='';
+  Api.confirmAutoDetect(DET_EMAIL, res=>{
+    if(!res.ok){res.notRegistered?($('#noregMsg').textContent=res.error,showOnly('s_noreg')):($('#confirmErr').textContent=res.error);return;}
+    ME=res.member;enterApp();
+  }, e=>$('#confirmErr').textContent='Error: '+e.message);
+}
+function showManual(){$('#manualEmail')&&($('#manualEmail').value='');$('#manualErr').textContent='';showOnly('s_manual');setTimeout(()=>$('#manualEmail')?.focus(),80);}
+function doSendOtp(){
+  const email=$('#manualEmail').value.trim(),err=$('#manualErr');
+  if(!email){err.textContent='Please enter your email address.';return;}
+  $('#sendOtpBtn').disabled=true;err.textContent='';
+  Api.sendOtp(email, res=>{
+    $('#sendOtpBtn').disabled=false;
+    if(!res.ok){res.notRegistered?($('#noregMsg').textContent=res.error,showOnly('s_noreg')):(err.textContent=res.error);return;}
+    OTP_EMAIL=email;$('#otpMasked').textContent=res.maskedEmail;$('#otpCode').value='';$('#otpErr').textContent='';
+    showOnly('s_otp');setTimeout(()=>$('#otpCode')?.focus(),80);
+  }, e=>{$('#sendOtpBtn').disabled=false;err.textContent='Error: '+e.message;});
+}
+function doVerify(){
+  const code=$('#otpCode').value.trim(),err=$('#otpErr');
+  if(code.length<6){err.textContent='Please enter the 6-digit code.';return;}
+  $('#verifyBtn').disabled=true;err.textContent='';
+  Api.verifyOtp(OTP_EMAIL, code, res=>{
+    $('#verifyBtn').disabled=false;
+    if(!res.ok){if(res.expired){err.textContent=res.error;setTimeout(showManual,2000);}else err.textContent=res.error;return;}
+    ME=res.member;enterApp();
+  }, e=>{$('#verifyBtn').disabled=false;err.textContent='Error: '+e.message;});
+}
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter')return;
+  if(!$('#s_confirm').classList.contains('hidden'))doConfirm();
+  else if(!$('#s_manual').classList.contains('hidden'))doSendOtp();
+  else if(!$('#s_otp').classList.contains('hidden'))doVerify();
+});

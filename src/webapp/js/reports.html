@@ -1,0 +1,27 @@
+// ── MEMBER STATEMENT ──────────────────────────────────────────────────────────
+function fetchStmt(cb){
+  if(STMT){cb(STMT);return;}
+  ['stmtViewBtn','stmtDlBtn'].forEach(id=>$('#'+id).disabled=true);
+  $('#stmtSt').textContent='Generating PDF…';
+  Api.generateMemberStatementDoc(res=>{
+    ['stmtViewBtn','stmtDlBtn'].forEach(id=>$('#'+id).disabled=false);
+    if(!res.ok){$('#stmtSt').textContent='Error: '+res.error;return;}
+    STMT=res;$('#stmtSt').textContent='';cb(res);
+  }, e=>{['stmtViewBtn','stmtDlBtn'].forEach(id=>$('#'+id).disabled=false);$('#stmtSt').textContent='Error: '+e.message;});
+}
+function openStmt(){fetchStmt(r=>window.open(r.pdfUrl,'_blank'));}
+function dlStmt(){fetchStmt(r=>window.open(r.downloadUrl,'_blank'));}
+
+// ── CSV EXPORT ────────────────────────────────────────────────────────────────
+function exportCSV(){
+  $('#csvBtn').disabled=true;$('#csvSt').textContent='Preparing…';
+  Api.exportAdminCSV(res=>{
+    $('#csvBtn').disabled=false;
+    if(!res.ok){$('#csvSt').textContent='Error: '+res.error;return;}
+    const blob=new Blob([res.csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download='KiraSACCO_Ledger_'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+    $('#csvSt').textContent='Downloaded.';setTimeout(()=>$('#csvSt').textContent='',3000);
+  }, e=>{$('#csvBtn').disabled=false;$('#csvSt').textContent='Error: '+e.message;});
+}

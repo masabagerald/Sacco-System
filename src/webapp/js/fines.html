@@ -1,0 +1,37 @@
+// ── MY FINES ──────────────────────────────────────────────────────────────────
+function renderFines(res){
+  if(!res.ok)return;
+  $('#c_fines').textContent=fmt(res.unpaidTotal);
+  $('#c_finesMeta').textContent=res.unpaidTotal>0?'Please settle with the treasurer':'No unpaid fines';
+  const tb=$('#finesTb');
+  if(!res.fines.length){tb.innerHTML='<tr class="empty"><td colspan="4">No fines.</td></tr>';return;}
+  tb.innerHTML=res.fines.map(f=>'<tr><td>'+esc(f.date)+'</td><td>'+esc(f.reason)+'</td><td class="r">'+Math.round(f.amount).toLocaleString('en-US')+'</td><td>'+badge(f.status,BMAP)+'</td></tr>').join('');
+}
+
+// ── ADMIN: FINES ──────────────────────────────────────────────────────────────
+function openIssueFine(){$('#fn_mb').innerHTML=mbOpts();$('#fn_am').value='';$('#fn_rs').value='';mst('fn_st','','');om('m_fine');}
+function submitFine(){
+  const mb=$('#fn_mb').value,am=$('#fn_am').value,rs=$('#fn_rs').value.trim();
+  if(!mb)return mst('fn_st','err','Select a member.');
+  if(!am||n(am)<=0)return mst('fn_st','err','Enter a valid amount.');
+  if(!rs)return mst('fn_st','err','Enter a reason.');
+  $('#fn_btn').disabled=true;mst('fn_st','','Saving…');
+  Api.issueFine(mb,am,rs, res=>{
+    $('#fn_btn').disabled=false;
+    if(!res.ok)return mst('fn_st','err',res.error);
+    mst('fn_st','ok','Fine '+res.fineId+' issued.');loadFinesAdmin();if(mb===ME.memberNo)loadMyAccount();setTimeout(()=>cm('m_fine'),900);
+  }, e=>{$('#fn_btn').disabled=false;mst('fn_st','err','Error: '+e.message);});
+}
+function markPaid(fid){
+  Api.markFinePaid(fid, res=>{if(res.ok){loadFinesAdmin();loadMyAccount();}});
+}
+function loadFinesAdmin(){
+  Api.getAllFinesForAdmin(rows=>{
+    const tb=$('#finesAdminTb');
+    if(!rows||!rows.length){tb.innerHTML='<tr class="empty"><td colspan="7">No fines.</td></tr>';return;}
+    tb.innerHTML=rows.map(f=>{
+      const act=String(f.status).toLowerCase()==='unpaid'?'<button class="btn sm" onclick="markPaid(\''+f.fineId+'\')">Mark Paid</button>':'';
+      return '<tr><td>'+esc(f.fineId)+'</td><td>'+esc(f.memberName)+'</td><td>'+esc(f.date)+'</td><td>'+esc(f.reason)+'</td><td class="r">'+Math.round(n(f.amount)).toLocaleString('en-US')+'</td><td>'+badge(f.status,BMAP)+'</td><td>'+act+'</td></tr>';
+    }).join('');
+  });
+}

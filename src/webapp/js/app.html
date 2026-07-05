@@ -1,0 +1,53 @@
+// ── SHARED STATE & HELPERS ─────────────────────────────────────────────────────
+let ME=null, MEMBERS=[], SAVINGS_BAL=0, STMT=null, REPAY_LOAN=null, APPROV_REQ=null, REJECT_LR=null, REJECT_WD=null;
+const $=s=>document.querySelector(s);
+const n=v=>{const x=parseFloat(v);return isNaN(x)?0:x;};
+const fmt=v=>'UGX '+Math.round(n(v)).toLocaleString('en-US');
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const badge=(s,map)=>'<span class="badge '+(map[s.toLowerCase()]||s.toLowerCase())+'">'+esc(s)+'</span>';
+const BMAP={active:'active',cleared:'cleared',overdue:'overdue',admin:'admin',member:'member',
+  pending:'pending',approved:'approved',rejected:'rejected',unpaid:'unpaid',paid:'paid'};
+
+// ── APP SHELL ───────────────────────────────────────────────────────────────────
+function enterApp(){
+  $('#loginView').classList.add('hidden');$('#appView').classList.remove('hidden');
+  $('#whoName').textContent=ME.name+' ('+ME.memberNo+')';
+  $('#whoRole').innerHTML=badge(ME.role,BMAP);
+  if(ME.role==='Admin'){$('#adminTab').classList.remove('hidden');$('#auditTab').classList.remove('hidden');}
+  showTab('my');loadMyAccount();
+}
+function doLogout(){
+  $('#logoutBtn').disabled=true;
+  Api.logout(()=>{
+    ME=null;MEMBERS=[];STMT=null;
+    $('#appView').classList.add('hidden');$('#adminTab').classList.add('hidden');$('#auditTab').classList.add('hidden');
+    $('#logoutBtn').disabled=false;
+    showOnly('s_loading');
+    Api.tryAutoDetect(res=>{
+      if(res.detected&&res.email){DET_EMAIL=res.email;$('#detectedEmail').textContent=res.email;showOnly('s_confirm');}
+      else showManual();
+    }, ()=>showManual());
+  }, ()=>{ME=null;$('#appView').classList.add('hidden');showManual();$('#logoutBtn').disabled=false;});
+}
+function showTab(t){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  ['my','admin','audit'].forEach(n=>$('#tab-'+n).classList.toggle('hidden',n!==t));
+  if(t==='admin')loadAdmin();
+  if(t==='audit')loadAudit();
+}
+function loadMyAccount(){
+  STMT=null;
+  Api.getMySavings(renderSavings);
+  Api.getMyLoans(renderLoans);
+  Api.getMyLoanRequests(renderLoanReqs);
+  Api.getMyWithdrawalRequests(renderWdReqs);
+  Api.getMyFines(renderFines);
+}
+
+// ── MODAL UTIL ────────────────────────────────────────────────────────────────
+function om(id){$('#'+id).classList.add('on');}
+function cm(id){$('#'+id).classList.remove('on');}
+function mbOpts(){return '<option value="">— select —</option>'+MEMBERS.map(m=>'<option value="'+esc(m.memberNo)+'">'+esc(m.memberNo)+' — '+esc(m.name)+'</option>').join('');}
+function mst(id,cls,txt){$('#'+id).className='mst'+(cls?' '+cls:'');$('#'+id).textContent=txt;}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-bg.on').forEach(m=>m.classList.remove('on'));});

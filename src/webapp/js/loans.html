@@ -1,0 +1,130 @@
+// ── MY LOANS ──────────────────────────────────────────────────────────────────
+function renderLoans(res){
+  if(!res.ok)return;
+  const active=res.loans.filter(l=>l.status==='Active');
+  $('#c_outstanding').textContent=fmt(active.reduce((s,l)=>s+l.outstandingBalance,0));
+  $('#c_loanMeta').textContent=active.length?active.map(l=>l.loanId).join(', '):'No active loans';
+  const el=$('#loansList');
+  if(!res.loans.length){el.innerHTML='<p class="note">No loans on record.</p>';return;}
+  el.innerHTML=res.loans.map(l=>{
+    const s=l.status==='Cleared'?'cleared':(l.overdue?'overdue':'active');
+    const slbl=l.status==='Cleared'?'Cleared':(l.overdue?'Overdue':'Active');
+    const repBtn=ME.role==='Admin'&&l.status==='Active'?'<button class="btn sm" onclick="openRepay(\''+l.loanId+'\','+l.outstandingBalance+')">Record Repayment</button>':'';
+    const sid='sc_'+l.loanId;
+    const schRows=l.schedule.map(r=>'<tr><td>'+r.month+'</td><td class="r">'+Math.round(r.opening).toLocaleString('en-US')+'</td><td class="r">'+Math.round(r.interest).toLocaleString('en-US')+'</td><td class="r">'+Math.round(r.payment).toLocaleString('en-US')+'</td><td class="r">'+Math.round(r.closing).toLocaleString('en-US')+'</td></tr>').join('');
+    return '<div class="loan-card"><div class="loan-hd"><span class="lid">'+esc(l.loanId)+'</span>'+badge(slbl,{cleared:'cleared',overdue:'overdue',active:'active'})+'</div>'+
+      '<div class="loan-stats">'+
+      '<div><div class="ls-k">Principal</div><div class="ls-v">'+Math.round(l.principal).toLocaleString('en-US')+'</div></div>'+
+      '<div><div class="ls-k">Rate/mo</div><div class="ls-v">'+l.monthlyRate+'%</div></div>'+
+      '<div><div class="ls-k">Term</div><div class="ls-v">'+l.term+' mo</div></div>'+
+      '<div><div class="ls-k">Outstanding</div><div class="ls-v">'+Math.round(l.outstandingBalance).toLocaleString('en-US')+'</div></div>'+
+      '<div><div class="ls-k">Est. Payment</div><div class="ls-v">'+Math.round(l.monthlyPayment).toLocaleString('en-US')+'</div></div>'+
+      '<div><div class="ls-k">Repaid</div><div class="ls-v">'+Math.round(l.totalRepaid).toLocaleString('en-US')+'</div></div>'+
+      '</div>'+(l.overrideReason?'<p class="note">Override: '+esc(l.overrideReason)+'</p>':'')+
+      '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'+
+      '<button class="btn sm" onclick="toggleSched(\''+sid+'\')">Projected schedule</button>'+repBtn+'</div>'+
+      '<div class="sched" id="'+sid+'"><table><thead><tr><th>Month</th><th class="r">Opening</th><th class="r">Interest</th><th class="r">Payment</th><th class="r">Closing</th></tr></thead><tbody>'+schRows+'</tbody></table></div></div>';
+  }).join('');
+}
+function toggleSched(id){$('#'+id).classList.toggle('on');}
+function renderLoanReqs(res){
+  if(!res.ok)return;
+  const tb=$('#loanReqTb');
+  if(!res.requests.length){tb.innerHTML='<tr class="empty"><td colspan="6">No loan requests.</td></tr>';return;}
+  tb.innerHTML=res.requests.map(r=>'<tr><td>'+esc(r.requestId)+'</td><td class="r">'+Math.round(r.amount).toLocaleString('en-US')+'</td><td>'+r.term+' mo</td><td>'+esc(r.purpose)+'</td><td>'+badge(r.status,BMAP)+'</td><td>'+esc(r.decisionNotes)+'</td></tr>').join('');
+}
+
+// ── ADMIN: LOAN REQUESTS ──────────────────────────────────────────────────────
+function loadLoanReqAdmin(){
+  Api.getLoanRequests(res=>{
+    if(!res.ok)return;
+    const tb=$('#loanReqAdminTb');
+    if(!res.requests.length){tb.innerHTML='<tr class="empty"><td colspan="8">No requests.</td></tr>';return;}
+    tb.innerHTML=res.requests.map(r=>{
+      const lim=r.withinLimit?'<span class="badge approved">Within limit</span>':'<span class="badge overdue">Over limit</span>';
+      const acts=r.status==='Pending'?'<button class="btn sm" onclick=\'openApproveLR('+JSON.stringify(r)+')\'>Approve</button> <button class="btn sm danger" onclick="openRejectLR(\''+r.requestId+'\')">Reject</button>':'';
+      return '<tr><td>'+esc(r.requestId)+'</td><td>'+esc(r.memberName)+'</td><td class="r">'+Math.round(r.amount).toLocaleString('en-US')+'</td><td>'+r.term+' mo</td><td>'+esc(r.purpose)+'</td><td>'+lim+'</td><td>'+badge(r.status,BMAP)+'</td><td>'+acts+'</td></tr>';
+    }).join('');
+  });
+}
+
+// ── request loan ──────────────────────────────────────────────────────────────
+function openReqLoan(){$('#rl_am').value='';$('#rl_tm').value='6';$('#rl_pu').value='';mst('rl_st','','');om('m_reqLoan');}
+function submitReqLoan(){
+  const am=$('#rl_am').value,tm=$('#rl_tm').value;
+  if(!am||n(am)<=0)return mst('rl_st','err','Enter a valid amount.');
+  $('#rl_btn').disabled=true;mst('rl_st','','Submitting…');
+  Api.requestLoan(am,tm,$('#rl_pu').value.trim(), res=>{
+    $('#rl_btn').disabled=false;
+    if(!res.ok)return mst('rl_st','err',res.error);
+    mst('rl_st','ok','Request '+res.requestId+' submitted.');loadMyAccount();setTimeout(()=>cm('m_reqLoan'),900);
+  }, e=>{$('#rl_btn').disabled=false;mst('rl_st','err','Error: '+e.message);});
+}
+
+// ── issue loan ────────────────────────────────────────────────────────────────
+function openIssueLoan(){$('#ln_mb').innerHTML=mbOpts();$('#ln_pr').value='';$('#ln_rt').value='';$('#ln_tm').value='6';$('#ln_pu').value='';$('#ln_ov').value='';$('#ln_lim').classList.add('hidden');$('#ln_ovwrap').classList.add('hidden');mst('ln_st','','');om('m_loan');}
+function updateLimitInfo(){
+  const mb=$('#ln_mb').value,pr=n($('#ln_pr').value);
+  if(!mb||!pr)return $(['#ln_lim','#ln_ovwrap'].forEach(s=>$(s).classList.add('hidden')));
+  const m=MEMBERS.find(x=>x.memberNo===mb); if(!m)return;
+  const max=n(m.savingsBalance)*3;
+  if(pr>max){$('#ln_lim').classList.remove('hidden');$('#ln_lim').textContent='Exceeds limit (savings '+fmt(m.savingsBalance)+', est. max '+fmt(max)+'). Override reason required.';$('#ln_ovwrap').classList.remove('hidden');}
+  else{$('#ln_lim').classList.add('hidden');$('#ln_ovwrap').classList.add('hidden');}
+}
+function submitLoan(){
+  const mb=$('#ln_mb').value,pr=$('#ln_pr').value,rt=$('#ln_rt').value,tm=$('#ln_tm').value;
+  if(!mb)return mst('ln_st','err','Select a member.');
+  if(!pr||n(pr)<=0)return mst('ln_st','err','Enter a valid principal.');
+  if(!rt&&rt!=='0')return mst('ln_st','err','Enter the monthly interest rate.');
+  $('#ln_btn').disabled=true;mst('ln_st','','Saving…');
+  Api.issueLoan(mb,pr,rt,tm,$('#ln_pu').value.trim(),$('#ln_ov').value.trim(), res=>{
+    $('#ln_btn').disabled=false;
+    if(!res.ok){mst('ln_st','err',res.error);if(res.limitCheck)$('#ln_ovwrap').classList.remove('hidden');return;}
+    mst('ln_st','ok','Loan '+res.loanId+' issued.');
+    if(mb===ME.memberNo)loadMyAccount();loadAdmin();setTimeout(()=>cm('m_loan'),900);
+  }, e=>{$('#ln_btn').disabled=false;mst('ln_st','err','Error: '+e.message);});
+}
+
+// ── repayment ─────────────────────────────────────────────────────────────────
+function openRepay(lid,bal){REPAY_LOAN=lid;$('#rp_info').textContent='Loan '+lid+' — outstanding: '+fmt(bal);$('#rp_am').value='';$('#rp_nt').value='';mst('rp_st','','');om('m_repay');}
+function submitRepay(){
+  const am=$('#rp_am').value;
+  if(!am||n(am)<=0)return mst('rp_st','err','Enter a valid amount.');
+  $('#rp_btn').disabled=true;mst('rp_st','','Saving…');
+  Api.recordRepayment(REPAY_LOAN,$('#rp_am').value,$('#rp_nt').value.trim(), res=>{
+    $('#rp_btn').disabled=false;
+    if(!res.ok)return mst('rp_st','err',res.error);
+    mst('rp_st','ok','Recorded. Outstanding: '+fmt(res.loan.outstandingBalance));
+    loadMyAccount();loadAdmin();setTimeout(()=>cm('m_repay'),900);
+  }, e=>{$('#rp_btn').disabled=false;mst('rp_st','err','Error: '+e.message);});
+}
+
+// ── approve/reject loan requests ──────────────────────────────────────────────
+function openApproveLR(r){
+  APPROV_REQ=r;$('#alr_info').textContent=r.memberName+' requests '+fmt(r.amount)+' / '+r.term+' months. Savings: '+fmt(r.savings)+', max: '+fmt(r.maxLoan)+'.';
+  $('#alr_rt').value='';$('#alr_ov').value='';mst('alr_st','','');
+  if(!r.withinLimit){$('#alr_lim').classList.remove('hidden');$('#alr_lim').textContent='Exceeds loan-to-savings limit. Override reason required.';$('#alr_ovwrap').classList.remove('hidden');}
+  else{$('#alr_lim').classList.add('hidden');$('#alr_ovwrap').classList.add('hidden');}
+  om('m_approveLR');
+}
+function submitApproveLR(){
+  const rt=$('#alr_rt').value;
+  if(!rt&&rt!=='0')return mst('alr_st','err','Enter the monthly interest rate.');
+  $('#alr_btn').disabled=true;mst('alr_st','','Saving…');
+  Api.approveLoanRequest(APPROV_REQ.requestId,rt,$('#alr_ov').value.trim(), res=>{
+    $('#alr_btn').disabled=false;
+    if(!res.ok){mst('alr_st','err',res.error);if(res.limitCheck)$('#alr_ovwrap').classList.remove('hidden');return;}
+    mst('alr_st','ok','Approved. Loan '+res.loanId+' created.');loadLoanReqAdmin();loadAdmin();setTimeout(()=>cm('m_approveLR'),900);
+  }, e=>{$('#alr_btn').disabled=false;mst('alr_st','err','Error: '+e.message);});
+}
+function openRejectLR(id){REJECT_LR=id;$('#rjlr_rs').value='';mst('rjlr_st','','');om('m_rejectLR');}
+function submitRejectLR(){
+  const rs=$('#rjlr_rs').value.trim();
+  if(!rs)return mst('rjlr_st','err','Enter a reason.');
+  $('#rjlr_btn').disabled=true;mst('rjlr_st','','Saving…');
+  Api.rejectLoanRequest(REJECT_LR,rs, res=>{
+    $('#rjlr_btn').disabled=false;
+    if(!res.ok)return mst('rjlr_st','err',res.error);
+    mst('rjlr_st','ok','Rejected.');loadLoanReqAdmin();loadAdmin();setTimeout(()=>cm('m_rejectLR'),900);
+  }, e=>{$('#rjlr_btn').disabled=false;mst('rjlr_st','err','Error: '+e.message);});
+}

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Kira SACCO</title>
+<?!= include('src/webapp/css/styles') ?>
+</head>
+<body>
+
+<!-- ═══════════════════ LOGIN STATES ═══════════════════ -->
+<div class="center" id="loginView">
+
+  <div class="info-card" id="s_loading">
+    <div class="logo">K</div>
+    <h1>Kira SACCO</h1>
+    <p>Checking your account&hellip;</p>
+  </div>
+
+  <div class="info-card hidden" id="s_confirm">
+    <div class="logo">K</div>
+    <h1>Kira SACCO</h1>
+    <p>We detected the following Google account:</p>
+    <p style="font-size:15px;font-weight:700;color:var(--goldsft);margin:10px 0 16px;word-break:break-all" id="detectedEmail"></p>
+    <p>Is this your registered SACCO email?</p>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap">
+      <button class="btn solid" onclick="doConfirm()">Yes, continue</button>
+      <button class="btn" onclick="showManual()">Use a different email</button>
+    </div>
+    <div class="err" id="confirmErr"></div>
+  </div>
+
+  <div class="info-card hidden" id="s_manual">
+    <div class="logo">K</div>
+    <h1>Kira SACCO</h1>
+    <p>Enter your registered Gmail address. We will send you a one-time sign-in code.</p>
+    <div class="field" style="margin-top:14px">
+      <label>Email address</label>
+      <input id="manualEmail" type="email" placeholder="your.name@gmail.com" autocomplete="email">
+    </div>
+    <button class="btn solid" style="width:100%;margin-top:4px" id="sendOtpBtn" onclick="doSendOtp()">Send code</button>
+    <div class="err" id="manualErr"></div>
+  </div>
+
+  <div class="info-card hidden" id="s_otp">
+    <div class="logo">K</div>
+    <h1>Check your email</h1>
+    <p>We sent a 6-digit code to <b id="otpMasked"></b>. Enter it below &mdash; expires in 10 minutes.</p>
+    <div class="field" style="margin-top:14px">
+      <label>Sign-in code</label>
+      <input id="otpCode" type="text" maxlength="6" placeholder="000000" autocomplete="one-time-code"
+        style="font-size:22px;letter-spacing:7px;font-family:'IBM Plex Mono',monospace;text-align:center">
+    </div>
+    <button class="btn solid" style="width:100%;margin-top:4px" id="verifyBtn" onclick="doVerify()">Verify &amp; sign in</button>
+    <button class="btn" style="width:100%;margin-top:8px" onclick="showManual()">Use a different email</button>
+    <div class="err" id="otpErr"></div>
+    <div style="margin-top:12px;font-size:12px;color:var(--dim)">Didn&#39;t receive it? Check spam, or
+      <span style="color:var(--goldsft);cursor:pointer;text-decoration:underline" onclick="doSendOtp()">resend code</span>.
+    </div>
+  </div>
+
+  <div class="info-card hidden" id="s_noreg">
+    <div class="logo">K</div>
+    <h1>Not Registered</h1>
+    <p id="noregMsg"></p>
+    <button class="btn" style="margin-top:12px" onclick="showManual()">Try a different email</button>
+  </div>
+
+</div>
+
+<!-- ═══════════════════ APP ═══════════════════ -->
+<div class="hidden" id="appView">
+  <header>
+    <div class="brand">
+      <div class="logo">K</div>
+      <div>
+        <h1>Kira SACCO</h1>
+        <div class="sub">Member savings &amp; loans</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <span><b id="whoName"></b> &middot; <span id="whoRole"></span></span>
+      <button class="btn sm" id="logoutBtn" onclick="doLogout()">Sign out</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-t="my" onclick="showTab('my')">My Account</button>
+      <button class="tab hidden" data-t="admin" id="adminTab" onclick="showTab('admin')">Admin</button>
+      <button class="tab hidden" data-t="audit" id="auditTab" onclick="showTab('audit')">Audit Log</button>
+    </div>
+
+    <!-- ── MY ACCOUNT ── -->
+    <div id="tab-my">
+      <div class="cards">
+        <div class="card"><div class="lbl">Savings Balance</div><div class="val mono" id="c_savings">UGX 0</div><div class="meta">As of today</div></div>
+        <div class="card"><div class="lbl">Loan Outstanding</div><div class="val mono bad" id="c_outstanding">UGX 0</div><div class="meta" id="c_loanMeta">No active loans</div></div>
+        <div class="card"><div class="lbl">Fines Owed</div><div class="val mono warn" id="c_fines">UGX 0</div><div class="meta" id="c_finesMeta">No unpaid fines</div></div>
+      </div>
+
+      <div class="bar">
+        <span>My Statement:</span>
+        <button class="btn sm" id="stmtViewBtn" onclick="openStmt()">Open PDF</button>
+        <button class="btn sm" id="stmtDlBtn" onclick="dlStmt()">Download PDF</button>
+        <span id="stmtSt" style="color:var(--dim);font-size:12px"></span>
+      </div>
+
+      <div class="panel">
+        <div class="ph">
+          <div><h2>My Loans</h2><p class="sub">Live reducing-balance calculation. Schedule is a projected guide.</p></div>
+          <button class="btn sm solid" onclick="openReqLoan()">Request a Loan</button>
+        </div>
+        <div id="loansList"><p class="note">Loading&hellip;</p></div>
+      </div>
+
+      <div class="panel">
+        <h2>My Loan Requests</h2><p class="sub">Status of submitted loan requests.</p>
+        <table><thead><tr><th>ID</th><th>Amount</th><th>Term</th><th>Purpose</th><th>Status</th><th>Notes</th></tr></thead>
+        <tbody id="loanReqTb"><tr class="empty"><td colspan="6">Loading&hellip;</td></tr></tbody></table>
+      </div>
+
+      <div class="panel">
+        <div class="ph">
+          <div><h2>Withdrawal Requests</h2><p class="sub">Request a withdrawal from your savings. Admin must approve.</p></div>
+          <button class="btn sm solid" onclick="openReqWd()">Request Withdrawal</button>
+        </div>
+        <table><thead><tr><th>ID</th><th class="r">Amount</th><th>Reason</th><th>Status</th><th>Notes</th></tr></thead>
+        <tbody id="wdReqTb"><tr class="empty"><td colspan="5">Loading&hellip;</td></tr></tbody></table>
+      </div>
+
+      <div class="panel">
+        <h2>Savings History</h2><p class="sub">All deposits and withdrawals.</p>
+        <table><thead><tr><th>Date</th><th>Type</th><th>Reference</th><th class="r">Amount (UGX)</th></tr></thead>
+        <tbody id="savingsTb"><tr class="empty"><td colspan="4">Loading&hellip;</td></tr></tbody></table>
+      </div>
+
+      <div class="panel">
+        <h2>My Fines</h2>
+        <table><thead><tr><th>Date</th><th>Reason</th><th class="r">Amount</th><th>Status</th></tr></thead>
+        <tbody id="finesTb"><tr class="empty"><td colspan="4">Loading&hellip;</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- ── ADMIN ── -->
+    <div id="tab-admin" class="hidden">
+      <div class="cards">
+        <div class="card"><div class="lbl">Members</div><div class="val mono" id="d_mem">0</div></div>
+        <div class="card"><div class="lbl">Total Savings</div><div class="val mono" id="d_sav">UGX 0</div></div>
+        <div class="card"><div class="lbl">Loans Outstanding</div><div class="val mono bad" id="d_out">UGX 0</div><div class="meta" id="d_lc"></div></div>
+        <div class="card"><div class="lbl">Unpaid Fines</div><div class="val mono warn" id="d_fin">UGX 0</div></div>
+        <div class="card"><div class="lbl">Pending (Loans)</div><div class="val mono" id="d_plr">0</div></div>
+        <div class="card"><div class="lbl">Pending (Withdrawals)</div><div class="val mono" id="d_pwr">0</div></div>
+      </div>
+
+      <div class="bar">
+        <span>Export:</span>
+        <button class="btn sm" id="csvBtn" onclick="exportCSV()">Download Ledger CSV</button>
+        <span id="csvSt" style="color:var(--dim);font-size:12px"></span>
+      </div>
+
+      <div class="panel">
+        <h2>Overdue Loans</h2><p class="sub">Past term with outstanding balance.</p>
+        <table><thead><tr><th>Loan</th><th>Member</th><th class="r">Outstanding</th><th>Months/Term</th></tr></thead>
+        <tbody id="overdueTb"><tr class="empty"><td colspan="4">None &mdash; all good.</td></tr></tbody></table>
+      </div>
+
+      <div class="panel">
+        <h2>Loan Requests</h2><p class="sub">Approve creates the loan (loan-to-savings limit checked). Reject requires a reason.</p>
+        <table><thead><tr><th>ID</th><th>Member</th><th class="r">Amount</th><th>Term</th><th>Purpose</th><th>Limit</th><th>Status</th><th></th></tr></thead>
+        <tbody id="loanReqAdminTb"><tr class="empty"><td colspan="8">Loading&hellip;</td></tr></tbody></table>
+      </div>
+
+      <div class="panel">
+        <h2>Withdrawal Requests</h2><p class="sub">Approve releases funds from savings. Reject requires a reason.</p>
+        <table><thead><tr><th>ID</th><th>Member</th><th class="r">Amount</th><th class="r">Balance</th><th>Reason</th><th>Status</th><th></th></tr></thead>
+        <tbody id="wdReqAdminTb"><tr class="empty"><td colspan="7">Loading&hellip;</td></tr></tbody></table>
+      </div>
+
+      <div class="panel">
+        <div class="ph">
+          <div><h2>Members</h2><p class="sub">All members and savings balances.</p></div>
+          <div class="btn-row">
+            <button class="btn sm" onclick="openRecSavings()">Record Savings</button>
+            <button class="btn sm" onclick="openIssueLoan()">Issue Loan</button>
+            <button class="btn sm" onclick="openIssueFine()">Issue Fine</button>
+            <button class="btn sm solid" onclick="openAddMember()">+ Add Member</button>
+          </div>
+        </div>
+        <table><thead><tr><th>No.</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th class="r">Savings (UGX)</th></tr></thead>
+        <tbody id="membersTb"><tr class="empty"><td colspan="6">Loading&hellip;</td></tr></tbody></table>
+      </div>
+
+      <div class="panel">
+        <h2>Fines</h2>
+        <table><thead><tr><th>ID</th><th>Member</th><th>Date</th><th>Reason</th><th class="r">Amount</th><th>Status</th><th></th></tr></thead>
+        <tbody id="finesAdminTb"><tr class="empty"><td colspan="7">Loading&hellip;</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- ── AUDIT LOG ── -->
+    <div id="tab-audit" class="hidden">
+      <div class="panel">
+        <div class="ph">
+          <div><h2>Audit Log</h2><p class="sub">Every action recorded automatically. Append-only &mdash; never edited by the system.</p></div>
+          <button class="btn sm" onclick="loadAudit()">Refresh</button>
+        </div>
+        <table><thead><tr><th>Timestamp</th><th>Action</th><th>Member</th><th>Performed By</th><th>Details</th><th>Ref</th></tr></thead>
+        <tbody id="auditTb"><tr class="empty"><td colspan="6">Loading&hellip;</td></tr></tbody></table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══════════════════ MODALS ═══════════════════ -->
+
+<!-- Record savings -->
+<div class="modal-bg" id="m_savings" onclick="if(event.target===this)cm('m_savings')">
+  <div class="modal"><button class="x" onclick="cm('m_savings')">&times;</button>
+    <h3>Record Savings Transaction</h3>
+    <div class="mgrid">
+      <div class="field full"><label>Member</label><select id="sv_mb"></select></div>
+      <div class="field"><label>Type</label><select id="sv_ty"><option>Deposit</option><option>Withdrawal</option></select></div>
+      <div class="field"><label>Amount (UGX)</label><input id="sv_am" type="number" min="0"></div>
+      <div class="field full"><label>Reference</label><input id="sv_rf" type="text" placeholder="optional"></div>
+      <div class="field full"><label>Notes</label><input id="sv_nt" type="text" placeholder="optional"></div>
+    </div>
+    <div class="mact"><button class="btn" onclick="cm('m_savings')">Cancel</button><button class="btn solid" id="sv_btn" onclick="submitSavings()">Save</button></div>
+    <div class="mst" id="sv_st"></div>
+  </div>
+</div>
+
+<!-- Issue loan -->
+<div class="modal-bg" id="m_loan" onclick="if(event.target===this)cm('m_loan')">
+  <div class="modal"><button class="x" onclick="cm('m_loan')">&times;</button>
+    <h3>Issue Loan</h3>
+    <div class="mgrid">
+      <div class="field full"><label>Member</label><select id="ln_mb" onchange="updateLimitInfo()"></select></div>
+      <div class="field"><label>Principal (UGX)</label><input id="ln_pr" type="number" min="0" oninput="updateLimitInfo()"></div>
+      <div class="field"><label>Monthly Rate (%)</label><input id="ln_rt" type="number" min="0" step="0.1" placeholder="e.g. 5"></div>
+      <div class="field"><label>Term (months)</label><input id="ln_tm" type="number" min="1" value="6"></div>
+      <div class="field full"><label>Purpose</label><input id="ln_pu" type="text" placeholder="optional"></div>
+    </div>
+    <div class="lim-warn hidden" id="ln_lim"></div>
+    <div class="mgrid hidden" id="ln_ovwrap"><div class="field full"><label>Override Reason</label><input id="ln_ov" type="text" placeholder="required to exceed the limit"></div></div>
+    <div class="mact"><button class="btn" onclick="cm('m_loan')">Cancel</button><button class="btn solid" id="ln_btn" onclick="submitLoan()">Issue Loan</button></div>
+    <div class="mst" id="ln_st"></div>
+  </div>
+</div>
+
+<!-- Repayment -->
+<div class="modal-bg" id="m_repay" onclick="if(event.target===this)cm('m_repay')">
+  <div class="modal"><button class="x" onclick="cm('m_repay')">&times;</button>
+    <h3>Record Repayment</h3><p class="sub" id="rp_info"></p>
+    <div class="mgrid">
+      <div class="field full"><label>Amount (UGX)</label><input id="rp_am" type="number" min="0"></div>
+      <div class="field full"><label>Notes</label><input id="rp_nt" type="text" placeholder="optional"></div>
+    </div>
+    <div class="mact"><button class="btn" onclick="cm('m_repay')">Cancel</button><button class="btn solid" id="rp_btn" onclick="submitRepay()">Save</button></div>
+    <div class="mst" id="rp_st"></div>
+  </div>
+</div>
+
+<!-- Add member -->
+<div class="modal-bg" id="m_member" onclick="if(event.target===this)cm('m_member')">
+  <div class="modal"><button class="x" onclick="cm('m_member')">&times;</button>
+    <h3>Add Member</h3>
+    <div class="mgrid">
+      <div class="field"><label>Member Number</label><input id="mb_no" type="text" placeholder="e.g. M005"></div>
+      <div class="field"><label>Role</label><select id="mb_rl"><option>Member</option><option>Admin</option></select></div>
+      <div class="field full"><label>Full Name</label><input id="mb_nm" type="text"></div>
+      <div class="field full"><label>Email (Gmail for sign-in)</label><input id="mb_em" type="email" placeholder="name@gmail.com"></div>
+      <div class="field"><label>Phone</label><input id="mb_ph" type="text" placeholder="optional"></div>
+    </div>
+    <div class="mact"><button class="btn" onclick="cm('m_member')">Cancel</button><button class="btn solid" id="mb_btn" onclick="submitMember()">Add Member</button></div>
+    <div class="mst" id="mb_st"></div>
+  </div>
+</div>
+
+<!-- Request loan -->
+<div class="modal-bg" id="m_reqLoan" onclick="if(event.target===this)cm('m_reqLoan')">
+  <div class="modal"><button class="x" onclick="cm('m_reqLoan')">&times;</button>
+    <h3>Request a Loan</h3>
+    <div class="mgrid">
+      <div class="field"><label>Amount (UGX)</label><input id="rl_am" type="number" min="0"></div>
+      <div class="field"><label>Term (months)</label><input id="rl_tm" type="number" min="1" value="6"></div>
+      <div class="field full"><label>Purpose</label><input id="rl_pu" type="text"></div>
+    </div>
+    <div class="mact"><button class="btn" onclick="cm('m_reqLoan')">Cancel</button><button class="btn solid" id="rl_btn" onclick="submitReqLoan()">Submit Request</button></div>
+    <div class="mst" id="rl_st"></div>
+  </div>
+</div>
+
+<!-- Issue fine -->
+<div class="modal-bg" id="m_fine" onclick="if(event.target===this)cm('m_fine')">
+  <div class="modal"><button class="x" onclick="cm('m_fine')">&times;</button>
+    <h3>Issue Fine</h3>
+    <div class="mgrid">
+      <div class="field full"><label>Member</label><select id="fn_mb"></select></div>
+      <div class="field"><label>Amount (UGX)</label><input id="fn_am" type="number" min="0"></div>
+      <div class="field"><label>Reason</label><input id="fn_rs" type="text"></div>
+    </div>
+    <div class="mact"><button class="btn" onclick="cm('m_fine')">Cancel</button><button class="btn solid" id="fn_btn" onclick="submitFine()">Issue Fine</button></div>
+    <div class="mst" id="fn_st"></div>
+  </div>
+</div>
+
+<!-- Request withdrawal -->
+<div class="modal-bg" id="m_reqWd" onclick="if(event.target===this)cm('m_reqWd')">
+  <div class="modal"><button class="x" onclick="cm('m_reqWd')">&times;</button>
+    <h3>Request Withdrawal</h3><p class="sub" id="wd_bal"></p>
+    <div class="mgrid">
+      <div class="field full"><label>Amount (UGX)</label><input id="wd_am" type="number" min="0"></div>
+      <div class="field full"><label>Reason</label><input id="wd_rs" type="text" placeholder="e.g. Medical, School fees"></div>
+    </div>
+    <div class="mact"><button class="btn" onclick="cm('m_reqWd')">Cancel</button><button class="btn solid" id="wd_btn" onclick="submitReqWd()">Submit Request</button></div>
+    <div class="mst" id="wd_st"></div>
+  </div>
+</div>
+
+<!-- Approve loan request (with override) -->
+<div class="modal-bg" id="m_approveLR" onclick="if(event.target===this)cm('m_approveLR')">
+  <div class="modal"><button class="x" onclick="cm('m_approveLR')">&times;</button>
+    <h3>Approve Loan Request</h3><p class="sub" id="alr_info"></p>
+    <div class="mgrid">
+      <div class="field full"><label>Monthly Rate (%)</label><input id="alr_rt" type="number" min="0" step="0.1" placeholder="e.g. 5"></div>
+    </div>
+    <div class="lim-warn hidden" id="alr_lim"></div>
+    <div class="mgrid hidden" id="alr_ovwrap"><div class="field full"><label>Override Reason</label><input id="alr_ov" type="text" placeholder="required to exceed the limit"></div></div>
+    <div class="mact"><button class="btn" onclick="cm('m_approveLR')">Cancel</button><button class="btn solid" id="alr_btn" onclick="submitApproveLR()">Approve</button></div>
+    <div class="mst" id="alr_st"></div>
+  </div>
+</div>
+
+<!-- Reject loan request -->
+<div class="modal-bg" id="m_rejectLR" onclick="if(event.target===this)cm('m_rejectLR')">
+  <div class="modal"><button class="x" onclick="cm('m_rejectLR')">&times;</button>
+    <h3>Reject Loan Request</h3>
+    <div class="mgrid"><div class="field full"><label>Reason</label><input id="rjlr_rs" type="text"></div></div>
+    <div class="mact"><button class="btn" onclick="cm('m_rejectLR')">Cancel</button><button class="btn danger" id="rjlr_btn" onclick="submitRejectLR()">Reject</button></div>
+    <div class="mst" id="rjlr_st"></div>
+  </div>
+</div>
+
+<!-- Reject withdrawal -->
+<div class="modal-bg" id="m_rejectWd" onclick="if(event.target===this)cm('m_rejectWd')">
+  <div class="modal"><button class="x" onclick="cm('m_rejectWd')">&times;</button>
+    <h3>Reject Withdrawal Request</h3>
+    <div class="mgrid"><div class="field full"><label>Reason</label><input id="rjwd_rs" type="text"></div></div>
+    <div class="mact"><button class="btn" onclick="cm('m_rejectWd')">Cancel</button><button class="btn danger" id="rjwd_btn" onclick="submitRejectWd()">Reject</button></div>
+    <div class="mst" id="rjwd_st"></div>
+  </div>
+</div>
+
+<script>
+<?!= include('src/webapp/js/api') ?>
+<?!= include('src/webapp/js/app') ?>
+<?!= include('src/webapp/js/auth') ?>
+<?!= include('src/webapp/js/dashboard') ?>
+<?!= include('src/webapp/js/loans') ?>
+<?!= include('src/webapp/js/savings') ?>
+<?!= include('src/webapp/js/fines') ?>
+<?!= include('src/webapp/js/members') ?>
+<?!= include('src/webapp/js/reports') ?>
+</script>
+</body>
+</html>

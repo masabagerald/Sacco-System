@@ -1,0 +1,73 @@
+// ── MY SAVINGS ────────────────────────────────────────────────────────────────
+function renderSavings(res){
+  if(!res.ok)return;
+  SAVINGS_BAL=res.balance;$('#c_savings').textContent=fmt(res.balance);
+  const tb=$('#savingsTb');
+  if(!res.history.length){tb.innerHTML='<tr class="empty"><td colspan="4">No transactions yet.</td></tr>';return;}
+  tb.innerHTML=res.history.slice().reverse().map(r=>{
+    const g=r.type==='Deposit';
+    return '<tr><td>'+esc(r.date)+'</td><td>'+esc(r.type)+'</td><td>'+esc(r.reference)+'</td><td class="r '+(g?'g':'b')+'">'+(g?'+':'−')+' '+Math.round(n(r.amount)).toLocaleString('en-US')+'</td></tr>';
+  }).join('');
+}
+
+// ── record savings (admin) ───────────────────────────────────────────────────
+function openRecSavings(){$('#sv_mb').innerHTML=mbOpts();$('#sv_am').value='';$('#sv_rf').value='';$('#sv_nt').value='';mst('sv_st','','');om('m_savings');}
+function submitSavings(){
+  const mb=$('#sv_mb').value,ty=$('#sv_ty').value,am=$('#sv_am').value;
+  if(!mb)return mst('sv_st','err','Select a member.');
+  if(!am||n(am)<=0)return mst('sv_st','err','Enter a valid amount.');
+  $('#sv_btn').disabled=true;mst('sv_st','','Saving…');
+  Api.recordSavings(mb,ty,am,$('#sv_rf').value.trim(),$('#sv_nt').value.trim(), res=>{
+    $('#sv_btn').disabled=false;
+    if(!res.ok)return mst('sv_st','err',res.error);
+    mst('sv_st','ok','Saved. New balance: '+fmt(res.newBalance));
+    loadAdmin();if(mb===ME.memberNo)loadMyAccount();
+    setTimeout(()=>cm('m_savings'),900);
+  }, e=>{$('#sv_btn').disabled=false;mst('sv_st','err','Error: '+e.message);});
+}
+
+// ── withdrawal requests ───────────────────────────────────────────────────────
+function renderWdReqs(res){
+  if(!res.ok)return;
+  const tb=$('#wdReqTb');
+  if(!res.requests.length){tb.innerHTML='<tr class="empty"><td colspan="5">No withdrawal requests.</td></tr>';return;}
+  tb.innerHTML=res.requests.map(r=>'<tr><td>'+esc(r.requestId)+'</td><td class="r">'+Math.round(r.amount).toLocaleString('en-US')+'</td><td>'+esc(r.reason)+'</td><td>'+badge(r.status,BMAP)+'</td><td>'+esc(r.decisionNotes)+'</td></tr>').join('');
+}
+function loadWdReqAdmin(){
+  Api.getWithdrawalRequests(res=>{
+    if(!res.ok)return;
+    const tb=$('#wdReqAdminTb');
+    if(!res.requests.length){tb.innerHTML='<tr class="empty"><td colspan="7">No requests.</td></tr>';return;}
+    tb.innerHTML=res.requests.map(r=>{
+      const acts=r.status==='Pending'?'<button class="btn sm" onclick="approveWd(\''+r.requestId+'\')">Approve</button> <button class="btn sm danger" onclick="openRejectWd(\''+r.requestId+'\')">Reject</button>':'';
+      return '<tr><td>'+esc(r.requestId)+'</td><td>'+esc(r.memberName)+'</td><td class="r">'+Math.round(r.amount).toLocaleString('en-US')+'</td><td class="r">'+Math.round(r.currentBalance).toLocaleString('en-US')+'</td><td>'+esc(r.reason)+'</td><td>'+badge(r.status,BMAP)+'</td><td>'+acts+'</td></tr>';
+    }).join('');
+  });
+}
+function openReqWd(){$('#wd_bal').textContent='Current savings balance: '+fmt(SAVINGS_BAL);$('#wd_am').value='';$('#wd_rs').value='';mst('wd_st','','');om('m_reqWd');}
+function submitReqWd(){
+  const am=$('#wd_am').value,rs=$('#wd_rs').value.trim();
+  if(!am||n(am)<=0)return mst('wd_st','err','Enter a valid amount.');
+  if(!rs)return mst('wd_st','err','Please provide a reason.');
+  $('#wd_btn').disabled=true;mst('wd_st','','Submitting…');
+  Api.requestWithdrawal(am,rs, res=>{
+    $('#wd_btn').disabled=false;
+    if(!res.ok)return mst('wd_st','err',res.error);
+    mst('wd_st','ok','Request '+res.requestId+' submitted.');loadMyAccount();setTimeout(()=>cm('m_reqWd'),900);
+  }, e=>{$('#wd_btn').disabled=false;mst('wd_st','err','Error: '+e.message);});
+}
+function approveWd(id){
+  if(!confirm('Approve withdrawal request '+id+'? This deducts from savings immediately.'))return;
+  Api.approveWithdrawal(id, res=>{if(!res.ok)return alert('Error: '+res.error);loadWdReqAdmin();loadAdmin();loadMyAccount();});
+}
+function openRejectWd(id){REJECT_WD=id;$('#rjwd_rs').value='';mst('rjwd_st','','');om('m_rejectWd');}
+function submitRejectWd(){
+  const rs=$('#rjwd_rs').value.trim();
+  if(!rs)return mst('rjwd_st','err','Enter a reason.');
+  $('#rjwd_btn').disabled=true;mst('rjwd_st','','Saving…');
+  Api.rejectWithdrawal(REJECT_WD,rs, res=>{
+    $('#rjwd_btn').disabled=false;
+    if(!res.ok)return mst('rjwd_st','err',res.error);
+    mst('rjwd_st','ok','Rejected.');loadWdReqAdmin();setTimeout(()=>cm('m_rejectWd'),900);
+  }, e=>{$('#rjwd_btn').disabled=false;mst('rjwd_st','err','Error: '+e.message);});
+}

@@ -1,0 +1,54 @@
+// ── SERVER CALL WRAPPERS (google.script.run) ──────────────────────────────────
+function callServer(fnName, args, onSuccess, onFailure) {
+  let call = google.script.run;
+  if (onSuccess) call = call.withSuccessHandler(onSuccess);
+  if (onFailure) call = call.withFailureHandler(onFailure);
+  call[fnName].apply(call, args);
+}
+
+const Api = {
+  tryAutoDetect: (onSuccess, onFailure) => callServer('tryAutoDetect', [], onSuccess, onFailure),
+  confirmAutoDetect: (email, onSuccess, onFailure) => callServer('confirmAutoDetect', [email], onSuccess, onFailure),
+  sendOtp: (email, onSuccess, onFailure) => callServer('sendOtp', [email], onSuccess, onFailure),
+  verifyOtp: (email, code, onSuccess, onFailure) => callServer('verifyOtp', [email, code], onSuccess, onFailure),
+  logout: (onSuccess, onFailure) => callServer('logout', [], onSuccess, onFailure),
+
+  getMySavings: (onSuccess) => callServer('getMySavings', [], onSuccess),
+  getMyLoans: (onSuccess) => callServer('getMyLoans', [], onSuccess),
+  getMyLoanRequests: (onSuccess) => callServer('getMyLoanRequests', [], onSuccess),
+  getMyWithdrawalRequests: (onSuccess) => callServer('getMyWithdrawalRequests', [], onSuccess),
+  getMyFines: (onSuccess) => callServer('getMyFines', [], onSuccess),
+
+  getAdminDashboard: (onSuccess) => callServer('getAdminDashboard', [], onSuccess),
+  getAllMembersSummary: (onSuccess) => callServer('getAllMembersSummary', [], onSuccess),
+  getLoanRequests: (onSuccess) => callServer('getLoanRequests', [], onSuccess),
+  getWithdrawalRequests: (onSuccess) => callServer('getWithdrawalRequests', [], onSuccess),
+  getAllFinesForAdmin: (onSuccess) => callServer('getAllFinesForAdmin', [], onSuccess),
+  getAuditLog: (limit, onSuccess) => callServer('getAuditLog', [limit], onSuccess),
+
+  recordSavings: (memberNo, type, amount, reference, notes, onSuccess, onFailure) =>
+    callServer('recordSavings', [memberNo, type, amount, reference, notes], onSuccess, onFailure),
+  issueLoan: (memberNo, principal, monthlyRate, termMonths, purpose, overrideReason, onSuccess, onFailure) =>
+    callServer('issueLoan', [memberNo, principal, monthlyRate, termMonths, purpose, overrideReason], onSuccess, onFailure),
+  recordRepayment: (loanId, amount, notes, onSuccess, onFailure) =>
+    callServer('recordRepayment', [loanId, amount, notes], onSuccess, onFailure),
+  addMember: (memberNo, name, email, phone, role, onSuccess, onFailure) =>
+    callServer('addMember', [memberNo, name, email, phone, role], onSuccess, onFailure),
+  requestLoan: (amount, termMonths, purpose, onSuccess, onFailure) =>
+    callServer('requestLoan', [amount, termMonths, purpose], onSuccess, onFailure),
+  issueFine: (memberNo, amount, reason, onSuccess, onFailure) =>
+    callServer('issueFine', [memberNo, amount, reason], onSuccess, onFailure),
+  markFinePaid: (fineId, onSuccess) => callServer('markFinePaid', [fineId], onSuccess),
+  requestWithdrawal: (amount, reason, onSuccess, onFailure) =>
+    callServer('requestWithdrawal', [amount, reason], onSuccess, onFailure),
+  approveLoanRequest: (requestId, monthlyRate, overrideReason, onSuccess, onFailure) =>
+    callServer('approveLoanRequest', [requestId, monthlyRate, overrideReason], onSuccess, onFailure),
+  rejectLoanRequest: (requestId, reason, onSuccess, onFailure) =>
+    callServer('rejectLoanRequest', [requestId, reason], onSuccess, onFailure),
+  approveWithdrawal: (requestId, onSuccess) => callServer('approveWithdrawal', [requestId], onSuccess),
+  rejectWithdrawal: (requestId, reason, onSuccess, onFailure) =>
+    callServer('rejectWithdrawal', [requestId, reason], onSuccess, onFailure),
+
+  generateMemberStatementDoc: (onSuccess, onFailure) => callServer('generateMemberStatementDoc', [], onSuccess, onFailure),
+  exportAdminCSV: (onSuccess, onFailure) => callServer('exportAdminCSV', [], onSuccess, onFailure)
+};
