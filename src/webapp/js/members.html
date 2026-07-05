@@ -1,3 +1,4 @@
+<script>
 // ── ADMIN: MEMBERS ────────────────────────────────────────────────────────────
 function loadMembers(){
   Api.getAllMembersSummary(res=>{
@@ -16,3 +17,4 @@ function submitMember(){
     mst('mb_st','ok','Member added.');loadAdmin();setTimeout(()=>cm('m_member'),900);
   }, e=>{$('#mb_btn').disabled=false;mst('mb_st','err','Error: '+e.message);});
 }
+</script>

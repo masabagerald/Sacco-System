@@ -1,3 +1,4 @@
+<script>
 // ── MY LOANS ──────────────────────────────────────────────────────────────────
 function renderLoans(res){
   if(!res.ok)return;
@@ -128,3 +129,4 @@ function submitRejectLR(){
     mst('rjlr_st','ok','Rejected.');loadLoanReqAdmin();loadAdmin();setTimeout(()=>cm('m_rejectLR'),900);
   }, e=>{$('#rjlr_btn').disabled=false;mst('rjlr_st','err','Error: '+e.message);});
 }
+</script>

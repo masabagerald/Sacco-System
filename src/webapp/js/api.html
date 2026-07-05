@@ -1,3 +1,4 @@
+<script>
 // ── SERVER CALL WRAPPERS (google.script.run) ──────────────────────────────────
 function callServer(fnName, args, onSuccess, onFailure) {
   let call = google.script.run;
@@ -52,3 +53,4 @@ const Api = {
   generateMemberStatementDoc: (onSuccess, onFailure) => callServer('generateMemberStatementDoc', [], onSuccess, onFailure),
   exportAdminCSV: (onSuccess, onFailure) => callServer('exportAdminCSV', [], onSuccess, onFailure)
 };
+</script>

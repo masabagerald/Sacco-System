@@ -1,3 +1,4 @@
+<script>
 // ── ADMIN DASHBOARD ───────────────────────────────────────────────────────────
 function loadAdmin(){
   Api.getAdminDashboard(res=>{
@@ -21,3 +22,4 @@ function loadAudit(){
     tb.innerHTML=res.entries.map(e=>'<tr><td>'+esc(e.timestamp)+'</td><td>'+esc(e.action)+'</td><td>'+esc(e.member)+'</td><td>'+esc(e.performedBy)+'</td><td>'+esc(e.details)+'</td><td>'+esc(e.refId)+'</td></tr>').join('');
   });
 }
+</script>

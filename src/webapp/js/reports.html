@@ -1,3 +1,4 @@
+<script>
 // ── MEMBER STATEMENT ──────────────────────────────────────────────────────────
 function fetchStmt(cb){
   if(STMT){cb(STMT);return;}
@@ -25,3 +26,4 @@ function exportCSV(){
     $('#csvSt').textContent='Downloaded.';setTimeout(()=>$('#csvSt').textContent='',3000);
   }, e=>{$('#csvBtn').disabled=false;$('#csvSt').textContent='Error: '+e.message;});
 }
+</script>

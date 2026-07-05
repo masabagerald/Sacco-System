@@ -1,3 +1,4 @@
+<script>
 // ── MY SAVINGS ────────────────────────────────────────────────────────────────
 function renderSavings(res){
   if(!res.ok)return;
@@ -71,3 +72,4 @@ function submitRejectWd(){
     mst('rjwd_st','ok','Rejected.');loadWdReqAdmin();setTimeout(()=>cm('m_rejectWd'),900);
   }, e=>{$('#rjwd_btn').disabled=false;mst('rjwd_st','err','Error: '+e.message);});
 }
+</script>

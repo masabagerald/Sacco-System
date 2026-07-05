@@ -1,3 +1,4 @@
+<script>
 // ── SHARED STATE & HELPERS ─────────────────────────────────────────────────────
 let ME=null, MEMBERS=[], SAVINGS_BAL=0, STMT=null, REPAY_LOAN=null, APPROV_REQ=null, REJECT_LR=null, REJECT_WD=null;
 const $=s=>document.querySelector(s);
@@ -51,3 +52,4 @@ function mbOpts(){return '<option value="">— select —</option>'+MEMBERS.map(
 function mst(id,cls,txt){$('#'+id).className='mst'+(cls?' '+cls:'');$('#'+id).textContent=txt;}
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-bg.on').forEach(m=>m.classList.remove('on'));});
+</script>
