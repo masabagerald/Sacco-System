@@ -3,8 +3,8 @@
 function requestWithdrawal(amount, reason) {
   const auth = _caller(); if (!auth.ok) return auth;
   amount=num(amount);
-  if (amount<=0) return {ok:false,error:'Amount must be greater than zero.'};
-  if (!String(reason||'').trim()) return {ok:false,error:'Please provide a reason.'};
+  const av = validatePositiveAmount(amount); if (!av.ok) return av;
+  const rv = validateReason(reason); if (!rv.ok) return rv;
   const bal=_savingsBalance(auth.member.memberNo);
   if (amount>bal) return {ok:false,error:'Amount exceeds savings balance ('+fmtUGX(bal)+').'};
   const { sh, headers, hRow } = readSheet(SH_WD_REQ,'requestid');
@@ -75,7 +75,7 @@ function approveWithdrawal(requestId) {
 
 function rejectWithdrawal(requestId, reason) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
-  if (!String(reason||'').trim()) return {ok:false,error:'Please provide a reason.'};
+  const rv = validateReason(reason); if (!rv.ok) return rv;
   const { sh, headers, hRow, rows } = readSheet(SH_WD_REQ,'requestid');
   const req=rows.find(r=>String(r['RequestID']||'').trim()===String(requestId).trim());
   if (!req) return {ok:false,error:'Request not found.'};

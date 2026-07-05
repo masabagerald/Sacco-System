@@ -14,8 +14,8 @@ function getMyFines() {
 function issueFine(memberNo, amount, reason) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
   amount=num(amount);
-  if (amount<=0) return {ok:false,error:'Amount must be greater than zero.'};
-  if (!String(reason||'').trim()) return {ok:false,error:'Please provide a reason.'};
+  const av = validatePositiveAmount(amount); if (!av.ok) return av;
+  const rv = validateReason(reason); if (!rv.ok) return rv;
   const { sh, headers, hRow } = readSheet(SH_FINES,'fineid');
   const newId=nextId(SH_FINES,'fineid','F');
   const row=emptyRow(sh,hRow,ci(headers,'memberno'));

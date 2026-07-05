@@ -5,14 +5,13 @@ function getAllMembersSummary() {
   const { rows } = readSheet(SH_MEMBERS,'memberno');
   return { ok:true, members: rows
     .filter(m=>String(m['MemberNo']||'').trim()!=='')
-    .map(m=>({memberNo:m['MemberNo'],name:m['Full Name'],email:m['Email'],role:m['Role'],
-      status:m['Status'],savingsBalance:_savingsBalance(m['MemberNo'])})) };
+    .map(m=>({...makeMemberRecord(m), savingsBalance:_savingsBalance(m['MemberNo'])})) };
 }
 
 function addMember(memberNo, name, email, phone, role) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
   memberNo=String(memberNo).trim(); email=String(email).trim().toLowerCase();
-  if (!memberNo||!name||!email) return {ok:false,error:'Member number, name and email are required.'};
+  const nv = validateNewMember(memberNo, name, email); if (!nv.ok) return nv;
   const { rows } = readSheet(SH_MEMBERS,'memberno');
   if (rows.some(r=>String(r['MemberNo']||'').trim()===memberNo)) return {ok:false,error:'Member number already exists.'};
   if (rows.some(r=>String(r['Email']||'').trim().toLowerCase()===email)) return {ok:false,error:'Email already registered to another member.'};

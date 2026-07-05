@@ -22,8 +22,7 @@ function sendOtp(email) {
   if (!r.ok) return r;
 
   const code = String(Math.floor(100000 + Math.random() * 900000));
-  PropertiesService.getScriptProperties().setProperty('otp_' + email,
-    JSON.stringify({ code, expires: Date.now() + OTP_EXPIRY_MS }));
+  Config.setScriptProp('otp_' + email, JSON.stringify({ code, expires: Date.now() + OTP_EXPIRY_MS }));
 
   try {
     MailApp.sendEmail({

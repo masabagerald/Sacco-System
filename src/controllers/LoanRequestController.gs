@@ -3,7 +3,7 @@
 function requestLoan(amount, termMonths, purpose) {
   const auth = _caller(); if (!auth.ok) return auth;
   amount=num(amount); termMonths=num(termMonths);
-  if (amount<=0) return {ok:false,error:'Amount must be greater than zero.'};
+  const av = validatePositiveAmount(amount); if (!av.ok) return av;
   const { sh, headers, hRow } = readSheet(SH_LOAN_REQ,'requestid');
   const newId = nextId(SH_LOAN_REQ,'requestid','R');
   const row = emptyRow(sh, hRow, ci(headers,'memberno'));
@@ -68,7 +68,7 @@ function approveLoanRequest(requestId, monthlyRate, overrideReason) {
 
 function rejectLoanRequest(requestId, reason) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
-  if (!String(reason||'').trim()) return {ok:false,error:'Please provide a reason.'};
+  const rv = validateReason(reason); if (!rv.ok) return rv;
   const { sh, headers, hRow, rows } = readSheet(SH_LOAN_REQ,'requestid');
   const req=rows.find(r=>String(r['RequestID']||'').trim()===String(requestId).trim());
   if (!req) return {ok:false,error:'Request not found.'};
