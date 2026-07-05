@@ -13,8 +13,7 @@ function getMyLoans() {
 function issueLoan(memberNo, principal, monthlyRate, termMonths, purpose, overrideReason) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
   principal=num(principal); monthlyRate=num(monthlyRate); termMonths=num(termMonths);
-  if (principal<=0) return {ok:false,error:'Principal must be greater than zero.'};
-  if (monthlyRate<0) return {ok:false,error:'Interest rate cannot be negative.'};
+  const lv = validateLoanIssue(principal, monthlyRate); if (!lv.ok) return lv;
   const lc = _checkLimit(memberNo, principal);
   if (!lc.withinLimit && !String(overrideReason||'').trim())
     return {ok:false,error:'Exceeds loan-to-savings limit. Savings: '+fmtUGX(lc.savings)+', max: '+fmtUGX(lc.maxLoan)+'. Provide an override reason to proceed.',limitCheck:lc};
@@ -33,7 +32,7 @@ function issueLoan(memberNo, principal, monthlyRate, termMonths, purpose, overri
 function recordRepayment(loanId, amount, notes) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
   amount = num(amount);
-  if (amount<=0) return {ok:false,error:'Amount must be greater than zero.'};
+  const av = validateRepaymentAmount(amount); if (!av.ok) return av;
   const { rows: loans } = readSheet(SH_LOANS,'loanid');
   const loan = loans.find(l => String(l['LoanID']||'').trim()===String(loanId).trim());
   if (!loan) return {ok:false,error:'Loan not found.'};
@@ -46,12 +45,12 @@ function recordRepayment(loanId, amount, notes) {
   s(ci(headers,'notes'),notes||'');
   const { rows: reps2 } = readSheet(SH_REPAY,'loanid');
   const updated = _computeLoan(loan, reps2);
-  if (updated.outstandingBalance<=0.5) _setLoanStatus(loanId,'Cleared');
+  if (updated.outstandingBalance<=0.5) _setLoanStatus(loanId,LOAN_STATUS.CLEARED);
   const m = _memberByNo(loan['MemberNo']);
   _sendEmail(m?.['Email'],'Repayment Received: '+loanId,[
     ['Loan ID',loanId],['Amount Paid',fmtUGX(amount)],
     ['New Outstanding',fmtUGX(updated.outstandingBalance)],['Status',updated.status]
-  ], updated.status==='Cleared'?'Congratulations — this loan is now fully cleared!':'Your repayment has been recorded. Thank you.');
+  ], updated.status===LOAN_STATUS.CLEARED?'Congratulations — this loan is now fully cleared!':'Your repayment has been recorded. Thank you.');
   auditLog('Loan Repayment', loan['MemberNo'], auth.member.memberNo,
     'Repayment of '+fmtUGX(amount)+'. Outstanding: '+fmtUGX(updated.outstandingBalance), loanId);
   return { ok: true, loan: updated };

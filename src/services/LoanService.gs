@@ -23,8 +23,8 @@ function _computeLoan(loan, allRepayments) {
   if (balance < 0) balance = 0;
   const term = num(loan['Term (months)']);
   const monthsElapsed = Math.floor((now - issued) / (1000*60*60*24*30.44));
-  const status = balance <= 0.5 ? 'Cleared' : String(loan['Status']||'Active');
-  const overdue = status === 'Active' && term > 0 && monthsElapsed > term;
+  const status = balance <= 0.5 ? LOAN_STATUS.CLEARED : String(loan['Status']||LOAN_STATUS.ACTIVE);
+  const overdue = status === LOAN_STATUS.ACTIVE && term > 0 && monthsElapsed > term;
   return { loanId: loan['LoanID'], memberNo: loan['MemberNo'], principal, monthlyRate: num(loan['Monthly Rate (%)']),
     term, dateIssued: loan['Date Issued'], purpose: loan['Purpose']||'',
     overrideReason: loan['Override Reason']||'', monthsElapsed, totalInterestAccrued: r2(totalInterest),
@@ -59,7 +59,7 @@ function _createLoanRow(memberNo, principal, monthlyRate, termMonths, purpose, i
   s(ci(headers,'loanid'),newId); s(ci(headers,'timestamp'),now_ts());
   s(ci(headers,'memberno'),memberNo); s(ci(headers,'date issued'),today());
   s(ci(headers,'principal'),principal); s(ci(headers,'monthly rate'),monthlyRate);
-  s(ci(headers,'term'),termMonths); s(ci(headers,'status'),'Active');
+  s(ci(headers,'term'),termMonths); s(ci(headers,'status'),LOAN_STATUS.ACTIVE);
   s(ci(headers,'issued by'),issuedBy); s(ci(headers,'purpose'),purpose||'');
   s(ci(headers,'override'),overrideReason||'');
   return newId;

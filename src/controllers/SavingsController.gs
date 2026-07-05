@@ -15,7 +15,7 @@ function recordSavings(memberNo, type, amount, reference, notes) {
   type = String(type).trim();
   if (type !== 'Deposit' && type !== 'Withdrawal') return { ok: false, error: 'Type must be Deposit or Withdrawal.' };
   amount = num(amount);
-  if (amount <= 0) return { ok: false, error: 'Amount must be greater than zero.' };
+  const av = validatePositiveAmount(amount); if (!av.ok) return av;
   if (type === 'Withdrawal') {
     const bal = _savingsBalance(memberNo);
     if (amount > bal) return { ok: false, error: 'Withdrawal exceeds balance (' + fmtUGX(bal) + ').' };
