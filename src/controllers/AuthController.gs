@@ -43,16 +43,16 @@ function verifyOtp(email, code) {
   if (!email || !code) return { ok: false, error: 'Email and code are required.' };
   let payload;
   try {
-    const raw = PropertiesService.getScriptProperties().getProperty('otp_' + email);
+    const raw = Config.getScriptProp('otp_' + email);
     if (!raw) return { ok: false, error: 'No code found. Please request a new one.' };
     payload = JSON.parse(raw);
   } catch(e) { return { ok: false, error: 'Could not read code. Please request a new one.' }; }
   if (Date.now() > payload.expires) {
-    PropertiesService.getScriptProperties().deleteProperty('otp_' + email);
+    Config.deleteScriptProp('otp_' + email);
     return { ok: false, expired: true, error: 'Code expired. Please request a new one.' };
   }
   if (payload.code !== code) return { ok: false, error: 'Incorrect code. Please check your email.' };
-  PropertiesService.getScriptProperties().deleteProperty('otp_' + email);
+  Config.deleteScriptProp('otp_' + email);
   const r = _lookupMember(email);
   if (r.ok) _storeSession(email);
   return r;
@@ -60,7 +60,7 @@ function verifyOtp(email, code) {
 
 // Logout
 function logout() {
-  try { PropertiesService.getUserProperties().deleteProperty('sacco_email'); } catch(e) {}
+  Config.deleteUserProp('sacco_email');
   return { ok: true };
 }
 
