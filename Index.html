@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Kira SACCO</title>
+<style>
+:root{
+  --bg:#0c2318; --panel:#112d1e; --panel2:#163824; --line:#1e5035;
+  --gold:#d4a843; --goldsft:#e8c878; --text:#e8f5ee; --dim:#87b89a;
+  --good:#52b37a; --bad:#d9624a; --warn:#d4943a; --rad:10px;
+  --shad:0 6px 22px rgba(0,0,0,.38);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{background:linear-gradient(160deg,#0c2318 0%,#081a11 100%);color:var(--text);
+  font-family:"Inter","Segoe UI",ui-sans-serif,sans-serif;-webkit-font-smoothing:antialiased}
+.mono{font-family:"IBM Plex Mono","Courier New",monospace}
+
+/* ── header ── */
+header{padding:16px 24px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--line);background:rgba(0,0,0,.18);
+  position:sticky;top:0;z-index:30;backdrop-filter:blur(8px);flex-wrap:wrap;gap:10px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .logo{width:34px;height:34px;border-radius:8px;background:var(--gold);display:flex;
+  align-items:center;justify-content:center;font-weight:800;color:#0c2318;font-size:15px;font-family:"IBM Plex Mono",monospace}
+.brand h1{font-size:17px;font-weight:700;letter-spacing:.3px}
+.brand .sub{font-size:11px;color:var(--dim);margin-top:2px}
+.hdr-right{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--dim);flex-wrap:wrap}
+.hdr-right b{color:var(--text)}
+
+/* ── buttons ── */
+.btn{padding:8px 15px;border:1px solid var(--gold);background:transparent;color:var(--goldsft);
+  border-radius:8px;font-size:13px;cursor:pointer;font-weight:600;transition:all .14s;font-family:inherit}
+.btn:hover{background:var(--gold);color:#0c2318}
+.btn.solid{background:var(--gold);color:#0c2318}
+.btn.solid:hover{background:var(--goldsft)}
+.btn.danger{border-color:var(--bad);color:var(--bad)}
+.btn.danger:hover{background:var(--bad);color:#fff}
+.btn.sm{padding:5px 11px;font-size:12px}
+.btn:disabled{opacity:.45;cursor:default;pointer-events:none}
+
+/* ── layout ── */
+main{max-width:1040px;margin:0 auto;padding:26px 18px 80px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:20px}
+.card{background:linear-gradient(145deg,var(--panel2),var(--panel));border:1px solid var(--line);
+  border-radius:var(--rad);padding:16px;box-shadow:var(--shad)}
+.card .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:1.1px;color:var(--dim);margin-bottom:8px}
+.card .val{font-size:24px;font-weight:700;font-family:"IBM Plex Mono",monospace;color:var(--goldsft)}
+.card .val.bad{color:var(--bad)}.card .val.warn{color:var(--warn)}
+.card .meta{font-size:11.5px;color:var(--dim);margin-top:5px}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--rad);
+  padding:18px;margin-bottom:18px;box-shadow:var(--shad)}
+.panel h2{font-size:14.5px;font-weight:700;letter-spacing:.3px;margin-bottom:4px}
+.panel .sub{font-size:12px;color:var(--dim);margin-bottom:13px}
+.ph{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:13px}
+.ph h2{margin-bottom:4px}
+.btn-row{display:flex;gap:7px;flex-wrap:wrap}
+
+/* ── tables ── */
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--dim);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.7px}
+td.r{text-align:right;font-family:"IBM Plex Mono",monospace;white-space:nowrap}
+td.g{color:var(--good)} td.b{color:var(--bad)}
+tr:hover td{background:rgba(255,255,255,.025)}
+.empty td{text-align:center;color:var(--dim);padding:16px;font-style:italic}
+
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.3px;white-space:nowrap}
+.badge.active{background:rgba(82,179,122,.18);color:var(--good)}
+.badge.cleared{background:rgba(212,168,67,.18);color:var(--goldsft)}
+.badge.overdue{background:rgba(217,98,74,.18);color:var(--bad)}
+.badge.admin{background:rgba(212,168,67,.22);color:var(--goldsft)}
+.badge.member{background:rgba(255,255,255,.07);color:var(--dim)}
+.badge.pending{background:rgba(212,148,58,.18);color:var(--warn)}
+.badge.approved{background:rgba(82,179,122,.18);color:var(--good)}
+.badge.rejected{background:rgba(217,98,74,.18);color:var(--bad)}
+.badge.unpaid{background:rgba(217,98,74,.18);color:var(--bad)}
+.badge.paid{background:rgba(82,179,122,.18);color:var(--good)}
+
+/* ── tabs ── */
+.tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
+.tab{padding:7px 15px;border-radius:8px;border:1px solid var(--line);background:transparent;
+  color:var(--dim);font-size:13px;cursor:pointer;font-weight:600;font-family:inherit;transition:all .14s}
+.tab.on{background:var(--gold);color:#0c2318;border-color:var(--gold)}
+
+/* ── loan cards ── */
+.loan-card{border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:12px;background:rgba(255,255,255,.02)}
+.loan-hd{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.loan-hd .lid{font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:14px}
+.loan-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-top:10px}
+.ls-k{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px}
+.ls-v{font-family:"IBM Plex Mono",monospace;font-weight:600;margin-top:2px;font-size:13px}
+.sched{display:none;margin-top:10px}
+.sched.on{display:block}
+.sched table{font-size:11.5px}
+.note{font-size:12px;color:var(--dim);margin-top:6px}
+
+/* ── login ── */
+.center{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.info-card{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:28px;box-shadow:var(--shad);text-align:center}
+.info-card .logo{width:52px;height:52px;border-radius:12px;background:var(--gold);margin:0 auto 14px;
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;color:#0c2318;font-family:"IBM Plex Mono",monospace}
+.info-card h1{font-size:20px;margin-bottom:6px}
+.info-card p{font-size:13px;color:var(--dim);line-height:1.55;margin-bottom:10px}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;text-align:left}
+.field label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--dim)}
+.field input,.field select,.field textarea{padding:10px 12px;border:1px solid var(--line);border-radius:8px;
+  background:#0c2318;color:var(--text);font-size:13px;font-family:inherit}
+.field input:focus,.field select:focus{outline:1px solid var(--gold);border-color:var(--gold)}
+.err{color:var(--bad);font-size:12.5px;min-height:16px;margin-top:6px}
+
+/* ── modals ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;
+  justify-content:center;z-index:50;padding:16px}
+.modal-bg.on{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;max-width:480px;
+  width:100%;padding:22px;box-shadow:var(--shad);position:relative;max-height:88vh;overflow:auto}
+.modal h3{font-size:16px;margin-bottom:4px}
+.modal .x{position:absolute;top:13px;right:15px;border:none;background:none;font-size:20px;
+  color:var(--dim);cursor:pointer}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:13px}
+.mgrid .full{grid-column:1/-1}
+.mact{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.mst{font-size:12.5px;color:var(--dim);margin-top:8px;min-height:14px}
+.mst.ok{color:var(--good)}.mst.err{color:var(--bad)}
+.lim-warn{background:rgba(217,98,74,.1);border:1px solid var(--bad);border-radius:8px;
+  padding:9px 12px;font-size:12.5px;margin-top:10px}
+
+.bar{display:flex;gap:9px;margin-bottom:16px;align-items:center;flex-wrap:wrap}
+.bar span{font-size:12.5px;color:var(--dim)}
+
+.hidden{display:none!important}
+@media(max-width:580px){.mgrid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ LOGIN STATES ═══════════════════ -->
+<div class="center" id="loginView">
+
+  <div class="info-card" id="s_loading">
+    <div class="logo">K</div>
+    <h1>Kira SACCO</h1>
+    <p>Checking your account&hellip;</p>
+  </div>
+
+  <div class="info-card hidden" id="s_confirm">
+    <div class="logo">K</div>
+    <h1>Kira SACCO</h1>
+    <p>We detected the following Google account:</p>
+    <p style="font-size:15px;font-weight:700;color:var(--goldsft);margin:10px 0 16px;word-break:break-all" id="detectedEmail"></p>
+    <p>Is this your registered SACCO email?</p>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap">
+      <button class="btn solid" onclick="doConfirm()">Yes, continue</button>
+      <button class="btn" onclick="showManual()">Use a different email</button>
+    </div>
+    <div class="err" id="confirmErr"></div>
+  </div>
+
+  <div class="info-card hidden" id="s_manual">
+    <div class="logo">K</div>
+    <h1>Kira SACCO</h1>
+    <p>Enter your registered Gmail address. We will send you a one-time sign-in code.</p>
+    <div class="field" style="margin-top:14px">
+      <label>Email address</label>
+      <input id="manualEmail" type="email" placeholder="your.name@gmail.com" autocomplete="email">
+    </div>
+    <button class="btn solid" style="width:100%;margin-top:4px" id="sendOtpBtn" onclick="doSendOtp()">Send code</button>
+    <div class="err" id="manualErr"></div>
+  </div>
+
+  <div class="info-card hidden" id="s_otp">
+    <div class="logo">K</div>
+    <h1>Check your email</h1>
+    <p>We sent a 6-digit code to <b id="otpMasked"></b>. Enter it below &mdash; expires in 10 minutes.</p>
+    <div class="field" style="margin-top:14px">
+      <label>Sign-in code</label>
+      <input id="otpCode" type="text" maxlength="6" placeholder="000000" autocomplete="one-time-code"
+        style="font-size:22px;letter-spacing:7px;font-family:'IBM Plex Mono',monospace;text-align:center">
+    </div>
+    <button class="btn solid" style="width:100%;margin-top:4px" id="verifyBtn" onclick="doVerify()">Verify &amp; sign in</button>
+    <button class="btn" style="width:100%;margin-top:8px" onclick="showManual()">Use a different email</button>
+    <div class="err" id="otpErr"></div>
+    <div style="margin-top:12px;font-size:12px;color:var(--dim)">Didn&#39;t receive it? Check spam, or
+      <span style="color:var(--goldsft);cursor:pointer;text-decoration:underline" onclick="doSendOtp()">resend code</span>.
+    </div>
+  </div>
+
+  <div class="info-card hidden" id="s_noreg">
+    <div class="logo">K</div>
+    <h1>Not Registered</h1>
+    <p id="noregMsg"></p>
+    <button class="btn" style="margin-top:12px" onclick="showManual()">Try a different email</button>
+  </div>
+
+</div>
+
+<!-- ═══════════════════ APP ═══════════════════ -->
+<div class="hidden" id="appView">
+  <header>
+    <div class="brand">
+      <div class="logo">K</div>
+      <div>
+        <h1>Kira SACCO</h1>
+        <div class="sub">Member savings &amp; loans</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <span><b id="whoName"></b> &middot; <span id="whoRole"></span></span>
+      <button class="btn sm" id="logoutBtn" onclick="doLogout()">Sign out</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-t="my" onclick="showTab('my')">My Account</button>
+      <button class="tab hidden" data-t="admin" id="adminTab" onclick="showTab('admin')">Admin</button>
+      <button class="tab hidden" data-t="audit" id="auditTab" onclick="showTab('audit')">Audit Log</button>
+    </div>
+
+    <!-- ── MY ACCOUNT ── -->
+    <div id="tab-my">
+      <div class="cards">
+        <div class="card"><div class="lbl">Savings Balance</div><div class="val mono" id="c_savings">UGX 0</div><div class="meta">As of today</div></div>
+        <div class="card"><div class="lbl">Loan Outstanding</div><div class="val mono bad" id="c_outstanding">UGX 0</div><div class="meta" id="c_loanMeta">No active loans</div></div>
+        <div class="card"><div class="lbl">Fines Owed</div><div class="val mono warn" id="c_fines">UGX 0</div><div class="meta" id="c_finesMeta">No unpaid fines</div></div>
+      </div>
+
+      <div class="bar">
+        <span>My Statement:</span>
+        <button class="btn sm" id="stmtViewBtn" onclick="openStmt()">Open PDF</button>
+        <button class="btn sm" id="stmtDlBtn" onclick="dlStmt()">Download PDF</button>
+        <span id="stmtSt" style="color:var(--dim);font-size:12px"></span>
+      </div>
+
+      <div class="panel">
+        <div class="ph">
+          <div><h2>My Loans</h2><p class="sub">Live reducing-balance calculation. Schedule is a projected guide.</p></div>
+          <button class="btn sm solid" onclick="openReqLoan()">Request a Loan</button>
+        </div>
+        <div id="loansList"><p class="note">Loading&hellip;</p></div>
+      </div>
+
+      <div class="panel">
+        <h2>My Loan Requests</h2><p class="sub">Status of submitted loan requests.</p>
+        <table><thead><tr><th>ID</th><th>Amount</th><th>Term</th><th>Purpose</th><th>Status</th><th>Notes</th></tr></thead>
+        <tbody id="loanReqTb"><tr class="empty"><td colspan="6">Loading&hellip;</td></tr></tbody></table>
+      </div>
+
+      <div class="panel">
+        <div class="ph">
+          <div><h2>Withdrawal Requests</h2><p class="sub">Request a withdrawal from your savings. Admin must approve.</p></div>
+          <button class="btn sm solid" onclick="openReqWd()">Request Withdrawal</button>
+        </div>
+        <table><thead><tr><th>ID</th><th class="r">Amount</th><th>Reason</th><th>Status</th><th>Notes</th></tr></thead>
+        <tbody id="wdReqTb"><tr class="empty"><td colspan="5">Loading&hellip;</td></tr></tbody></table>
+      </div>
+
+      <div class="panel">
+        <h2>Savings History</h2><p class="sub">All deposits and withdrawals.</p>
+        <table><thead><tr><th>Date</th><th>Type</th><th>Reference</th><th class="r">Amount (UGX)</th></tr></thead>
+        <tbody id="savingsTb"><tr class="empty"><td colspan="4">Loading&hellip;</td></tr></tbody></table>
+      </div>
+
+      <div class="panel">
+        <h2>My Fines</h2>
+        <table><thead><tr><th>Date</th><th>Reason</th><th class="r">Amount</th><th>Status</th></tr></thead>
+        <tbody id="finesTb"><tr class="empty"><td colspan="4">Loading&hellip;</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- ── ADMIN ── -->
+    <div id="tab-admin" class="hidden">
+      <div class="cards">
+        <div class="card"><div class="lbl">Members</div><div class="val mono" id="d_mem">0</div></div>
+        <div class="card"><div class="lbl">Total Savings</div><div class="val mono" id="d_sav">UGX 0</div></div>
+        <div class="card"><div class="lbl">Loans Outstanding</div><div class="val mono bad" id="d_out">UGX 0</div><div class="meta" id="d_lc"></div></div>
+        <div class="card"><div class="lbl">Unpaid Fines</div><div class="val mono warn" id="d_fin">UGX 0</div></div>
+        <div class="card"><div class="lbl">Pending (Loans)</div><div class="val mono" id="d_plr">0</div></div>
+        <div class="card"><div class="lbl">Pending (Withdrawals)</div><div class="val mono" id="d_pwr">0</div></div>
+      </div>
+
+      <div class="bar">
+        <span>Export:</span>
+        <button class="btn sm" id="csvBtn" onclick="exportCSV()">Download Ledger CSV</button>
+        <span id="csvSt" style="color:var(--dim);font-size:12px"></span>
+      </div>
+
+      <div class="panel">
+        <h2>Overdue Loans</h2><p class="sub">Past term with outstanding balance.</p>
+        <table><thead><tr><th>Loan</th><th>Member</th><th class="r">Outstanding</th><th>Months/Term</th></tr></thead>
+        <tbody id="overdueTb"><tr class="empty"><td colspan="4">None &mdash; all good.</td></tr></tbody></table>
+      </div>
+
+      <div class="panel">
+        <h2>Loan Requests</h2><p class="sub">Approve creates the loan (loan-to-savings limit checked). Reject requires a reason.</p>
+        <table><thead><tr><th>ID</th><th>Member</th><th class="r">Amount</th><th>Term</th><th>Purpose</th><th>Limit</th><th>Status</th><th></th></tr></thead>
+        <tbody id="loanReqAdminTb"><tr class="empty"><td colspan="8">Loading&hellip;</td></tr></tbody></table>
+      </div>
+
+      <div class="panel">
+        <h2>Withdrawal Requests</h2><p class="sub">Approve releases funds from savings. Reject requires a reason.</p>
+        <table><thead><tr><th>ID</th><th>Member</th><th class="r">Amount</th><th class="r">Balance</th><th>Reason</th><th>Status</th><th></th></tr></thead>
+        <tbody id="wdReqAdminTb"><tr class="empty"><td colspan="7">Loading&hellip;</td></tr></tbody></table>
+      </div>
+
+      <div class="panel">
+        <div class="ph">
+          <div><h2>Members</h2><p class="sub">All members and savings balances.</p></div>
+          <div class="btn-row">
+            <button class="btn sm" onclick="openRecSavings()">Record Savings</button>
+            <button class="btn sm" onclick="openIssueLoan()">Issue Loan</button>
+            <button class="btn sm" onclick="openIssueFine()">Issue Fine</button>
+            <button class="btn sm solid" onclick="openAddMember()">+ Add Member</button>
+          </div>
+        </div>
+        <table><thead><tr><th>No.</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th class="r">Savings (UGX)</th></tr></thead>
+        <tbody id="membersTb"><tr class="empty"><td colspan="6">Loading&hellip;</td></tr></tbody></table>
+      </div>
+
+      <div class="panel">
+        <h2>Fines</h2>
+        <table><thead><tr><th>ID</th><th>Member</th><th>Date</th><th>Reason</th><th class="r">Amount</th><th>Status</th><th></th></tr></thead>
+        <tbody id="finesAdminTb"><tr class="empty"><td colspan="7">Loading&hellip;</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- ── AUDIT LOG ── -->
+    <div id="tab-audit" class="hidden">
+      <div class="panel">
+        <div class="ph">
+          <div><h2>Audit Log</h2><p class="sub">Every action recorded automatically. Append-only &mdash; never edited by the system.</p></div>
+          <button class="btn sm" onclick="loadAudit()">Refresh</button>
+        </div>
+        <table><thead><tr><th>Timestamp</th><th>Action</th><th>Member</th><th>Performed By</th><th>Details</th><th>Ref</th></tr></thead>
+        <tbody id="auditTb"><tr class="empty"><td colspan="6">Loading&hellip;</td></tr></tbody></table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══════════════════ MODALS ═══════════════════ -->
+
+<!-- Record savings -->
+<div class="modal-bg" id="m_savings" onclick="if(event.target===this)cm('m_savings')">
+  <div class="modal"><button class="x" onclick="cm('m_savings')">&times;</button>
+    <h3>Record Savings Transaction</h3>
+    <div class="mgrid">
+      <div class="field full"><label>Member</label><select id="sv_mb"></select></div>
+      <div class="field"><label>Type</label><select id="sv_ty"><option>Deposit</option><option>Withdrawal</option></select></div>
+      <div class="field"><label>Amount (UGX)</label><input id="sv_am" type="number" min="0"></div>
+      <div class="field full"><label>Reference</label><input id="sv_rf" type="text" placeholder="optional"></div>
+      <div class="field full"><label>Notes</label><input id="sv_nt" type="text" placeholder="optional"></div>
+    </div>
+    <div class="mact"><button class="btn" onclick="cm('m_savings')">Cancel</button><button class="btn solid" id="sv_btn" onclick="submitSavings()">Save</button></div>
+    <div class="mst" id="sv_st"></div>
+  </div>
+</div>
+
+<!-- Issue loan -->
+<div class="modal-bg" id="m_loan" onclick="if(event.target===this)cm('m_loan')">
+  <div class="modal"><button class="x" onclick="cm('m_loan')">&times;</button>
+    <h3>Issue Loan</h3>
+    <div class="mgrid">
+      <div class="field full"><label>Member</label><select id="ln_mb" onchange="updateLimitInfo()"></select></div>
+      <div class="field"><label>Principal (UGX)</label><input id="ln_pr" type="number" min="0" oninput="updateLimitInfo()"></div>
+      <div class="field"><label>Monthly Rate (%)</label><input id="ln_rt" type="number" min="0" step="0.1" placeholder="e.g. 5"></div>
+      <div class="field"><label>Term (months)</label><input id="ln_tm" type="number" min="1" value="6"></div>
+      <div class="field full"><label>Purpose</label><input id="ln_pu" type="text" placeholder="optional"></div>
+    </div>
+    <div class="lim-warn hidden" id="ln_lim"></div>
+    <div class="mgrid hidden" id="ln_ovwrap"><div class="field full"><label>Override Reason</label><input id="ln_ov" type="text" placeholder="required to exceed the limit"></div></div>
+    <div class="mact"><button class="btn" onclick="cm('m_loan')">Cancel</button><button class="btn solid" id="ln_btn" onclick="submitLoan()">Issue Loan</button></div>
+    <div class="mst" id="ln_st"></div>
+  </div>
+</div>
+
+<!-- Repayment -->
+<div class="modal-bg" id="m_repay" onclick="if(event.target===this)cm('m_repay')">
+  <div class="modal"><button class="x" onclick="cm('m_repay')">&times;</button>
+    <h3>Record Repayment</h3><p class="sub" id="rp_info"></p>
+    <div class="mgrid">
+      <div class="field full"><label>Amount (UGX)</label><input id="rp_am" type="number" min="0"></div>
+      <div class="field full"><label>Notes</label><input id="rp_nt" type="text" placeholder="optional"></div>
+    </div>
+    <div class="mact"><button class="btn" onclick="cm('m_repay')">Cancel</button><button class="btn solid" id="rp_btn" onclick="submitRepay()">Save</button></div>
+    <div class="mst" id="rp_st"></div>
+  </div>
+</div>
+
+<!-- Add member -->
+<div class="modal-bg" id="m_member" onclick="if(event.target===this)cm('m_member')">
+  <div class="modal"><button class="x" onclick="cm('m_member')">&times;</button>
+    <h3>Add Member</h3>
+    <div class="mgrid">
+      <div class="field"><label>Member Number</label><input id="mb_no" type="text" placeholder="e.g. M005"></div>
+      <div class="field"><label>Role</label><select id="mb_rl"><option>Member</option><option>Admin</option></select></div>
+      <div class="field full"><label>Full Name</label><input id="mb_nm" type="text"></div>
+      <div class="field full"><label>Email (Gmail for sign-in)</label><input id="mb_em" type="email" placeholder="name@gmail.com"></div>
+      <div class="field"><label>Phone</label><input id="mb_ph" type="text" placeholder="optional"></div>
+    </div>
+    <div class="mact"><button class="btn" onclick="cm('m_member')">Cancel</button><button class="btn solid" id="mb_btn" onclick="submitMember()">Add Member</button></div>
+    <div class="mst" id="mb_st"></div>
+  </div>
+</div>
+
+<!-- Request loan -->
+<div class="modal-bg" id="m_reqLoan" onclick="if(event.target===this)cm('m_reqLoan')">
+  <div class="modal"><button class="x" onclick="cm('m_reqLoan')">&times;</button>
+    <h3>Request a Loan</h3>
+    <div class="mgrid">
+      <div class="field"><label>Amount (UGX)</label><input id="rl_am" type="number" min="0"></div>
+      <div class="field"><label>Term (months)</label><input id="rl_tm" type="number" min="1" value="6"></div>
+      <div class="field full"><label>Purpose</label><input id="rl_pu" type="text"></div>
+    </div>
+    <div class="mact"><button class="btn" onclick="cm('m_reqLoan')">Cancel</button><button class="btn solid" id="rl_btn" onclick="submitReqLoan()">Submit Request</button></div>
+    <div class="mst" id="rl_st"></div>
+  </div>
+</div>
+
+<!-- Issue fine -->
+<div class="modal-bg" id="m_fine" onclick="if(event.target===this)cm('m_fine')">
+  <div class="modal"><button class="x" onclick="cm('m_fine')">&times;</button>
+    <h3>Issue Fine</h3>
+    <div class="mgrid">
+      <div class="field full"><label>Member</label><select id="fn_mb"></select></div>
+      <div class="field"><label>Amount (UGX)</label><input id="fn_am" type="number" min="0"></div>
+      <div class="field"><label>Reason</label><input id="fn_rs" type="text"></div>
+    </div>
+    <div class="mact"><button class="btn" onclick="cm('m_fine')">Cancel</button><button class="btn solid" id="fn_btn" onclick="submitFine()">Issue Fine</button></div>
+    <div class="mst" id="fn_st"></div>
+  </div>
+</div>
+
+<!-- Request withdrawal -->
+<div class="modal-bg" id="m_reqWd" onclick="if(event.target===this)cm('m_reqWd')">
+  <div class="modal"><button class="x" onclick="cm('m_reqWd')">&times;</button>
+    <h3>Request Withdrawal</h3><p class="sub" id="wd_bal"></p>
+    <div class="mgrid">
+      <div class="field full"><label>Amount (UGX)</label><input id="wd_am" type="number" min="0"></div>
+      <div class="field full"><label>Reason</label><input id="wd_rs" type="text" placeholder="e.g. Medical, School fees"></div>
+    </div>
+    <div class="mact"><button class="btn" onclick="cm('m_reqWd')">Cancel</button><button class="btn solid" id="wd_btn" onclick="submitReqWd()">Submit Request</button></div>
+    <div class="mst" id="wd_st"></div>
+  </div>
+</div>
+
+<!-- Approve loan request (with override) -->
+<div class="modal-bg" id="m_approveLR" onclick="if(event.target===this)cm('m_approveLR')">
+  <div class="modal"><button class="x" onclick="cm('m_approveLR')">&times;</button>
+    <h3>Approve Loan Request</h3><p class="sub" id="alr_info"></p>
+    <div class="mgrid">
+      <div class="field full"><label>Monthly Rate (%)</label><input id="alr_rt" type="number" min="0" step="0.1" placeholder="e.g. 5"></div>
+    </div>
+    <div class="lim-warn hidden" id="alr_lim"></div>
+    <div class="mgrid hidden" id="alr_ovwrap"><div class="field full"><label>Override Reason</label><input id="alr_ov" type="text" placeholder="required to exceed the limit"></div></div>
+    <div class="mact"><button class="btn" onclick="cm('m_approveLR')">Cancel</button><button class="btn solid" id="alr_btn" onclick="submitApproveLR()">Approve</button></div>
+    <div class="mst" id="alr_st"></div>
+  </div>
+</div>
+
+<!-- Reject loan request -->
+<div class="modal-bg" id="m_rejectLR" onclick="if(event.target===this)cm('m_rejectLR')">
+  <div class="modal"><button class="x" onclick="cm('m_rejectLR')">&times;</button>
+    <h3>Reject Loan Request</h3>
+    <div class="mgrid"><div class="field full"><label>Reason</label><input id="rjlr_rs" type="text"></div></div>
+    <div class="mact"><button class="btn" onclick="cm('m_rejectLR')">Cancel</button><button class="btn danger" id="rjlr_btn" onclick="submitRejectLR()">Reject</button></div>
+    <div class="mst" id="rjlr_st"></div>
+  </div>
+</div>
+
+<!-- Reject withdrawal -->
+<div class="modal-bg" id="m_rejectWd" onclick="if(event.target===this)cm('m_rejectWd')">
+  <div class="modal"><button class="x" onclick="cm('m_rejectWd')">&times;</button>
+    <h3>Reject Withdrawal Request</h3>
+    <div class="mgrid"><div class="field full"><label>Reason</label><input id="rjwd_rs" type="text"></div></div>
+    <div class="mact"><button class="btn" onclick="cm('m_rejectWd')">Cancel</button><button class="btn danger" id="rjwd_btn" onclick="submitRejectWd()">Reject</button></div>
+    <div class="mst" id="rjwd_st"></div>
+  </div>
+</div>
+
+<script>
+// ── helpers ──────────────────────────────────────────────────────────────────
+let ME=null, MEMBERS=[], SAVINGS_BAL=0, STMT=null, REPAY_LOAN=null, APPROV_REQ=null, REJECT_LR=null, REJECT_WD=null;
+const $=s=>document.querySelector(s);
+const n=v=>{const x=parseFloat(v);return isNaN(x)?0:x;};
+const fmt=v=>'UGX '+Math.round(n(v)).toLocaleString('en-US');
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const badge=(s,map)=>'<span class="badge '+(map[s.toLowerCase()]||s.toLowerCase())+'">'+esc(s)+'</span>';
+const BMAP={active:'active',cleared:'cleared',overdue:'overdue',admin:'admin',member:'member',
+  pending:'pending',approved:'approved',rejected:'rejected',unpaid:'unpaid',paid:'paid'};
+
+// ── login flow ───────────────────────────────────────────────────────────────
+let DET_EMAIL='', OTP_EMAIL='';
+function showOnly(id){
+  ['s_loading','s_confirm','s_manual','s_otp','s_noreg'].forEach(s=>$('#'+s).classList.toggle('hidden',s!==id));
+}
+window.addEventListener('load',()=>{
+  google.script.run.withSuccessHandler(res=>{
+    if(res.detected&&res.email){DET_EMAIL=res.email;$('#detectedEmail').textContent=res.email;showOnly('s_confirm');}
+    else showManual();
+  }).withFailureHandler(()=>showManual()).tryAutoDetect();
+});
+function doConfirm(){
+  $('#confirmErr').textContent='';
+  google.script.run.withSuccessHandler(res=>{
+    if(!res.ok){res.notRegistered?($('#noregMsg').textContent=res.error,showOnly('s_noreg')):($('#confirmErr').textContent=res.error);return;}
+    ME=res.member;enterApp();
+  }).withFailureHandler(e=>$('#confirmErr').textContent='Error: '+e.message).confirmAutoDetect(DET_EMAIL);
+}
+function showManual(){$('#manualEmail')&&($('#manualEmail').value='');$('#manualErr').textContent='';showOnly('s_manual');setTimeout(()=>$('#manualEmail')?.focus(),80);}
+function doSendOtp(){
+  const email=$('#manualEmail').value.trim(),err=$('#manualErr');
+  if(!email){err.textContent='Please enter your email address.';return;}
+  $('#sendOtpBtn').disabled=true;err.textContent='';
+  google.script.run.withSuccessHandler(res=>{
+    $('#sendOtpBtn').disabled=false;
+    if(!res.ok){res.notRegistered?($('#noregMsg').textContent=res.error,showOnly('s_noreg')):(err.textContent=res.error);return;}
+    OTP_EMAIL=email;$('#otpMasked').textContent=res.maskedEmail;$('#otpCode').value='';$('#otpErr').textContent='';
+    showOnly('s_otp');setTimeout(()=>$('#otpCode')?.focus(),80);
+  }).withFailureHandler(e=>{$('#sendOtpBtn').disabled=false;err.textContent='Error: '+e.message;}).sendOtp(email);
+}
+function doVerify(){
+  const code=$('#otpCode').value.trim(),err=$('#otpErr');
+  if(code.length<6){err.textContent='Please enter the 6-digit code.';return;}
+  $('#verifyBtn').disabled=true;err.textContent='';
+  google.script.run.withSuccessHandler(res=>{
+    $('#verifyBtn').disabled=false;
+    if(!res.ok){if(res.expired){err.textContent=res.error;setTimeout(showManual,2000);}else err.textContent=res.error;return;}
+    ME=res.member;enterApp();
+  }).withFailureHandler(e=>{$('#verifyBtn').disabled=false;err.textContent='Error: '+e.message;}).verifyOtp(OTP_EMAIL,code);
+}
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter')return;
+  if(!$('#s_confirm').classList.contains('hidden'))doConfirm();
+  else if(!$('#s_manual').classList.contains('hidden'))doSendOtp();
+  else if(!$('#s_otp').classList.contains('hidden'))doVerify();
+});
+
+// ── app shell ────────────────────────────────────────────────────────────────
+function enterApp(){
+  $('#loginView').classList.add('hidden');$('#appView').classList.remove('hidden');
+  $('#whoName').textContent=ME.name+' ('+ME.memberNo+')';
+  $('#whoRole').innerHTML=badge(ME.role,BMAP);
+  if(ME.role==='Admin'){$('#adminTab').classList.remove('hidden');$('#auditTab').classList.remove('hidden');}
+  showTab('my');loadMyAccount();
+}
+function doLogout(){
+  $('#logoutBtn').disabled=true;
+  google.script.run.withSuccessHandler(()=>{
+    ME=null;MEMBERS=[];STMT=null;
+    $('#appView').classList.add('hidden');$('#adminTab').classList.add('hidden');$('#auditTab').classList.add('hidden');
+    $('#logoutBtn').disabled=false;
+    showOnly('s_loading');
+    google.script.run.withSuccessHandler(res=>{
+      if(res.detected&&res.email){DET_EMAIL=res.email;$('#detectedEmail').textContent=res.email;showOnly('s_confirm');}
+      else showManual();
+    }).withFailureHandler(()=>showManual()).tryAutoDetect();
+  }).withFailureHandler(()=>{ME=null;$('#appView').classList.add('hidden');showManual();$('#logoutBtn').disabled=false;}).logout();
+}
+function showTab(t){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  ['my','admin','audit'].forEach(n=>$('#tab-'+n).classList.toggle('hidden',n!==t));
+  if(t==='admin')loadAdmin();
+  if(t==='audit')loadAudit();
+}
+
+// ── my account ───────────────────────────────────────────────────────────────
+function loadMyAccount(){
+  STMT=null;
+  google.script.run.withSuccessHandler(renderSavings).getMySavings();
+  google.script.run.withSuccessHandler(renderLoans).getMyLoans();
+  google.script.run.withSuccessHandler(renderLoanReqs).getMyLoanRequests();
+  google.script.run.withSuccessHandler(renderWdReqs).getMyWithdrawalRequests();
+  google.script.run.withSuccessHandler(renderFines).getMyFines();
+}
+function renderSavings(res){
+  if(!res.ok)return;
+  SAVINGS_BAL=res.balance;$('#c_savings').textContent=fmt(res.balance);
+  const tb=$('#savingsTb');
+  if(!res.history.length){tb.innerHTML='<tr class="empty"><td colspan="4">No transactions yet.</td></tr>';return;}
+  tb.innerHTML=res.history.slice().reverse().map(r=>{
+    const g=r.type==='Deposit';
+    return '<tr><td>'+esc(r.date)+'</td><td>'+esc(r.type)+'</td><td>'+esc(r.reference)+'</td><td class="r '+(g?'g':'b')+'">'+(g?'+':'−')+' '+Math.round(n(r.amount)).toLocaleString('en-US')+'</td></tr>';
+  }).join('');
+}
+function renderLoans(res){
+  if(!res.ok)return;
+  const active=res.loans.filter(l=>l.status==='Active');
+  $('#c_outstanding').textContent=fmt(active.reduce((s,l)=>s+l.outstandingBalance,0));
+  $('#c_loanMeta').textContent=active.length?active.map(l=>l.loanId).join(', '):'No active loans';
+  const el=$('#loansList');
+  if(!res.loans.length){el.innerHTML='<p class="note">No loans on record.</p>';return;}
+  el.innerHTML=res.loans.map(l=>{
+    const s=l.status==='Cleared'?'cleared':(l.overdue?'overdue':'active');
+    const slbl=l.status==='Cleared'?'Cleared':(l.overdue?'Overdue':'Active');
+    const repBtn=ME.role==='Admin'&&l.status==='Active'?'<button class="btn sm" onclick="openRepay(\''+l.loanId+'\','+l.outstandingBalance+')">Record Repayment</button>':'';
+    const sid='sc_'+l.loanId;
+    const schRows=l.schedule.map(r=>'<tr><td>'+r.month+'</td><td class="r">'+Math.round(r.opening).toLocaleString('en-US')+'</td><td class="r">'+Math.round(r.interest).toLocaleString('en-US')+'</td><td class="r">'+Math.round(r.payment).toLocaleString('en-US')+'</td><td class="r">'+Math.round(r.closing).toLocaleString('en-US')+'</td></tr>').join('');
+    return '<div class="loan-card"><div class="loan-hd"><span class="lid">'+esc(l.loanId)+'</span>'+badge(slbl,{cleared:'cleared',overdue:'overdue',active:'active'})+'</div>'+
+      '<div class="loan-stats">'+
+      '<div><div class="ls-k">Principal</div><div class="ls-v">'+Math.round(l.principal).toLocaleString('en-US')+'</div></div>'+
+      '<div><div class="ls-k">Rate/mo</div><div class="ls-v">'+l.monthlyRate+'%</div></div>'+
+      '<div><div class="ls-k">Term</div><div class="ls-v">'+l.term+' mo</div></div>'+
+      '<div><div class="ls-k">Outstanding</div><div class="ls-v">'+Math.round(l.outstandingBalance).toLocaleString('en-US')+'</div></div>'+
+      '<div><div class="ls-k">Est. Payment</div><div class="ls-v">'+Math.round(l.monthlyPayment).toLocaleString('en-US')+'</div></div>'+
+      '<div><div class="ls-k">Repaid</div><div class="ls-v">'+Math.round(l.totalRepaid).toLocaleString('en-US')+'</div></div>'+
+      '</div>'+(l.overrideReason?'<p class="note">Override: '+esc(l.overrideReason)+'</p>':'')+
+      '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'+
+      '<button class="btn sm" onclick="toggleSched(\''+sid+'\')">Projected schedule</button>'+repBtn+'</div>'+
+      '<div class="sched" id="'+sid+'"><table><thead><tr><th>Month</th><th class="r">Opening</th><th class="r">Interest</th><th class="r">Payment</th><th class="r">Closing</th></tr></thead><tbody>'+schRows+'</tbody></table></div></div>';
+  }).join('');
+}
+function toggleSched(id){$('#'+id).classList.toggle('on');}
+function renderLoanReqs(res){
+  if(!res.ok)return;
+  const tb=$('#loanReqTb');
+  if(!res.requests.length){tb.innerHTML='<tr class="empty"><td colspan="6">No loan requests.</td></tr>';return;}
+  tb.innerHTML=res.requests.map(r=>'<tr><td>'+esc(r.requestId)+'</td><td class="r">'+Math.round(r.amount).toLocaleString('en-US')+'</td><td>'+r.term+' mo</td><td>'+esc(r.purpose)+'</td><td>'+badge(r.status,BMAP)+'</td><td>'+esc(r.decisionNotes)+'</td></tr>').join('');
+}
+function renderWdReqs(res){
+  if(!res.ok)return;
+  const tb=$('#wdReqTb');
+  if(!res.requests.length){tb.innerHTML='<tr class="empty"><td colspan="5">No withdrawal requests.</td></tr>';return;}
+  tb.innerHTML=res.requests.map(r=>'<tr><td>'+esc(r.requestId)+'</td><td class="r">'+Math.round(r.amount).toLocaleString('en-US')+'</td><td>'+esc(r.reason)+'</td><td>'+badge(r.status,BMAP)+'</td><td>'+esc(r.decisionNotes)+'</td></tr>').join('');
+}
+function renderFines(res){
+  if(!res.ok)return;
+  $('#c_fines').textContent=fmt(res.unpaidTotal);
+  $('#c_finesMeta').textContent=res.unpaidTotal>0?'Please settle with the treasurer':'No unpaid fines';
+  const tb=$('#finesTb');
+  if(!res.fines.length){tb.innerHTML='<tr class="empty"><td colspan="4">No fines.</td></tr>';return;}
+  tb.innerHTML=res.fines.map(f=>'<tr><td>'+esc(f.date)+'</td><td>'+esc(f.reason)+'</td><td class="r">'+Math.round(f.amount).toLocaleString('en-US')+'</td><td>'+badge(f.status,BMAP)+'</td></tr>').join('');
+}
+
+// ── admin ─────────────────────────────────────────────────────────────────────
+function loadAdmin(){
+  google.script.run.withSuccessHandler(res=>{
+    if(!res.ok)return;
+    $('#d_mem').textContent=res.totalMembers;$('#d_sav').textContent=fmt(res.totalSavings);
+    $('#d_out').textContent=fmt(res.totalLoansOutstanding);$('#d_lc').textContent=res.activeLoanCount+' active';
+    $('#d_fin').textContent=fmt(res.unpaidFinesTotal);$('#d_plr').textContent=res.pendingLoanRequests;
+    $('#d_pwr').textContent=res.pendingWithdrawalRequests;
+    const ot=$('#overdueTb');
+    ot.innerHTML=res.overdueLoans.length?res.overdueLoans.map(l=>'<tr><td>'+esc(l.loanId)+'</td><td>'+esc(l.memberName)+'</td><td class="r">'+Math.round(l.outstandingBalance).toLocaleString('en-US')+'</td><td>'+l.monthsElapsed+'/'+l.term+'</td></tr>').join(''):'<tr class="empty"><td colspan="4">None &mdash; all good.</td></tr>';
+  }).getAdminDashboard();
+  google.script.run.withSuccessHandler(res=>{
+    if(!res.ok)return; MEMBERS=res.members;
+    $('#membersTb').innerHTML=res.members.map(m=>'<tr><td>'+esc(m.memberNo)+'</td><td>'+esc(m.name)+'</td><td>'+esc(m.email)+'</td><td>'+badge(m.role,BMAP)+'</td><td>'+esc(m.status)+'</td><td class="r">'+Math.round(n(m.savingsBalance)).toLocaleString('en-US')+'</td></tr>').join('');
+  }).getAllMembersSummary();
+  loadLoanReqAdmin(); loadWdReqAdmin(); loadFinesAdmin();
+}
+function loadLoanReqAdmin(){
+  google.script.run.withSuccessHandler(res=>{
+    if(!res.ok)return;
+    const tb=$('#loanReqAdminTb');
+    if(!res.requests.length){tb.innerHTML='<tr class="empty"><td colspan="8">No requests.</td></tr>';return;}
+    tb.innerHTML=res.requests.map(r=>{
+      const lim=r.withinLimit?'<span class="badge approved">Within limit</span>':'<span class="badge overdue">Over limit</span>';
+      const acts=r.status==='Pending'?'<button class="btn sm" onclick=\'openApproveLR('+JSON.stringify(r)+')\'>Approve</button> <button class="btn sm danger" onclick="openRejectLR(\''+r.requestId+'\')">Reject</button>':'';
+      return '<tr><td>'+esc(r.requestId)+'</td><td>'+esc(r.memberName)+'</td><td class="r">'+Math.round(r.amount).toLocaleString('en-US')+'</td><td>'+r.term+' mo</td><td>'+esc(r.purpose)+'</td><td>'+lim+'</td><td>'+badge(r.status,BMAP)+'</td><td>'+acts+'</td></tr>';
+    }).join('');
+  }).getLoanRequests();
+}
+function loadWdReqAdmin(){
+  google.script.run.withSuccessHandler(res=>{
+    if(!res.ok)return;
+    const tb=$('#wdReqAdminTb');
+    if(!res.requests.length){tb.innerHTML='<tr class="empty"><td colspan="7">No requests.</td></tr>';return;}
+    tb.innerHTML=res.requests.map(r=>{
+      const acts=r.status==='Pending'?'<button class="btn sm" onclick="approveWd(\''+r.requestId+'\')">Approve</button> <button class="btn sm danger" onclick="openRejectWd(\''+r.requestId+'\')">Reject</button>':'';
+      return '<tr><td>'+esc(r.requestId)+'</td><td>'+esc(r.memberName)+'</td><td class="r">'+Math.round(r.amount).toLocaleString('en-US')+'</td><td class="r">'+Math.round(r.currentBalance).toLocaleString('en-US')+'</td><td>'+esc(r.reason)+'</td><td>'+badge(r.status,BMAP)+'</td><td>'+acts+'</td></tr>';
+    }).join('');
+  }).getWithdrawalRequests();
+}
+function loadFinesAdmin(){
+  google.script.run.withSuccessHandler(rows=>{
+    const tb=$('#finesAdminTb');
+    if(!rows||!rows.length){tb.innerHTML='<tr class="empty"><td colspan="7">No fines.</td></tr>';return;}
+    tb.innerHTML=rows.map(f=>{
+      const act=String(f.status).toLowerCase()==='unpaid'?'<button class="btn sm" onclick="markPaid(\''+f.fineId+'\')">Mark Paid</button>':'';
+      return '<tr><td>'+esc(f.fineId)+'</td><td>'+esc(f.memberName)+'</td><td>'+esc(f.date)+'</td><td>'+esc(f.reason)+'</td><td class="r">'+Math.round(n(f.amount)).toLocaleString('en-US')+'</td><td>'+badge(f.status,BMAP)+'</td><td>'+act+'</td></tr>';
+    }).join('');
+  }).getAllFinesForAdmin();
+}
+
+// ── audit log ─────────────────────────────────────────────────────────────────
+function loadAudit(){
+  google.script.run.withSuccessHandler(res=>{
+    if(!res.ok)return;
+    const tb=$('#auditTb');
+    if(!res.entries.length){tb.innerHTML='<tr class="empty"><td colspan="6">No audit entries yet.</td></tr>';return;}
+    tb.innerHTML=res.entries.map(e=>'<tr><td>'+esc(e.timestamp)+'</td><td>'+esc(e.action)+'</td><td>'+esc(e.member)+'</td><td>'+esc(e.performedBy)+'</td><td>'+esc(e.details)+'</td><td>'+esc(e.refId)+'</td></tr>').join('');
+  }).getAuditLog(200);
+}
+
+// ── modals util ───────────────────────────────────────────────────────────────
+function om(id){$('#'+id).classList.add('on');}
+function cm(id){$('#'+id).classList.remove('on');}
+function mbOpts(){return '<option value="">\u2014 select \u2014</option>'+MEMBERS.map(m=>'<option value="'+esc(m.memberNo)+'">'+esc(m.memberNo)+' \u2014 '+esc(m.name)+'</option>').join('');}
+function mst(id,cls,txt){$('#'+id).className='mst'+(cls?' '+cls:'');$('#'+id).textContent=txt;}
+
+// ── record savings ────────────────────────────────────────────────────────────
+function openRecSavings(){$('#sv_mb').innerHTML=mbOpts();$('#sv_am').value='';$('#sv_rf').value='';$('#sv_nt').value='';mst('sv_st','','');om('m_savings');}
+function submitSavings(){
+  const mb=$('#sv_mb').value,ty=$('#sv_ty').value,am=$('#sv_am').value;
+  if(!mb)return mst('sv_st','err','Select a member.');
+  if(!am||n(am)<=0)return mst('sv_st','err','Enter a valid amount.');
+  $('#sv_btn').disabled=true;mst('sv_st','','Saving\u2026');
+  google.script.run.withSuccessHandler(res=>{
+    $('#sv_btn').disabled=false;
+    if(!res.ok)return mst('sv_st','err',res.error);
+    mst('sv_st','ok','Saved. New balance: '+fmt(res.newBalance));
+    loadAdmin();if(mb===ME.memberNo)loadMyAccount();
+    setTimeout(()=>cm('m_savings'),900);
+  }).withFailureHandler(e=>{$('#sv_btn').disabled=false;mst('sv_st','err','Error: '+e.message);})
+  .recordSavings(mb,ty,am,$('#sv_rf').value.trim(),$('#sv_nt').value.trim());
+}
+
+// ── issue loan ────────────────────────────────────────────────────────────────
+function openIssueLoan(){$('#ln_mb').innerHTML=mbOpts();$('#ln_pr').value='';$('#ln_rt').value='';$('#ln_tm').value='6';$('#ln_pu').value='';$('#ln_ov').value='';$('#ln_lim').classList.add('hidden');$('#ln_ovwrap').classList.add('hidden');mst('ln_st','','');om('m_loan');}
+function updateLimitInfo(){
+  const mb=$('#ln_mb').value,pr=n($('#ln_pr').value);
+  if(!mb||!pr)return $(['#ln_lim','#ln_ovwrap'].forEach(s=>$(s).classList.add('hidden')));
+  const m=MEMBERS.find(x=>x.memberNo===mb); if(!m)return;
+  const max=n(m.savingsBalance)*3;
+  if(pr>max){$('#ln_lim').classList.remove('hidden');$('#ln_lim').textContent='Exceeds limit (savings '+fmt(m.savingsBalance)+', est. max '+fmt(max)+'). Override reason required.';$('#ln_ovwrap').classList.remove('hidden');}
+  else{$('#ln_lim').classList.add('hidden');$('#ln_ovwrap').classList.add('hidden');}
+}
+function submitLoan(){
+  const mb=$('#ln_mb').value,pr=$('#ln_pr').value,rt=$('#ln_rt').value,tm=$('#ln_tm').value;
+  if(!mb)return mst('ln_st','err','Select a member.');
+  if(!pr||n(pr)<=0)return mst('ln_st','err','Enter a valid principal.');
+  if(!rt&&rt!=='0')return mst('ln_st','err','Enter the monthly interest rate.');
+  $('#ln_btn').disabled=true;mst('ln_st','','Saving\u2026');
+  google.script.run.withSuccessHandler(res=>{
+    $('#ln_btn').disabled=false;
+    if(!res.ok){mst('ln_st','err',res.error);if(res.limitCheck)$('#ln_ovwrap').classList.remove('hidden');return;}
+    mst('ln_st','ok','Loan '+res.loanId+' issued.');
+    if(mb===ME.memberNo)loadMyAccount();loadAdmin();setTimeout(()=>cm('m_loan'),900);
+  }).withFailureHandler(e=>{$('#ln_btn').disabled=false;mst('ln_st','err','Error: '+e.message);})
+  .issueLoan(mb,pr,rt,tm,$('#ln_pu').value.trim(),$('#ln_ov').value.trim());
+}
+
+// ── repayment ─────────────────────────────────────────────────────────────────
+function openRepay(lid,bal){REPAY_LOAN=lid;$('#rp_info').textContent='Loan '+lid+' \u2014 outstanding: '+fmt(bal);$('#rp_am').value='';$('#rp_nt').value='';mst('rp_st','','');om('m_repay');}
+function submitRepay(){
+  const am=$('#rp_am').value;
+  if(!am||n(am)<=0)return mst('rp_st','err','Enter a valid amount.');
+  $('#rp_btn').disabled=true;mst('rp_st','','Saving\u2026');
+  google.script.run.withSuccessHandler(res=>{
+    $('#rp_btn').disabled=false;
+    if(!res.ok)return mst('rp_st','err',res.error);
+    mst('rp_st','ok','Recorded. Outstanding: '+fmt(res.loan.outstandingBalance));
+    loadMyAccount();loadAdmin();setTimeout(()=>cm('m_repay'),900);
+  }).withFailureHandler(e=>{$('#rp_btn').disabled=false;mst('rp_st','err','Error: '+e.message);})
+  .recordRepayment(REPAY_LOAN,$('#rp_am').value,$('#rp_nt').value.trim());
+}
+
+// ── add member ────────────────────────────────────────────────────────────────
+function openAddMember(){['mb_no','mb_nm','mb_em','mb_ph'].forEach(i=>$('#'+i).value='');$('#mb_rl').value='Member';mst('mb_st','','');om('m_member');}
+function submitMember(){
+  const no=$('#mb_no').value.trim(),nm=$('#mb_nm').value.trim(),em=$('#mb_em').value.trim();
+  if(!no||!nm||!em)return mst('mb_st','err','Member number, name and email are required.');
+  $('#mb_btn').disabled=true;mst('mb_st','','Saving\u2026');
+  google.script.run.withSuccessHandler(res=>{
+    $('#mb_btn').disabled=false;
+    if(!res.ok)return mst('mb_st','err',res.error);
+    mst('mb_st','ok','Member added.');loadAdmin();setTimeout(()=>cm('m_member'),900);
+  }).withFailureHandler(e=>{$('#mb_btn').disabled=false;mst('mb_st','err','Error: '+e.message);})
+  .addMember(no,nm,em,$('#mb_ph').value.trim(),$('#mb_rl').value);
+}
+
+// ── request loan ──────────────────────────────────────────────────────────────
+function openReqLoan(){$('#rl_am').value='';$('#rl_tm').value='6';$('#rl_pu').value='';mst('rl_st','','');om('m_reqLoan');}
+function submitReqLoan(){
+  const am=$('#rl_am').value,tm=$('#rl_tm').value;
+  if(!am||n(am)<=0)return mst('rl_st','err','Enter a valid amount.');
+  $('#rl_btn').disabled=true;mst('rl_st','','Submitting\u2026');
+  google.script.run.withSuccessHandler(res=>{
+    $('#rl_btn').disabled=false;
+    if(!res.ok)return mst('rl_st','err',res.error);
+    mst('rl_st','ok','Request '+res.requestId+' submitted.');loadMyAccount();setTimeout(()=>cm('m_reqLoan'),900);
+  }).withFailureHandler(e=>{$('#rl_btn').disabled=false;mst('rl_st','err','Error: '+e.message);})
+  .requestLoan(am,tm,$('#rl_pu').value.trim());
+}
+
+// ── issue fine ────────────────────────────────────────────────────────────────
+function openIssueFine(){$('#fn_mb').innerHTML=mbOpts();$('#fn_am').value='';$('#fn_rs').value='';mst('fn_st','','');om('m_fine');}
+function submitFine(){
+  const mb=$('#fn_mb').value,am=$('#fn_am').value,rs=$('#fn_rs').value.trim();
+  if(!mb)return mst('fn_st','err','Select a member.');
+  if(!am||n(am)<=0)return mst('fn_st','err','Enter a valid amount.');
+  if(!rs)return mst('fn_st','err','Enter a reason.');
+  $('#fn_btn').disabled=true;mst('fn_st','','Saving\u2026');
+  google.script.run.withSuccessHandler(res=>{
+    $('#fn_btn').disabled=false;
+    if(!res.ok)return mst('fn_st','err',res.error);
+    mst('fn_st','ok','Fine '+res.fineId+' issued.');loadFinesAdmin();if(mb===ME.memberNo)loadMyAccount();setTimeout(()=>cm('m_fine'),900);
+  }).withFailureHandler(e=>{$('#fn_btn').disabled=false;mst('fn_st','err','Error: '+e.message);})
+  .issueFine(mb,am,rs);
+}
+function markPaid(fid){
+  google.script.run.withSuccessHandler(res=>{if(res.ok){loadFinesAdmin();loadMyAccount();}}).markFinePaid(fid);
+}
+
+// ── withdrawal request ────────────────────────────────────────────────────────
+function openReqWd(){$('#wd_bal').textContent='Current savings balance: '+fmt(SAVINGS_BAL);$('#wd_am').value='';$('#wd_rs').value='';mst('wd_st','','');om('m_reqWd');}
+function submitReqWd(){
+  const am=$('#wd_am').value,rs=$('#wd_rs').value.trim();
+  if(!am||n(am)<=0)return mst('wd_st','err','Enter a valid amount.');
+  if(!rs)return mst('wd_st','err','Please provide a reason.');
+  $('#wd_btn').disabled=true;mst('wd_st','','Submitting\u2026');
+  google.script.run.withSuccessHandler(res=>{
+    $('#wd_btn').disabled=false;
+    if(!res.ok)return mst('wd_st','err',res.error);
+    mst('wd_st','ok','Request '+res.requestId+' submitted.');loadMyAccount();setTimeout(()=>cm('m_reqWd'),900);
+  }).withFailureHandler(e=>{$('#wd_btn').disabled=false;mst('wd_st','err','Error: '+e.message);})
+  .requestWithdrawal(am,rs);
+}
+
+// ── approve/reject loan requests ──────────────────────────────────────────────
+function openApproveLR(r){
+  APPROV_REQ=r;$('#alr_info').textContent=r.memberName+' requests '+fmt(r.amount)+' / '+r.term+' months. Savings: '+fmt(r.savings)+', max: '+fmt(r.maxLoan)+'.';
+  $('#alr_rt').value='';$('#alr_ov').value='';mst('alr_st','','');
+  if(!r.withinLimit){$('#alr_lim').classList.remove('hidden');$('#alr_lim').textContent='Exceeds loan-to-savings limit. Override reason required.';$('#alr_ovwrap').classList.remove('hidden');}
+  else{$('#alr_lim').classList.add('hidden');$('#alr_ovwrap').classList.add('hidden');}
+  om('m_approveLR');
+}
+function submitApproveLR(){
+  const rt=$('#alr_rt').value;
+  if(!rt&&rt!=='0')return mst('alr_st','err','Enter the monthly interest rate.');
+  $('#alr_btn').disabled=true;mst('alr_st','','Saving\u2026');
+  google.script.run.withSuccessHandler(res=>{
+    $('#alr_btn').disabled=false;
+    if(!res.ok){mst('alr_st','err',res.error);if(res.limitCheck)$('#alr_ovwrap').classList.remove('hidden');return;}
+    mst('alr_st','ok','Approved. Loan '+res.loanId+' created.');loadLoanReqAdmin();loadAdmin();setTimeout(()=>cm('m_approveLR'),900);
+  }).withFailureHandler(e=>{$('#alr_btn').disabled=false;mst('alr_st','err','Error: '+e.message);})
+  .approveLoanRequest(APPROV_REQ.requestId,rt,$('#alr_ov').value.trim());
+}
+function openRejectLR(id){REJECT_LR=id;$('#rjlr_rs').value='';mst('rjlr_st','','');om('m_rejectLR');}
+function submitRejectLR(){
+  const rs=$('#rjlr_rs').value.trim();
+  if(!rs)return mst('rjlr_st','err','Enter a reason.');
+  $('#rjlr_btn').disabled=true;mst('rjlr_st','','Saving\u2026');
+  google.script.run.withSuccessHandler(res=>{
+    $('#rjlr_btn').disabled=false;
+    if(!res.ok)return mst('rjlr_st','err',res.error);
+    mst('rjlr_st','ok','Rejected.');loadLoanReqAdmin();loadAdmin();setTimeout(()=>cm('m_rejectLR'),900);
+  }).withFailureHandler(e=>{$('#rjlr_btn').disabled=false;mst('rjlr_st','err','Error: '+e.message);})
+  .rejectLoanRequest(REJECT_LR,rs);
+}
+
+// ── approve/reject withdrawal requests ────────────────────────────────────────
+function approveWd(id){
+  if(!confirm('Approve withdrawal request '+id+'? This deducts from savings immediately.'))return;
+  google.script.run.withSuccessHandler(res=>{if(!res.ok)return alert('Error: '+res.error);loadWdReqAdmin();loadAdmin();loadMyAccount();}).approveWithdrawal(id);
+}
+function openRejectWd(id){REJECT_WD=id;$('#rjwd_rs').value='';mst('rjwd_st','','');om('m_rejectWd');}
+function submitRejectWd(){
+  const rs=$('#rjwd_rs').value.trim();
+  if(!rs)return mst('rjwd_st','err','Enter a reason.');
+  $('#rjwd_btn').disabled=true;mst('rjwd_st','','Saving\u2026');
+  google.script.run.withSuccessHandler(res=>{
+    $('#rjwd_btn').disabled=false;
+    if(!res.ok)return mst('rjwd_st','err',res.error);
+    mst('rjwd_st','ok','Rejected.');loadWdReqAdmin();setTimeout(()=>cm('m_rejectWd'),900);
+  }).withFailureHandler(e=>{$('#rjwd_btn').disabled=false;mst('rjwd_st','err','Error: '+e.message);})
+  .rejectWithdrawal(REJECT_WD,rs);
+}
+
+// ── statement ─────────────────────────────────────────────────────────────────
+function fetchStmt(cb){
+  if(STMT){cb(STMT);return;}
+  ['stmtViewBtn','stmtDlBtn'].forEach(id=>$('#'+id).disabled=true);
+  $('#stmtSt').textContent='Generating PDF\u2026';
+  google.script.run.withSuccessHandler(res=>{
+    ['stmtViewBtn','stmtDlBtn'].forEach(id=>$('#'+id).disabled=false);
+    if(!res.ok){$('#stmtSt').textContent='Error: '+res.error;return;}
+    STMT=res;$('#stmtSt').textContent='';cb(res);
+  }).withFailureHandler(e=>{['stmtViewBtn','stmtDlBtn'].forEach(id=>$('#'+id).disabled=false);$('#stmtSt').textContent='Error: '+e.message;})
+  .generateMemberStatementDoc();
+}
+function openStmt(){fetchStmt(r=>window.open(r.pdfUrl,'_blank'));}
+function dlStmt(){fetchStmt(r=>window.open(r.downloadUrl,'_blank'));}
+
+// ── CSV export ────────────────────────────────────────────────────────────────
+function exportCSV(){
+  $('#csvBtn').disabled=true;$('#csvSt').textContent='Preparing\u2026';
+  google.script.run.withSuccessHandler(res=>{
+    $('#csvBtn').disabled=false;
+    if(!res.ok){$('#csvSt').textContent='Error: '+res.error;return;}
+    const blob=new Blob([res.csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download='KiraSACCO_Ledger_'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+    $('#csvSt').textContent='Downloaded.';setTimeout(()=>$('#csvSt').textContent='',3000);
+  }).withFailureHandler(e=>{$('#csvBtn').disabled=false;$('#csvSt').textContent='Error: '+e.message;})
+  .exportAdminCSV();
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-bg.on').forEach(m=>m.classList.remove('on'));});
+</script>
+</body>
+</html>
