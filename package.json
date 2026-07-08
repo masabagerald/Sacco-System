@@ -1,0 +1,9 @@
+{
+  "name": "sacco-system",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Google Apps Script project (managed by Google Apps Script Sync)",
+  "devDependencies": {
+    "@types/google-apps-script": "^2.0.11"
+  }
+}
