@@ -54,6 +54,7 @@ const Api = {
     callServer('rejectWithdrawal', [requestId, reason], onSuccess, onFailure),
 
   generateMemberStatementDoc: (onSuccess, onFailure) => callServer('generateMemberStatementDoc', [], onSuccess, onFailure),
-  exportAdminCSV: (onSuccess, onFailure) => callServer('exportAdminCSV', [], onSuccess, onFailure)
+  exportAdminCSV: (onSuccess, onFailure) => callServer('exportAdminCSV', [], onSuccess, onFailure),
+  generateAdminReportPdf: (onSuccess, onFailure) => callServer('generateAdminReportPdf', [], onSuccess, onFailure)
 };
 </script>

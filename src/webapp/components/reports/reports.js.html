@@ -13,6 +13,21 @@ function fetchStmt(cb){
 function openStmt(){fetchStmt(r=>window.open(r.pdfUrl,'_blank'));}
 function dlStmt(){fetchStmt(r=>window.open(r.downloadUrl,'_blank'));}
 
+// ── LEDGER PDF (branded, downloaded in the browser) ───────────────────────────
+function exportLedgerPdf(){
+  $('#pdfBtn').disabled=true;$('#csvSt').textContent='Preparing PDF…';
+  Api.generateAdminReportPdf(res=>{
+    $('#pdfBtn').disabled=false;
+    if(!res.ok){$('#csvSt').textContent='Error: '+res.error;return;}
+    const bin=atob(res.base64), bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+    const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'})),a=document.createElement('a');
+    a.href=url;a.download=res.fileName;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+    $('#csvSt').textContent='Downloaded.';setTimeout(()=>$('#csvSt').textContent='',3000);
+  }, e=>{$('#pdfBtn').disabled=false;$('#csvSt').textContent='Error: '+e.message;});
+}
+
 // ── CSV EXPORT ────────────────────────────────────────────────────────────────
 function exportCSV(){
   $('#csvBtn').disabled=true;$('#csvSt').textContent='Preparing…';
