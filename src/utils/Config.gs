@@ -1,7 +1,7 @@
 // ── CONFIGURATION ─────────────────────────────────────────────────────────────
 const SACCO_NAME         = 'Mbale School of clinical officers Investment Club';
-const BRAND_COLOR        = '#1f455c';
-const LOAN_TO_SAVINGS_LIMIT = 3;   // max loan = this × member savings
+const BRAND_COLOR        = '#143452'; // navy from the club seal
+const LOAN_TO_SAVINGS_LIMIT = 0.5; // max loan = this × member savings (Article 4, Section 2: 50%)
 const OTP_EXPIRY_MS      = 10 * 60 * 1000; // 10 minutes
 
 // Sheet tab names — must match exactly

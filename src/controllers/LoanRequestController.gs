@@ -4,6 +4,7 @@ function requestLoan(amount, termMonths, purpose) {
   const auth = _caller(); if (!auth.ok) return auth;
   amount=num(amount); termMonths=num(termMonths);
   const av = validatePositiveAmount(amount); if (!av.ok) return av;
+  const el = _loanEligibility(auth.member.memberNo); if (!el.ok) return el;
   const { sh, headers, hRow } = readSheet(SH_LOAN_REQ,'requestid');
   const newId = nextId(SH_LOAN_REQ,'requestid','R');
   const row = emptyRow(sh, hRow, ci(headers,'memberno'));
@@ -52,6 +53,7 @@ function approveLoanRequest(requestId, monthlyRate, overrideReason) {
   if (!req) return {ok:false,error:'Request not found.'};
   if (String(req['Status']||'').trim()!=='Pending') return {ok:false,error:'Already decided.'};
   const amount=num(req['Amount (UGX)']);
+  const el=_loanEligibility(req['MemberNo']); if (!el.ok) return el;
   const lc=_checkLimit(req['MemberNo'],amount);
   if (!lc.withinLimit && !String(overrideReason||'').trim())
     return {ok:false,error:'Exceeds limit. Savings: '+fmtUGX(lc.savings)+', max: '+fmtUGX(lc.maxLoan)+'. Provide override reason.',limitCheck:lc};

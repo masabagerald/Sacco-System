@@ -72,3 +72,27 @@ function _setLoanStatus(loanId, status) {
   for (let r=hRow+1;r<data.length;r++)
     if (String(data[r][cId]).trim()===String(loanId).trim()) { if(cSt>-1)sh.getRange(r+1,cSt+1).setValue(status); break; }
 }
+
+// ── LOAN ELIGIBILITY (Article 4, Sections 1 & 7) ──────────────────────────────
+// Hard rules: no override. Savings-to-loan cap (Section 2) is checked separately via _checkLimit.
+function _loanEligibility(memberNo) {
+  const mNo = String(memberNo).trim();
+
+  // Section 1: must have saved for at least 12 months (counted from first deposit)
+  const { rows: savRows } = readSheet(SH_SAVINGS, 'memberno');
+  const deposits = savRows.filter(r => String(r['MemberNo']||'').trim() === mNo
+    && String(r['Type']||'').trim().toLowerCase() === 'deposit' && r['Date']);
+  if (!deposits.length) return { ok: false, error: 'Member has no savings yet. Loans are only available after saving for a minimum of 12 months.' };
+  const first = new Date(Math.min(...deposits.map(r => new Date(r['Date']).getTime())));
+  const eligibleFrom = new Date(first); eligibleFrom.setMonth(eligibleFrom.getMonth() + 12);
+  if (new Date() < eligibleFrom) return { ok: false, error: 'Member must save for at least 12 months before accessing a loan. Eligible from ' + fmt_date(eligibleFrom) + '.' };
+
+  // Section 7: a member with a running loan cannot access another loan
+  const { rows: loans } = readSheet(SH_LOANS, 'loanid');
+  const { rows: reps }  = readSheet(SH_REPAY, 'loanid');
+  const running = loans.filter(l => String(l['MemberNo']||'').trim() === mNo)
+    .map(l => _computeLoan(l, reps)).filter(l => l.status === LOAN_STATUS.ACTIVE);
+  if (running.length) return { ok: false, error: 'Member already has a running loan (' + running[0].loanId + '). A new loan can only be accessed after it is fully cleared.' };
+
+  return { ok: true };
+}

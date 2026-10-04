@@ -14,6 +14,7 @@ function issueLoan(memberNo, principal, monthlyRate, termMonths, purpose, overri
   const auth = _adminCaller(); if (!auth.ok) return auth;
   principal=num(principal); monthlyRate=num(monthlyRate); termMonths=num(termMonths);
   const lv = validateLoanIssue(principal, monthlyRate); if (!lv.ok) return lv;
+  const el = _loanEligibility(memberNo); if (!el.ok) return el;
   const lc = _checkLimit(memberNo, principal);
   if (!lc.withinLimit && !String(overrideReason||'').trim())
     return {ok:false,error:'Exceeds loan-to-savings limit. Savings: '+fmtUGX(lc.savings)+', max: '+fmtUGX(lc.maxLoan)+'. Provide an override reason to proceed.',limitCheck:lc};
