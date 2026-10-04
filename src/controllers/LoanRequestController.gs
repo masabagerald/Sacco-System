@@ -21,7 +21,8 @@ function requestLoan(amount, purpose, guarantorNos) {
   s(ci(headers,'memberno'),auth.member.memberNo); s(ci(headers,'amount'),amount);
   s(ci(headers,'purpose'),purpose||''); s(ci(headers,'status'),'Pending');
   s(ci(headers,'guarantor 1'),gc.guarantors[0]||''); s(ci(headers,'guarantor 2'),gc.guarantors[1]||'');
-  _appendGuarantors(newId, '', auth.member.memberNo, gc.guarantors);
+  const tokens=_appendGuarantors(newId, '', auth.member.memberNo, gc.guarantors);
+  _sendGuarantorRequests(newId, auth.member.memberNo, amount, purpose, tokens);
   _notifyAdmins('New Loan Request: '+newId,[
     ['Request ID',newId],['Member',auth.member.name+' ('+auth.member.memberNo+')'],
     ['Amount',fmtUGX(amount)],['Terms','Flat 10%, 8 weeks (2 instalments)'],['Purpose',purpose||'-'],
@@ -47,6 +48,9 @@ function getLoanRequests() {
   const { rows } = readSheet(SH_LOAN_REQ,'requestid');
   const gmap = _guarantorMap();
   const { rows: members } = readSheet(SH_MEMBERS,'memberno');
+  const { rows: allGuar } = readSheet(SH_GUARANTORS,'requestid');
+  const respOf = {};
+  allGuar.forEach(g => { respOf[String(g['RequestID']||'').trim()+'|'+String(g['GuarantorNo']||'').trim()] = String(g['Response']||'Pending').trim() || 'Pending'; });
   const nameOf = {};
   members.forEach(m => { nameOf[String(m['MemberNo']||'').trim()] = m['Full Name'] || ''; });
   return { ok: true, requests: rows
@@ -60,7 +64,7 @@ function getLoanRequests() {
         amount:num(r['Amount (UGX)']),term:num(r['Term (months)']),purpose:r['Purpose']||'',
         status, decisionNotes:r['Decision Notes']||'',date:r['Timestamp'],
         withinLimit:lc.withinLimit,savings:lc.savings,maxLoan:lc.maxLoan,
-        guarantors:(gmap[id]||[]).map(no => ({memberNo:no, name:nameOf[no]||no})),
+        guarantors:(gmap[id]||[]).map(no => ({memberNo:no, name:nameOf[no]||no, response:respOf[id+'|'+no]||'Pending'})),
         daysPending: days, decisionOverdue: days !== null && days > DECISION_WINDOW_DAYS};
     }).sort((a,b)=>String(b.date).localeCompare(String(a.date))) };
 }
@@ -75,6 +79,7 @@ function approveLoanRequest(requestId, overrideReason) {
   const el=_loanEligibility(req['MemberNo']); if (!el.ok) return el;
   const gc=_guarantorChecks(req['MemberNo'], amount, _guarantorMap()[String(requestId).trim()]||[], requestId);
   if (!gc.ok) return gc;
+  const gate=_guarantorGate(requestId); if (!gate.ok) return gate;
   const lc=_checkLimit(req['MemberNo'],amount);
   if (!lc.withinLimit && !String(overrideReason||'').trim())
     return {ok:false,error:'Exceeds limit. Savings: '+fmtUGX(lc.savings)+', max: '+fmtUGX(lc.maxLoan)+'. Provide override reason.',limitCheck:lc};

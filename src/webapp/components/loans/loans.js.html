@@ -68,7 +68,7 @@ function loadLoanReqAdmin(){
     res.requests.forEach(r=>{LR_CACHE[r.requestId]=r;});
     tb.innerHTML=res.requests.map(r=>{
       const lim=r.withinLimit?'<span class="badge approved">Within limit</span>':'<span class="badge overdue">Over limit</span>';
-      const gl=r.guarantors.length?r.guarantors.map(g=>esc(g.name)+' ('+esc(g.memberNo)+')').join(', '):'None';
+      const gl=r.guarantors.length?r.guarantors.map(g=>esc(g.name)+' ('+esc(g.memberNo)+') - '+esc(g.response)).join(', '):'None';
       const due=r.decisionOverdue?'<div class="note" style="color:var(--bad)">Decision overdue ('+r.daysPending+' days, limit 3)</div>'
         :(r.daysPending!==null?'<div class="note">Pending '+r.daysPending+' day(s)</div>':'');
       const acts=r.status==='Pending'?'<button class="btn sm" onclick="openApproveLR(\''+r.requestId+'\')">Approve</button> <button class="btn sm danger" onclick="openRejectLR(\''+r.requestId+'\')">Reject</button>':'';
