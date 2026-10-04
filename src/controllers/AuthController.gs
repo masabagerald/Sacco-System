@@ -25,11 +25,7 @@ function sendOtp(email) {
   Config.setScriptProp('otp_' + email, JSON.stringify({ code, expires: Date.now() + OTP_EXPIRY_MS }));
 
   try {
-    MailApp.sendEmail({
-      to: email, name: SACCO_NAME,
-      subject: '[' + SACCO_NAME + '] Your sign-in code',
-      htmlBody: _otpEmailHtml(r.member.name, code)
-    });
+    _sendHtmlEmail(email, '[' + SACCO_NAME + '] Your sign-in code', _otpEmailHtml(r.member.name, code));
   } catch(e) { return { ok: false, error: 'Could not send email: ' + e.message }; }
 
   const at = email.indexOf('@');

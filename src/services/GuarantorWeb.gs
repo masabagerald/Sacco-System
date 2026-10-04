@@ -19,27 +19,9 @@ function _sendGuarantorRequests(requestId, applicantNo, amount, purpose, termDef
     const m = members.find(x => String(x['MemberNo']||'').trim() === String(t.guarantorNo).trim());
     if (!m || !String(m['Email']||'').trim()) { Logger.log('No email for guarantor ' + t.guarantorNo); return; }
     const link = d => base + '?g=' + t.token + '&decide=' + d;
-    const html =
-      '<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;border:1px solid #e5ece8;border-radius:10px;overflow:hidden;">' +
-        '<div style="background:' + BRAND_COLOR + ';color:#fff;padding:18px 22px;">' +
-          '<div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;opacity:.8;">' + esc(SACCO_NAME) + '</div>' +
-          '<div style="font-size:18px;font-weight:700;margin-top:4px;">Guarantor request: ' + esc(requestId) + '</div>' +
-        '</div>' +
-        '<div style="padding:22px;font-size:14px;color:#243b30;line-height:1.55;">' +
-          '<p style="margin:0 0 14px;">Hello ' + esc(m['Full Name'] || '') + ',</p>' +
-          '<p style="margin:0 0 14px;"><strong>' + esc(applicant) + '</strong> has asked you to guarantee a loan of <strong>' + esc(fmtUGX(amount)) + '</strong>' +
-            (purpose ? ' for ' + esc(purpose) : '') + '.</p>' +
-          '<p style="margin:0 0 14px;">Terms: ' + esc(termDef.label) + ' at ' + esc(String(r2(termDef.rate * 100))) + '% interest, plus a UGX ' + esc(String(PROCESSING_FEE)) +
-            ' processing fee. The full amount is due at the end of the term. Guaranteeing means you agree to support repayment if the member cannot pay.</p>' +
-          '<table style="width:100%;margin:18px 0;"><tr>' +
-            '<td style="padding-right:8px;"><a href="' + link('approve') + '" style="display:block;text-align:center;background:#2e7d4f;color:#fff;text-decoration:none;font-weight:700;padding:12px;border-radius:8px;">Approve</a></td>' +
-            '<td style="padding-left:8px;"><a href="' + link('decline') + '" style="display:block;text-align:center;background:#b3412e;color:#fff;text-decoration:none;font-weight:700;padding:12px;border-radius:8px;">Decline</a></td>' +
-          '</tr></table>' +
-          '<p style="font-size:12px;color:#6b7c75;margin:0;">You will be asked to confirm on the next page. If you did not expect this request, decline it or contact the committee.</p>' +
-        '</div>' +
-      '</div>';
+    const html = _guarantorEmailHtml(m['Full Name'] || '', requestId, applicant, amount, purpose, termDef, link('approve'), link('decline'));
     try {
-      MailApp.sendEmail({ to: m['Email'], name: SACCO_NAME, subject: '[' + SACCO_NAME + '] Please respond to guarantor request ' + requestId, htmlBody: html });
+      _sendHtmlEmail(m['Email'], '[' + SACCO_NAME + '] Please respond to guarantor request ' + requestId, html);
     } catch (e) { Logger.log('Guarantor email failed for ' + t.guarantorNo + ': ' + e); }
   });
 }
@@ -121,10 +103,32 @@ function _guarantorPage(title, bodyHtml) {
     '<body style="margin:0;font-family:Arial,sans-serif;background:#f4f7f5;">' +
     '<div style="max-width:460px;margin:40px auto;background:#fff;border:1px solid #e5ece8;border-radius:12px;overflow:hidden;">' +
       '<div style="background:' + BRAND_COLOR + ';color:#fff;padding:18px 22px;">' +
+        '<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="padding-right:14px;"><img src="data:image/jpeg;base64,' + CLUB_LOGO_B64 + '" width="56" height="56" alt="" style="display:block;border-radius:50%;"></td><td>' +
         '<div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;opacity:.8;">' + esc(SACCO_NAME) + '</div>' +
-        '<div style="font-size:18px;font-weight:700;margin-top:4px;">' + esc(title) + '</div>' +
+        '<div style="font-size:18px;font-weight:700;margin-top:4px;">' + esc(title) + '</div></td></tr></table>' +
       '</div>' +
       '<div style="padding:22px;font-size:14px;color:#243b30;line-height:1.55;">' + bodyHtml + '</div>' +
     '</div></body></html>';
   return HtmlService.createHtmlOutput(html).setTitle(SACCO_NAME).addMetaTag('viewport', 'width=device-width, initial-scale=1.0');
+}
+
+// Email to a guarantor: loan details and the Approve / Decline buttons
+function _guarantorEmailHtml(name, requestId, applicant, amount, purpose, termDef, approveUrl, declineUrl) {
+  const btn = (url, label, color) => '<a href="' + url + '" style="display:block;text-align:center;background:' + color + ';color:#ffffff;text-decoration:none;font-weight:700;padding:13px;border-radius:8px;font-size:14px;">' + label + '</a>';
+  const body =
+    '<p style="margin:0 0 12px;">Hello ' + esc(name) + ',</p>' +
+    '<p style="margin:0 0 12px;"><strong>' + esc(applicant) + '</strong> has asked you to guarantee a loan of <strong>' + esc(fmtUGX(amount)) + '</strong>' + (purpose ? ' for ' + esc(purpose) : '') + '.</p>' +
+    _emailRows([
+      ['Request ID', requestId],
+      ['Repayment term', termDef.label + ' at ' + r2(termDef.rate * 100) + '% interest'],
+      ['Processing fee', fmtUGX(PROCESSING_FEE)],
+      ['Due', 'Full amount on the due date (counted from approval)']
+    ]) +
+    '<p style="margin:14px 0 16px;color:#5b6b7d;font-size:13px;">Guaranteeing means you agree to support repayment if the member cannot pay.</p>' +
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>' +
+      '<td style="padding-right:6px;width:50%;">' + btn(approveUrl, 'Approve', '#2e7d4f') + '</td>' +
+      '<td style="padding-left:6px;width:50%;">' + btn(declineUrl, 'Decline', '#b3412e') + '</td>' +
+    '</tr></table>' +
+    '<p style="margin:14px 0 0;color:#7a8a9c;font-size:12px;">You will be asked to confirm on the next page. If you did not expect this request, decline it or contact the committee.</p>';
+  return _emailShell('Guarantor request: ' + requestId, body);
 }
