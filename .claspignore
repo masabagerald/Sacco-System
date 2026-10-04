@@ -1,0 +1,13 @@
+**/**
+!appsscript.json
+!src/**/*.gs
+!src/**/*.html
+src/models/test.gs
+node_modules/**
+.git/**
+.vscode/**
+.gas-sync/**
+README.md
+package.json
+package-lock.json
+jsconfig.json
