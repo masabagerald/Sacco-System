@@ -6,7 +6,17 @@ const OTP_EXPIRY_MS      = 10 * 60 * 1000; // 10 minutes
 
 // Loan rules (Article 4 of the SACCO by-laws)
 const FLAT_INTEREST_RATE         = 0.10;  // Sec 10: 10% flat on principal, charged on transfer
-const PROCESSING_FEE             = 5000;  // Sec 11: added to the debt on transfer
+const PROCESSING_FEE             = 10000; // processing fee on every loan (UGX), added to the debt
+const ARTICLE4_FEE               = 5000;  // fee on earlier Article 4 loans (kept so they still calculate)
+
+// Repayment terms for new loans: interest rate by term. One payment, due on the due date.
+const LOAN_TERMS = [
+  { key: '1w', label: '1 week',  days: 7,  rate: 0.05 },
+  { key: '2w', label: '2 weeks', days: 14, rate: 0.10 },
+  { key: '3w', label: '3 weeks', days: 21, rate: 0.15 },
+  { key: '1m', label: '1 month', days: 30, rate: 0.15 }
+];
+function _termByKey(key) { return LOAN_TERMS.find(t => t.key === String(key||'').trim()) || null; }
 const LOAN_FIRST_INSTALMENT_DAYS = 28;    // Sec 13: first instalment at week 4
 const LOAN_DURATION_DAYS         = 56;    // Sec 12/13: everything due by week 8
 const LATE_PENALTY_RATE          = 0.10;  // Sec 14: 10% if unpaid at week 8

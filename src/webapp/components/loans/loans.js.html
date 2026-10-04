@@ -1,8 +1,9 @@
 <script>
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 const LR_CACHE={};
+let LOAN_TERMS_CACHE=null, LOAN_FEE=10000;
 const money=v=>Math.round(v).toLocaleString('en-US');
-const termTxt=r=>r.term?r.term+' mo':'8 weeks';
+const termTxt=r=>r.termLabel||'';
 
 // Checkbox list of guarantor candidates (members other than the applicant)
 function renderCandidates(id,res){
@@ -13,6 +14,41 @@ function renderCandidates(id,res){
     :'<p class="note">No other active members to pick from.</p>';
 }
 function pickedGuarantors(id){return [...document.querySelectorAll('#'+id+' input:checked')].map(x=>x.value);}
+
+// ── LOAN TERMS & QUOTE ────────────────────────────────────────────────────────
+// Loads the term table and fee from the server (the single source of truth), then fills the term picker
+function loadLoanTerms(cb){
+  if(LOAN_TERMS_CACHE)return cb&&cb();
+  Api.getLoanTerms(res=>{
+    if(res.ok){LOAN_TERMS_CACHE=res.terms;LOAN_FEE=res.fee;}
+    cb&&cb();
+  });
+}
+function fillTermOptions(selId){
+  $('#'+selId).innerHTML=(LOAN_TERMS_CACHE||[]).map(t=>'<option value="'+esc(t.key)+'">'+esc(t.label)+' ('+t.rate+'% interest)</option>').join('');
+}
+// Breakdown of the total due, shown before the applicant submits. Same arithmetic as the server.
+function quoteHtml(amount,termKey){
+  const t=(LOAN_TERMS_CACHE||[]).find(x=>x.key===termKey);
+  const p=Math.round(n(amount));
+  if(!t||!p||p<=0)return '<p class="note">Enter an amount and choose a term to see the total due.</p>';
+  const interest=Math.round(p*t.rate/100);
+  const total=p+interest+LOAN_FEE;
+  const due=new Date();due.setDate(due.getDate()+t.days);
+  const dueTxt=due.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  const qrow=(k,v)=>'<tr><td style="color:var(--dim)">'+k+'</td><td class="r">'+v+'</td></tr>';
+  return '<table><tbody>'+
+    qrow('Principal loan amount',fmt(p))+
+    qrow('Interest rate',t.rate+'%')+
+    qrow('Interest amount',fmt(interest))+
+    qrow('Processing fee',fmt(LOAN_FEE))+
+    qrow('<strong>Total amount due</strong>','<strong>'+fmt(total)+'</strong>')+
+    qrow('Due date (if approved today)',dueTxt)+
+    '</tbody></table><p class="note">The due date is counted from the day the loan is approved.</p>';
+}
+function updateQuote(amId,tmId,outId){
+  $('#'+outId).innerHTML=quoteHtml($('#'+amId).value,$('#'+tmId).value);
+}
 
 // ── MY LOANS ──────────────────────────────────────────────────────────────────
 function renderLoans(res){
@@ -30,19 +66,22 @@ function renderLoans(res){
     const sid='sc_'+l.loanId;
     const stats=[
       ['Principal',money(l.principal)],
-      ['Rate',l.rateLabel],
+      ['Interest',l.rateLabel],
       ['Term',l.termLabel],
       ['Outstanding',money(l.outstandingBalance)],
-      [flat?'Total due':'Est. Payment',money(flat?l.totalDue:l.monthlyPayment)],
+      [l.model==='reducing'?'Est. Payment':'Total due',money(l.model==='reducing'?l.monthlyPayment:l.totalDue)],
       ['Repaid',money(l.totalRepaid)]
     ];
-    const head=flat?'<p class="note">Interest 10% flat plus a UGX '+money(l.processingFee)+' processing fee. Repay in two equal instalments: week 4 and week 8.</p>':'';
+    if(l.dueDate)stats.push(['Due date',esc(l.dueDate)]);
+    const head=l.model==='term'
+      ?'<p class="note">Interest '+l.rateLabel+' plus a UGX '+money(l.processingFee)+' processing fee. The full amount is due on '+esc(l.dueDate)+'.</p>'
+      :(flat?'<p class="note">Interest 10% flat plus a UGX '+money(l.processingFee)+' processing fee. Repay in two equal instalments: week 4 and week 8.</p>':'');
     const pen=l.penalty>0?'<p class="note" style="color:var(--bad)">Late penalty applied (10% of the balance unpaid at week 8): '+fmt(l.penalty)+'</p>':'';
-    const right=i=>flat?i>=2:i>=1;
+    const right=i=>l.model==='reducing'?i>=1:i>=2;
     const schTh=(l.scheduleHead||['Month','Opening','Interest','Payment','Closing']).map((h,i)=>'<th'+(right(i)?' class="r"':'')+'>'+h+'</th>').join('');
-    const schRows=flat
-      ?l.schedule.map(r=>'<tr><td>'+esc(r.label)+'</td><td>'+esc(r.due)+'</td><td class="r">'+money(r.amount)+'</td><td class="r">'+money(r.balance)+'</td></tr>').join('')
-      :l.schedule.map(r=>'<tr><td>'+r.month+'</td><td class="r">'+money(r.opening)+'</td><td class="r">'+money(r.interest)+'</td><td class="r">'+money(r.payment)+'</td><td class="r">'+money(r.closing)+'</td></tr>').join('');
+    const schRows=l.model==='reducing'
+      ?l.schedule.map(r=>'<tr><td>'+r.month+'</td><td class="r">'+money(r.opening)+'</td><td class="r">'+money(r.interest)+'</td><td class="r">'+money(r.payment)+'</td><td class="r">'+money(r.closing)+'</td></tr>').join('')
+      :l.schedule.map(r=>'<tr><td>'+esc(r.label)+'</td><td>'+esc(r.due)+'</td><td class="r">'+money(r.amount)+'</td><td class="r">'+money(r.balance)+'</td></tr>').join('');
     return '<div class="loan-card"><div class="loan-hd"><span class="lid">'+esc(l.loanId)+'</span>'+badge(slbl,{cleared:'cleared',overdue:'overdue',active:'active'})+'</div>'+
       '<div class="loan-stats">'+stats.map(([k,v])=>'<div><div class="ls-k">'+k+'</div><div class="ls-v">'+v+'</div></div>').join('')+'</div>'+
       head+pen+(l.overrideReason?'<p class="note">Override: '+esc(l.overrideReason)+'</p>':'')+
@@ -56,7 +95,7 @@ function renderLoanReqs(res){
   if(!res.ok)return;
   const tb=$('#loanReqTb');
   if(!res.requests.length){tb.innerHTML='<tr class="empty"><td colspan="6">No loan requests.</td></tr>';return;}
-  tb.innerHTML=res.requests.map(r=>'<tr><td>'+esc(r.requestId)+'</td><td class="r">'+money(r.amount)+'</td><td>'+termTxt(r)+'</td><td>'+esc(r.purpose)+'</td><td>'+badge(r.status,BMAP)+'</td><td>'+esc(r.decisionNotes)+'</td></tr>').join('');
+  tb.innerHTML=res.requests.map(r=>'<tr><td>'+esc(r.requestId)+'</td><td class="r">'+money(r.amount)+'</td><td>'+esc(r.termLabel)+'<div class="note">Total due '+fmt(r.total)+'</div></td><td>'+esc(r.purpose)+'</td><td>'+badge(r.status,BMAP)+'</td><td>'+esc(r.decisionNotes)+'</td></tr>').join('');
 }
 
 // ── ADMIN: LOAN REQUESTS ──────────────────────────────────────────────────────
@@ -72,7 +111,7 @@ function loadLoanReqAdmin(){
       const due=r.decisionOverdue?'<div class="note" style="color:var(--bad)">Decision overdue ('+r.daysPending+' days, limit 3)</div>'
         :(r.daysPending!==null?'<div class="note">Pending '+r.daysPending+' day(s)</div>':'');
       const acts=r.status==='Pending'?'<button class="btn sm" onclick="openApproveLR(\''+r.requestId+'\')">Approve</button> <button class="btn sm danger" onclick="openRejectLR(\''+r.requestId+'\')">Reject</button>':'';
-      return '<tr><td>'+esc(r.requestId)+'</td><td>'+esc(r.memberName)+'<div class="note">Guarantors: '+gl+'</div></td><td class="r">'+money(r.amount)+'</td><td>'+termTxt(r)+'</td><td>'+esc(r.purpose)+'</td><td>'+lim+'</td><td>'+badge(r.status,BMAP)+due+'</td><td>'+acts+'</td></tr>';
+      return '<tr><td>'+esc(r.requestId)+'</td><td>'+esc(r.memberName)+'<div class="note">Guarantors: '+gl+'</div></td><td class="r">'+money(r.amount)+'<div class="note">Total '+fmt(r.total)+'</div></td><td>'+esc(r.termLabel)+'</td><td>'+esc(r.purpose)+'</td><td>'+lim+'</td><td>'+badge(r.status,BMAP)+due+'</td><td>'+acts+'</td></tr>';
     }).join('');
   });
 }
@@ -81,19 +120,22 @@ function loadLoanReqAdmin(){
 function openReqLoan(){
   $('#rl_am').value='';$('#rl_pu').value='';mst('rl_st','','');
   $('#rl_gt').innerHTML='<p class="note">Loading members&hellip;</p>';
+  $('#rl_q').innerHTML='';
   om('m_reqLoan');
+  loadLoanTerms(()=>{fillTermOptions('rl_tm');updateQuote('rl_am','rl_tm','rl_q');});
   Api.getGuarantorCandidates(null, res=>renderCandidates('rl_gt',res));
 }
 function submitReqLoan(){
-  const am=$('#rl_am').value;
+  const am=$('#rl_am').value, tm=$('#rl_tm').value;
   if(!am||n(am)<=0)return mst('rl_st','err','Enter a valid amount.');
+  if(!tm)return mst('rl_st','err','Choose a repayment term.');
   const gs=pickedGuarantors('rl_gt');
   if(gs.length<2)return mst('rl_st','err','Select at least two guarantors.');
   $('#rl_btn').disabled=true;mst('rl_st','','Submitting…');
-  Api.requestLoan(am,$('#rl_pu').value.trim(),gs, res=>{
+  Api.requestLoan(am,tm,$('#rl_pu').value.trim(),gs, res=>{
     $('#rl_btn').disabled=false;
     if(!res.ok)return mst('rl_st','err',res.error);
-    mst('rl_st','ok','Request '+res.requestId+' submitted.');loadMyAccount();setTimeout(()=>cm('m_reqLoan'),900);
+    mst('rl_st','ok','Request '+res.requestId+' submitted. Total due if approved: '+fmt(res.total)+'.');loadMyAccount();setTimeout(()=>cm('m_reqLoan'),1500);
   }, e=>{$('#rl_btn').disabled=false;mst('rl_st','err','Error: '+e.message);});
 }
 
@@ -102,7 +144,9 @@ function openIssueLoan(){
   $('#ln_mb').innerHTML=mbOpts();$('#ln_pr').value='';$('#ln_pu').value='';$('#ln_ov').value='';
   $('#ln_lim').classList.add('hidden');$('#ln_ovwrap').classList.add('hidden');
   $('#ln_gt').innerHTML='<p class="note">Select a member to load guarantors.</p>';
+  $('#ln_q').innerHTML='';
   mst('ln_st','','');om('m_loan');
+  loadLoanTerms(()=>{fillTermOptions('ln_tm');updateQuote('ln_pr','ln_tm','ln_q');});
 }
 function onIssueMemberChange(){
   updateLimitInfo();
@@ -120,13 +164,14 @@ function updateLimitInfo(){
   else{box.classList.add('hidden');wrap.classList.add('hidden');}
 }
 function submitLoan(){
-  const mb=$('#ln_mb').value,pr=$('#ln_pr').value;
+  const mb=$('#ln_mb').value,pr=$('#ln_pr').value,tm=$('#ln_tm').value;
   if(!mb)return mst('ln_st','err','Select a member.');
   if(!pr||n(pr)<=0)return mst('ln_st','err','Enter a valid principal.');
+  if(!tm)return mst('ln_st','err','Choose a repayment term.');
   const gs=pickedGuarantors('ln_gt');
   if(gs.length<2)return mst('ln_st','err','Select at least two guarantors.');
   $('#ln_btn').disabled=true;mst('ln_st','','Saving…');
-  Api.issueLoan(mb,pr,$('#ln_pu').value.trim(),$('#ln_ov').value.trim(),gs, res=>{
+  Api.issueLoan(mb,pr,$('#ln_pu').value.trim(),$('#ln_ov').value.trim(),gs,tm, res=>{
     $('#ln_btn').disabled=false;
     if(!res.ok){mst('ln_st','err',res.error);if(res.limitCheck)$('#ln_ovwrap').classList.remove('hidden');return;}
     mst('ln_st','ok','Loan '+res.loanId+' issued.');
@@ -153,7 +198,7 @@ function openApproveLR(id){
   const r=LR_CACHE[id]; if(!r)return;
   APPROV_REQ=r;
   const gl=r.guarantors.map(g=>g.name+' ('+g.memberNo+')').join(', ')||'none';
-  $('#alr_info').textContent=r.memberName+' requests '+fmt(r.amount)+' (flat 10%, 8 weeks). Guarantors: '+gl+'. Savings: '+fmt(r.savings)+', max: '+fmt(r.maxLoan)+'.';
+  $('#alr_info').textContent=r.memberName+' requests '+fmt(r.amount)+' over '+r.termLabel+' (total due '+fmt(r.total)+'). Guarantors: '+gl+'. Savings: '+fmt(r.savings)+', max: '+fmt(r.maxLoan)+'.';
   $('#alr_ov').value='';mst('alr_st','','');
   if(!r.withinLimit){$('#alr_lim').classList.remove('hidden');$('#alr_lim').textContent='Exceeds the 50% savings limit. Override reason required.';$('#alr_ovwrap').classList.remove('hidden');}
   else{$('#alr_lim').classList.add('hidden');$('#alr_ovwrap').classList.add('hidden');}

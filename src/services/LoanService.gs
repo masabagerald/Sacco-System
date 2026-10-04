@@ -1,24 +1,32 @@
 // ── LOAN CALCULATIONS & LOW-LEVEL LOAN ROW HELPERS ────────────────────────────
 
-// Two loan models live side by side:
-//  - Flat (Article 4): 10% interest + processing fee on principal, repaid in two equal
-//    instalments at weeks 4 and 8. Still owed at week 8 -> 10% late penalty on the balance.
-//  - Reducing (legacy): monthly reducing balance at the rate entered at the time. Kept so
-//    loans issued before the flat model still calculate correctly.
+// Three loan models live side by side:
+//  - Term (current): interest set by the repayment term (LOAN_TERMS) plus the processing fee.
+//    One payment, due on the due date.
+//  - Flat (Article 4, earlier loans): 10% flat + UGX 5,000 fee, two instalments at weeks 4 and 8.
+//    Still owed at week 8 -> 10% late penalty on the balance.
+//  - Reducing (oldest loans): monthly reducing balance at the rate entered at the time.
+const TERM_LOAN_MODEL = 'Term';
 const FLAT_LOAN_MODEL = 'Flat';
 
-function _isFlat(loan) {
-  return String(loan['Loan Model']||'').trim().toLowerCase() === FLAT_LOAN_MODEL.toLowerCase();
-}
+function _modelOf(loan) { return String(loan['Loan Model']||'').trim().toLowerCase(); }
+function _isTerm(loan) { return _modelOf(loan) === TERM_LOAN_MODEL.toLowerCase(); }
+function _isFlat(loan) { return _modelOf(loan) === FLAT_LOAN_MODEL.toLowerCase(); }
 
 // Parses a 'yyyy-MM-dd' sheet value as a local date, so day counts don't shift with timezone.
 function _ymd(v) {
-  const m = String(v||'').trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const m = String(v||'').trim().match(/^([0-9]{4})-([0-9]{2})-([0-9]{2})/);
   return m ? new Date(+m[1], +m[2]-1, +m[3]) : new Date(v);
 }
 function _addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
 
-// Flat-loan amounts for a principal. Used by the calculation and the issue email.
+// Amounts for a term loan. Used by the issue email and the request preview.
+function _termTerms(principal, termDef) {
+  const interest = r2(principal * termDef.rate);
+  return { rate: termDef.rate, interest, fee: PROCESSING_FEE, total: r2(principal + interest + PROCESSING_FEE) };
+}
+
+// Flat-loan amounts (Article 4). Used by the legacy calculation.
 function _flatTerms(principal, fee) {
   const interest = r2(principal * FLAT_INTEREST_RATE);
   const base = r2(principal + interest + fee);
@@ -31,16 +39,51 @@ function _computeLoan(loan, allRepayments) {
     .filter(r => String(r['LoanID']||'').trim() === String(loan['LoanID']||'').trim())
     .map(r => ({ date: _ymd(r['Date']), amount: num(_pick(r,['Amount (UGX)','Total Amount Paid'])) }))
     .sort((a,b) => a.date - b.date);
+  if (_isTerm(loan)) return _computeTerm(loan, reps);
   return _isFlat(loan) ? _computeFlat(loan, reps) : _computeReducing(loan, reps);
 }
 
+function _progressLabel(overdue, status) {
+  return overdue ? 'Overdue' : (status === LOAN_STATUS.CLEARED ? 'Cleared' : 'On track');
+}
+
+// Term loan: one payment, due on the due date.
+function _computeTerm(loan, reps) {
+  const principal = num(loan['Principal (UGX)']);
+  const issued = _ymd(loan['Date Issued']);
+  const days = num(loan['Term (days)']);
+  const def = LOAN_TERMS.find(t => t.days === days) || { label: days + ' days', days: days, rate: 0 };
+  const rate = num(loan['Interest Rate (%)']) ? num(loan['Interest Rate (%)']) / 100 : def.rate;
+  const fee = num(loan['Processing Fee (UGX)']) || PROCESSING_FEE;
+  const interest = r2(principal * rate);
+  const total = r2(principal + interest + fee);
+  const due = loan['Due Date'] ? _ymd(loan['Due Date']) : _addDays(issued, days);
+  const totalRepaid = r2(reps.reduce((s,r) => s + r.amount, 0));
+  const outstanding = Math.max(0, r2(total - totalRepaid));
+  const status = outstanding <= 0.5 ? LOAN_STATUS.CLEARED : String(loan['Status']||LOAN_STATUS.ACTIVE);
+  // Overdue once the due date has passed and money is still owed
+  const overdue = status === LOAN_STATUS.ACTIVE && new Date() >= _addDays(due, 1);
+  return {
+    loanId: loan['LoanID'], memberNo: loan['MemberNo'], model: 'term', principal,
+    monthlyRate: rate * 100, rateLabel: r2(rate * 100) + '%', term: days, termLabel: def.label,
+    dateIssued: loan['Date Issued'], dueDate: fmt_date(due), purpose: loan['Purpose']||'',
+    overrideReason: loan['Override Reason']||'', monthsElapsed: null,
+    processingFee: fee, interest, penalty: 0, totalDue: total,
+    totalInterestAccrued: interest, totalRepaid, outstandingBalance: outstanding, status, overdue,
+    progressLabel: _progressLabel(overdue, status),
+    monthlyPayment: total, scheduleHead: ['Payment','Due date','Amount','Balance after'],
+    schedule: [{ label: 'Full payment', due: fmt_date(due), amount: total, balance: outstanding }]
+  };
+}
+
+// Flat loan (Article 4, earlier loans)
 function _computeFlat(loan, reps) {
   const principal = num(loan['Principal (UGX)']);
   const issued = _ymd(loan['Date Issued']);
   const now = new Date();
   const d1 = _addDays(issued, LOAN_FIRST_INSTALMENT_DAYS);
   const d2 = _addDays(issued, LOAN_DURATION_DAYS);
-  const t = _flatTerms(principal, num(loan['Processing Fee (UGX)']) || PROCESSING_FEE);
+  const t = _flatTerms(principal, num(loan['Processing Fee (UGX)']) || ARTICLE4_FEE);
 
   // Late penalty: if less than the full base is paid by week 8, 10% is charged on what is still owed
   const paidByDeadline = reps.filter(r => r.date <= d2).reduce((s,r) => s + r.amount, 0);
@@ -73,14 +116,14 @@ function _computeFlat(loan, reps) {
     overrideReason: loan['Override Reason']||'', monthsElapsed: null,
     processingFee: t.fee, interest: t.interest, penalty, totalDue,
     totalInterestAccrued: t.interest, totalRepaid, outstandingBalance: outstanding, status, overdue,
-    progressLabel: overdue ? 'Overdue' : (status === LOAN_STATUS.CLEARED ? 'Cleared' : 'On track'),
+    progressLabel: _progressLabel(overdue, status),
     monthlyPayment: t.inst1, scheduleHead: ['Instalment','Due date','Amount','Balance after'], schedule
   };
 }
 
 function _computeReducing(loan, reps) {
   const principal = num(loan['Principal (UGX)']);
-  const rate = num(_pick(loan,['Monthly Rate (%)','Weekly Rate (%)'])) / 100;
+  const rate = num(loan['Monthly Rate (%)']) / 100;
   const issued = _ymd(loan['Date Issued']);
   const now = new Date();
   let balance = principal, totalInterest = 0, totalRepaid = 0, cursor = new Date(issued), ri = 0;
@@ -98,17 +141,17 @@ function _computeReducing(loan, reps) {
   const monthsElapsed = Math.floor((now - issued) / (1000*60*60*24*30.44));
   const status = balance <= 0.5 ? LOAN_STATUS.CLEARED : String(loan['Status']||LOAN_STATUS.ACTIVE);
   const overdue = status === LOAN_STATUS.ACTIVE && term > 0 && monthsElapsed > term;
-  const sch = _schedule(principal, num(_pick(loan,['Monthly Rate (%)','Weekly Rate (%)'])), term);
+  const sch = _schedule(principal, num(loan['Monthly Rate (%)']), term);
   return { loanId: loan['LoanID'], memberNo: loan['MemberNo'], model: 'reducing', principal,
-    monthlyRate: num(_pick(loan,['Monthly Rate (%)','Weekly Rate (%)'])), rateLabel: num(_pick(loan,['Monthly Rate (%)','Weekly Rate (%)']))+'%/mo',
+    monthlyRate: num(loan['Monthly Rate (%)']), rateLabel: num(loan['Monthly Rate (%)'])+'%/mo',
     term, termLabel: term+' months', dateIssued: loan['Date Issued'], purpose: loan['Purpose']||'',
     overrideReason: loan['Override Reason']||'', monthsElapsed, totalInterestAccrued: r2(totalInterest),
     totalRepaid: r2(totalRepaid), outstandingBalance: r2(balance), status, overdue,
-    progressLabel: overdue ? 'Overdue' : (status === LOAN_STATUS.CLEARED ? 'Cleared' : 'On track'),
+    progressLabel: _progressLabel(overdue, status),
     monthlyPayment: sch.monthlyPayment, scheduleHead: null, schedule: sch.schedule };
 }
 
-// Projected amortization schedule for legacy reducing-balance loans (guidance only)
+// Projected amortization schedule for reducing-balance loans (guidance only)
 function _schedule(principal, ratePct, termMonths) {
   const rate = num(ratePct)/100, term = Math.max(1, Math.round(num(termMonths)));
   const payment = rate===0 ? r2(principal/term) : r2(principal*rate/(1-Math.pow(1+rate,-term)));
@@ -160,20 +203,24 @@ function _loanEligibility(memberNo) {
   return { ok: true };
 }
 
-// Creates a flat-model loan row. Requires the "Loan Model" and "Processing Fee (UGX)" columns.
-function _createLoanRow(memberNo, principal, purpose, issuedBy, overrideReason) {
+// Creates a term loan row. termDef is an entry of LOAN_TERMS.
+function _createLoanRow(memberNo, principal, purpose, issuedBy, overrideReason, termDef) {
   const { sh, headers, hRow } = readSheet(SH_LOANS,'loanid');
-  if (ci(headers,'loan model') < 0 || ci(headers,'processing fee') < 0)
-    throw new Error('Loans sheet needs "Loan Model" and "Processing Fee (UGX)" columns. Run setupGuaranteeSchema() once from the script editor.');
+  const needed = ['loan model','processing fee','term (days)','interest rate','due date'];
+  if (needed.some(n => ci(headers, n) < 0))
+    throw new Error('Loans sheet is missing one of these columns: Loan Model, Processing Fee (UGX), Term (days), Interest Rate (%), Due Date. Run setupGuaranteeSchema() once from the script editor.');
   const newId = nextId(SH_LOANS,'loanid','L');
   const row = emptyRow(sh, hRow, ci(headers,'loanid'));
   const s = (c,v) => { if(c>-1) sh.getRange(row,c+1).setValue(v); };
+  const issued = new Date();
   s(ci(headers,'loanid'),newId); s(ci(headers,'timestamp'),now_ts());
-  s(ci(headers,'memberno'),memberNo); s(ci(headers,'date issued'),today());
+  s(ci(headers,'memberno'),memberNo); s(ci(headers,'date issued'),fmt_date(issued));
   s(ci(headers,'principal'),principal); s(ci(headers,'status'),LOAN_STATUS.ACTIVE);
   s(ci(headers,'issued by'),issuedBy); s(ci(headers,'purpose'),purpose||'');
   s(ci(headers,'override'),overrideReason||'');
-  s(ci(headers,'loan model'),FLAT_LOAN_MODEL); s(ci(headers,'processing fee'),PROCESSING_FEE);
+  s(ci(headers,'loan model'),TERM_LOAN_MODEL); s(ci(headers,'processing fee'),PROCESSING_FEE);
+  s(ci(headers,'term (days)'),termDef.days); s(ci(headers,'interest rate'),r2(termDef.rate*100));
+  s(ci(headers,'due date'),fmt_date(_addDays(issued, termDef.days)));
   return newId;
 }
 

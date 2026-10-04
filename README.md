@@ -104,6 +104,8 @@ The spreadsheet must have these tabs (exact names, set in `src/utils/Config.gs`)
 
 The header row can sit below a title and description (row 4 in the current sheet). Run `setupGuaranteeSchema()` once from the Apps Script editor to create the `Guarantors` tab and add the new `Loans` columns. Loan rules (Article 4 of the SACCO by-laws) live in `src/utils/Config.gs`.
 
+New loans use a repayment term (1 week 5%, 2 weeks 10%, 3 weeks 15%, 1 month 15% interest) plus a UGX 10,000 processing fee, with one payment due on the due date. The term table is `LOAN_TERMS` in `src/utils/Config.gs`. `setupGuaranteeSchema()` adds the columns this needs: Loans gets Term (days), Interest Rate (%), Due Date; Loan Requests gets Repayment Term and Total Due.
+
 IDs are auto-generated per sheet (`L001`, `R001`, `W001`, `F001`, ...) by `nextId()` in `SheetService.gs`.
 
 ## Setup

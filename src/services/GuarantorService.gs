@@ -112,14 +112,19 @@ function setupGuaranteeSchema() {
     if (!gHdr.includes(name.toLowerCase())) { g.getRange(1, g.getLastColumn() + 1).setValue(name); gHdr.push(name.toLowerCase()); }
   });
 
-  // Find the real header row (tabs have a title and description above it)
-  const { sh: ln, hRow } = readSheet(SH_LOANS, 'loanid');
-  if (hRow < 0) throw new Error('Could not find the header row on the Loans tab (expected a LoanID column).');
-  ['Loan Model', 'Processing Fee (UGX)'].forEach(name => {
-    const lastCol = ln.getLastColumn();
-    const hdr = ln.getRange(hRow + 1, 1, 1, lastCol).getValues()[0].map(h => String(h).trim().toLowerCase());
-    if (!hdr.some(h => h.startsWith(name.toLowerCase()))) ln.getRange(hRow + 1, lastCol + 1).setValue(name);
-  });
+  // Adds any missing columns to an existing tab. Finds the real header row (tabs have a title above it).
+  const addColumns = (sheetName, hint, names) => {
+    const { sh, hRow } = readSheet(sheetName, hint);
+    if (hRow < 0) throw new Error('Could not find the header row on the ' + sheetName + ' tab.');
+    names.forEach(name => {
+      const lastCol = sh.getLastColumn();
+      const hdr = sh.getRange(hRow + 1, 1, 1, lastCol).getValues()[0].map(h => String(h).trim().toLowerCase());
+      if (!hdr.some(h => h.startsWith(name.toLowerCase()))) sh.getRange(hRow + 1, lastCol + 1).setValue(name);
+    });
+  };
+  addColumns(SH_LOANS, 'loanid', ['Loan Model', 'Processing Fee (UGX)', 'Term (days)', 'Interest Rate (%)', 'Due Date']);
+  addColumns(SH_LOAN_REQ, 'requestid', ['Repayment Term', 'Total Due']);
+
   Logger.log('Guarantee schema ready.');
 }
 

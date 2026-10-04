@@ -13,7 +13,7 @@ function sendMonthlyStatements() {
     const unpaid=fines.filter(f=>String(f['MemberNo']||'').trim()===memberNo&&String(f['Status']||'').toLowerCase()==='unpaid').reduce((s,f)=>s+num(f['Amount (UGX)']),0);
     _sendEmail(m['Email'],'Monthly Statement',[
       ['Savings Balance',fmtUGX(savings)],['Active Loans',String(myLoans.length)],
-      ['Total Outstanding',fmtUGX(outstanding)],['Unpaid Fines',fmtUGX(unpaid)]
+      ['Total Outstanding',fmtUGX(outstanding)],['Unpaid Surcharges',fmtUGX(unpaid)]
     ],'Here is your '+SACCO_NAME+' monthly summary as of '+today()+'.');
   });
 }

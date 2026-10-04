@@ -11,7 +11,7 @@ function _memberName(memberNo, members) {
 
 // Emails every guarantor on a new request. Email failures are logged, not thrown,
 // so the request itself still saves.
-function _sendGuarantorRequests(requestId, applicantNo, amount, purpose, tokens) {
+function _sendGuarantorRequests(requestId, applicantNo, amount, purpose, termDef, tokens) {
   const { rows: members } = readSheet(SH_MEMBERS, 'memberno');
   const applicant = _memberName(applicantNo, members);
   const base = _webAppUrl();
@@ -29,8 +29,8 @@ function _sendGuarantorRequests(requestId, applicantNo, amount, purpose, tokens)
           '<p style="margin:0 0 14px;">Hello ' + esc(m['Full Name'] || '') + ',</p>' +
           '<p style="margin:0 0 14px;"><strong>' + esc(applicant) + '</strong> has asked you to guarantee a loan of <strong>' + esc(fmtUGX(amount)) + '</strong>' +
             (purpose ? ' for ' + esc(purpose) : '') + '.</p>' +
-          '<p style="margin:0 0 14px;">Terms: flat 10% interest and a UGX ' + esc(String(PROCESSING_FEE)) +
-            ' processing fee, repaid in two equal instalments at weeks 4 and 8. Guaranteeing means you agree to support repayment if the member cannot pay.</p>' +
+          '<p style="margin:0 0 14px;">Terms: ' + esc(termDef.label) + ' at ' + esc(String(r2(termDef.rate * 100))) + '% interest, plus a UGX ' + esc(String(PROCESSING_FEE)) +
+            ' processing fee. The full amount is due at the end of the term. Guaranteeing means you agree to support repayment if the member cannot pay.</p>' +
           '<table style="width:100%;margin:18px 0;"><tr>' +
             '<td style="padding-right:8px;"><a href="' + link('approve') + '" style="display:block;text-align:center;background:#2e7d4f;color:#fff;text-decoration:none;font-weight:700;padding:12px;border-radius:8px;">Approve</a></td>' +
             '<td style="padding-left:8px;"><a href="' + link('decline') + '" style="display:block;text-align:center;background:#b3412e;color:#fff;text-decoration:none;font-weight:700;padding:12px;border-radius:8px;">Decline</a></td>' +

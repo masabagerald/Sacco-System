@@ -44,7 +44,7 @@ function generateMemberStatementDoc() {
     });
   }
   if (data.fines.length) {
-    body.appendParagraph('Fines').setHeading(DocumentApp.ParagraphHeading.HEADING2);
+    body.appendParagraph('Surcharges').setHeading(DocumentApp.ParagraphHeading.HEADING2);
     body.appendTable([['Date','Reason','Amount','Status']].concat(data.fines.map(f=>[f.date,f.reason,fmtUGX(f.amount),f.status])));
     body.appendParagraph('Total Unpaid: ' + fmtUGX(data.unpaidFinesTotal));
   }
@@ -72,7 +72,7 @@ function exportAdminCSV() {
   lines.push('MBALE SCHOOL OF CLINICAL OFFICERS INVESTMENT CLUB — LEDGER EXPORT — '+today());
   lines.push('');
   lines.push('MEMBERS');
-  lines.push(['MemberNo','Name','Email','Role','Status','Savings (UGX)','Active Loans','Outstanding (UGX)','Unpaid Fines (UGX)'].join(','));
+  lines.push(['MemberNo','Name','Email','Role','Status','Savings (UGX)','Active Loans','Outstanding (UGX)','Unpaid Surcharges (UGX)'].join(','));
   members.filter(m=>String(m['MemberNo']||'').trim()!=='').forEach(m=>{
     const bal=_savingsBalance(m['MemberNo']);
     const myLoans=loans.filter(l=>String(l['MemberNo']||'').trim()===String(m['MemberNo']).trim()).map(l=>_computeLoan(l,reps)).filter(l=>l.status==='Active');

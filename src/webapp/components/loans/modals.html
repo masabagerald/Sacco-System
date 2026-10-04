@@ -2,11 +2,12 @@
 <div class="modal-bg" id="m_loan" onclick="if(event.target===this)cm('m_loan')">
   <div class="modal"><button class="x" onclick="cm('m_loan')">&times;</button>
     <h3>Issue Loan</h3>
-    <p class="sub">Flat 10% interest, UGX 5,000 processing fee, 8 weeks in 2 instalments.</p>
     <div class="mgrid">
       <div class="field full"><label>Member</label><select id="ln_mb" onchange="onIssueMemberChange()"></select></div>
-      <div class="field"><label>Principal (UGX)</label><input id="ln_pr" type="number" min="0" oninput="updateLimitInfo()"></div>
-      <div class="field"><label>Purpose</label><input id="ln_pu" type="text" placeholder="optional"></div>
+      <div class="field"><label>Principal (UGX)</label><input id="ln_pr" type="number" min="0" oninput="updateLimitInfo();updateQuote('ln_pr','ln_tm','ln_q')"></div>
+      <div class="field"><label>Repayment term</label><select id="ln_tm" onchange="updateQuote('ln_pr','ln_tm','ln_q')"></select></div>
+      <div class="field full"><label>Purpose</label><input id="ln_pu" type="text" placeholder="optional"></div>
+      <div class="field full"><div id="ln_q"></div></div>
       <div class="field full"><label>Guarantors (at least 2)</label><div class="chk-list" id="ln_gt"></div></div>
     </div>
     <div class="lim-warn hidden" id="ln_lim"></div>
@@ -34,10 +35,12 @@
 <div class="modal-bg" id="m_reqLoan" onclick="if(event.target===this)cm('m_reqLoan')">
   <div class="modal"><button class="x" onclick="cm('m_reqLoan')">&times;</button>
     <h3>Request a Loan</h3>
-    <p class="sub">Flat 10% interest, UGX 5,000 processing fee, repaid in 2 instalments over 8 weeks. You need at least two guarantors, each with savings of at least 25% of the loan.</p>
+    <p class="sub">Choose the amount and term. The total due is shown before you submit. You need at least two guarantors, each with savings of at least 25% of the loan.</p>
     <div class="mgrid">
-      <div class="field"><label>Amount (UGX)</label><input id="rl_am" type="number" min="0"></div>
-      <div class="field"><label>Purpose</label><input id="rl_pu" type="text"></div>
+      <div class="field"><label>Amount (UGX)</label><input id="rl_am" type="number" min="0" oninput="updateQuote('rl_am','rl_tm','rl_q')"></div>
+      <div class="field"><label>Repayment term</label><select id="rl_tm" onchange="updateQuote('rl_am','rl_tm','rl_q')"></select></div>
+      <div class="field full"><div id="rl_q"></div></div>
+      <div class="field full"><label>Purpose</label><input id="rl_pu" type="text"></div>
       <div class="field full"><label>Guarantors (at least 2)</label><div class="chk-list" id="rl_gt"></div></div>
     </div>
     <div class="mact"><button class="btn" onclick="cm('m_reqLoan')">Cancel</button><button class="btn solid" id="rl_btn" onclick="submitReqLoan()">Submit Request</button></div>

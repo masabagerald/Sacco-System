@@ -25,10 +25,10 @@ function issueFine(memberNo, amount, reason) {
   s(ci(headers,'amount'),amount); s(ci(headers,'reason'),reason);
   s(ci(headers,'status'),'Unpaid'); s(ci(headers,'recorded'),auth.member.memberNo);
   const m=_memberByNo(memberNo);
-  _sendEmail(m?.['Email'],'Fine Issued: '+newId,[
-    ['Fine ID',newId],['Amount',fmtUGX(amount)],['Reason',reason],['Status','Unpaid']
-  ],'A fine has been recorded on your account. Please settle with the treasurer.');
-  auditLog('Fine Issued', memberNo, auth.member.memberNo, fmtUGX(amount)+'. Reason: '+reason, newId);
+  _sendEmail(m?.['Email'],'Surcharge Issued: '+newId,[
+    ['Surcharge ID',newId],['Amount',fmtUGX(amount)],['Reason',reason],['Status','Unpaid']
+  ],'A surcharge has been recorded on your account. Please settle with the treasurer.');
+  auditLog('Surcharge Issued', memberNo, auth.member.memberNo, fmtUGX(amount)+'. Reason: '+reason, newId);
   return { ok:true, fineId:newId };
 }
 
@@ -36,16 +36,16 @@ function markFinePaid(fineId) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
   const { sh, headers, hRow, rows } = readSheet(SH_FINES,'fineid');
   const fine=rows.find(r=>String(r['FineID']||'').trim()===String(fineId).trim());
-  if (!fine) return {ok:false,error:'Fine not found.'};
+  if (!fine) return {ok:false,error:'Surcharge not found.'};
   const cId=ci(headers,'fineid'), cSt=ci(headers,'status');
   const data=sh.getDataRange().getValues();
   for (let r=hRow+1;r<data.length;r++)
     if (String(data[r][cId]).trim()===String(fineId).trim()) { if(cSt>-1)sh.getRange(r+1,cSt+1).setValue('Paid'); break; }
   const m=_memberByNo(fine['MemberNo']);
-  _sendEmail(m?.['Email'],'Fine Settled: '+fineId,[
-    ['Fine ID',fineId],['Amount',fmtUGX(num(fine['Amount (UGX)']))],['Status','Paid']
-  ],'This fine has been marked as paid. Thank you.');
-  auditLog('Fine Marked Paid', fine['MemberNo'], auth.member.memberNo, fmtUGX(num(fine['Amount (UGX)']))+'. Reason was: '+fine['Reason'], fineId);
+  _sendEmail(m?.['Email'],'Surcharge Settled: '+fineId,[
+    ['Surcharge ID',fineId],['Amount',fmtUGX(num(fine['Amount (UGX)']))],['Status','Paid']
+  ],'This surcharge has been marked as paid. Thank you.');
+  auditLog('Surcharge Marked Paid', fine['MemberNo'], auth.member.memberNo, fmtUGX(num(fine['Amount (UGX)']))+'. Reason was: '+fine['Reason'], fineId);
   return { ok:true };
 }
 

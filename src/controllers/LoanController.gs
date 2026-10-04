@@ -10,27 +10,28 @@ function getMyLoans() {
   return { ok: true, loans: result };
 }
 
-// Direct issue by an admin. Same rules as a request: eligibility, guarantors, savings cap (override allowed).
-function issueLoan(memberNo, principal, purpose, overrideReason, guarantorNos) {
+// Direct issue by an admin. Same rules as a request: eligibility, guarantors, term, savings cap (override allowed).
+function issueLoan(memberNo, principal, purpose, overrideReason, guarantorNos, termKey) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
   principal=num(principal);
   const lv = validateLoanIssue(principal); if (!lv.ok) return lv;
+  const termDef = _termByKey(termKey); if (!termDef) return {ok:false,error:'Choose a repayment term.'};
   const el = _loanEligibility(memberNo); if (!el.ok) return el;
   const gc = _guarantorChecks(memberNo, principal, guarantorNos, ''); if (!gc.ok) return gc;
   const lc = _checkLimit(memberNo, principal);
   if (!lc.withinLimit && !String(overrideReason||'').trim())
     return {ok:false,error:'Exceeds loan-to-savings limit. Savings: '+fmtUGX(lc.savings)+', max: '+fmtUGX(lc.maxLoan)+'. Provide an override reason to proceed.',limitCheck:lc};
-  const newId = _createLoanRow(memberNo, principal, purpose, auth.member.memberNo, overrideReason);
+  const newId = _createLoanRow(memberNo, principal, purpose, auth.member.memberNo, overrideReason, termDef);
   _appendGuarantors('', newId, memberNo, gc.guarantors);
   const m = _memberByNo(memberNo);
-  const t = _flatTerms(principal, PROCESSING_FEE);
+  const t = _termTerms(principal, termDef);
   _sendEmail(m?.['Email'],'Loan Issued: '+newId,[
-    ['Loan ID',newId],['Principal',fmtUGX(principal)],['Interest (10% flat)',fmtUGX(t.interest)],
-    ['Processing fee',fmtUGX(t.fee)],['Total to repay',fmtUGX(t.base)],
-    ['Instalment 1 (week 4)',fmtUGX(t.inst1)],['Instalment 2 (week 8)',fmtUGX(t.inst2)],['Purpose',purpose||'-']
-  ],'Your loan has been issued. Please repay in two equal instalments: at week 4 and at week 8. A 10% penalty applies to any balance unpaid at week 8.');
+    ['Loan ID',newId],['Principal',fmtUGX(principal)],['Interest ('+r2(termDef.rate*100)+'%)',fmtUGX(t.interest)],
+    ['Processing fee',fmtUGX(t.fee)],['Total to repay',fmtUGX(t.total)],
+    ['Due date',fmt_date(_addDays(new Date(), termDef.days))],['Purpose',purpose||'-']
+  ],'Your loan has been issued. The full amount is due on the due date shown.');
   auditLog('Loan Issued', memberNo, auth.member.memberNo,
-    'Principal: '+fmtUGX(principal)+', Flat 10%, fee '+fmtUGX(PROCESSING_FEE)+', guarantors: '+gc.guarantors.join(', ')+(overrideReason?' [OVERRIDE: '+overrideReason+']':''), newId);
+    'Principal: '+fmtUGX(principal)+' over '+termDef.label+' at '+r2(termDef.rate*100)+'%, fee '+fmtUGX(PROCESSING_FEE)+', guarantors: '+gc.guarantors.join(', ')+(overrideReason?' [OVERRIDE: '+overrideReason+']':''), newId);
   return { ok: true, loanId: newId };
 }
 
