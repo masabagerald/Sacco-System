@@ -35,8 +35,8 @@ const Api = {
     callServer('getGuarantorCandidates', [applicantNo], onSuccess, onFailure),
   recordRepayment: (loanId, amount, notes, txDate, onSuccess, onFailure) =>
     callServer('recordRepayment', [loanId, amount, notes, txDate], onSuccess, onFailure),
-  addMember: (memberNo, name, email, phone, role, onSuccess, onFailure) =>
-    callServer('addMember', [memberNo, name, email, phone, role], onSuccess, onFailure),
+  addMember: (name, email, phone, role, onSuccess, onFailure) =>
+    callServer('addMember', [name, email, phone, role], onSuccess, onFailure),
   requestLoan: (amount, purpose, guarantorNos, onSuccess, onFailure) =>
     callServer('requestLoan', [amount, purpose, guarantorNos], onSuccess, onFailure),
   issueFine: (memberNo, amount, reason, onSuccess, onFailure) =>
