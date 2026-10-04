@@ -93,13 +93,16 @@ The spreadsheet must have these tabs (exact names, set in `src/utils/Config.gs`)
 | Tab | Key columns |
 |---|---|
 | `Members` | MemberNo, Full Name, Email, Phone, Role (`Member`/`Admin`), Date Joined, Status (`Active`/...) |
-| `Savings` | Date, Timestamp, MemberNo, Type (`Deposit`/`Withdrawal`), Amount (UGX), Recorded By, Reference, Notes |
-| `Loans` | LoanID, Timestamp, MemberNo, Date Issued, Principal (UGX), Monthly Rate (%), Term (months), Status, Issued By, Purpose, Override Reason |
-| `Loan Repayments` | Date, Timestamp, LoanID, MemberNo, Amount (UGX), Recorded By, Notes |
+| `Savings` | Date, Timestamp, MemberNo, Deposit Type (`Deposit`/`Withdrawal`; the older name `Type` also works), Amount (UGX), Recorded By, Reference, Notes |
+| `Loans` | LoanID, Timestamp, MemberNo, Date Issued, Principal (UGX), Loan Model (`Flat` for new loans, blank for older reducing-balance loans), Processing Fee (UGX), Monthly Rate (%) and Term (months) (older loans only), Status, Issued By, Purpose, Override Reason |
+| `Guarantors` | Timestamp, RequestID, LoanID, ApplicantNo, GuarantorNo (one row per guarantor; LoanID is filled once the loan is issued) |
+| `Loan Repayments` | Date, Timestamp, LoanID, MemberNo, Total Amount Paid (or the older `Amount (UGX)`), Recorded By, Notes |
 | `Fines` | FineID, Timestamp, MemberNo, Date, Amount (UGX), Reason, Status (`Unpaid`/`Paid`), Recorded By |
 | `Loan Requests` | RequestID, Timestamp, MemberNo, Amount (UGX), Term (months), Purpose, Status, Decision Notes, Decided By |
 | `Withdrawal Requests` | RequestID, Timestamp, MemberNo, Amount (UGX), Reason, Status, Decision Notes, Decided By |
 | `Audit Log` | Timestamp, Action, Member (Affected), Performed By, Details, Reference ID |
+
+The header row can sit below a title and description (row 4 in the current sheet). Run `setupGuaranteeSchema()` once from the Apps Script editor to create the `Guarantors` tab and add the new `Loans` columns. Loan rules (Article 4 of the SACCO by-laws) live in `src/utils/Config.gs`.
 
 IDs are auto-generated per sheet (`L001`, `R001`, `W001`, `F001`, ...) by `nextId()` in `SheetService.gs`.
 

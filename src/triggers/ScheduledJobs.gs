@@ -31,7 +31,7 @@ function sendRepaymentReminders() {
     if (!myLoans.length) return;
     const overdue=myLoans.filter(l=>l.overdue);
     if (overdue.length) {
-      _sendEmail(m['Email'],'Overdue Loan Notice',overdue.map(l=>[l.loanId,fmtUGX(l.outstandingBalance)+' ('+l.monthsElapsed+'/'+l.term+' months)']),
+      _sendEmail(m['Email'],'Overdue Loan Notice',overdue.map(l=>[l.loanId,fmtUGX(l.outstandingBalance)+' ('+l.progressLabel+')']),
         'You have overdue loans. Please contact the treasurer to arrange repayment.');
       overdueNames.push(m['Full Name']);
     }

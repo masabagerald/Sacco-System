@@ -30,6 +30,12 @@ function readSheet(sheetName, headerHint) {
   return { headers, rows, sh, hRow };
 }
 
+// First non-empty value among alternative column names (sheets have used different headers over time)
+function _pick(row, names) {
+  for (const n of names) { const v = row[n]; if (v !== undefined && String(v).trim() !== '') return v; }
+  return '';
+}
+
 // Return 0-based column index for the first header starting with `name`.
 function ci(headers, name) {
   const n = name.toLowerCase();

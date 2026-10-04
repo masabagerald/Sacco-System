@@ -5,7 +5,7 @@ function getMySavings() {
   const { rows } = readSheet(SH_SAVINGS, 'memberno');
   const history = rows
     .filter(r => String(r['MemberNo']||'').trim() === auth.member.memberNo)
-    .map(r => ({ date: r['Date'], type: r['Type'], amount: num(r['Amount (UGX)']), reference: r['Reference']||'', notes: r['Notes']||'' }))
+    .map(r => ({ date: r['Date'], type: _pick(r,['Deposit Type','Type']), amount: num(r['Amount (UGX)']), reference: r['Reference']||'', notes: r['Notes']||'' }))
     .sort((a,b) => String(a.date).localeCompare(String(b.date)));
   return { ok: true, balance: _savingsBalance(auth.member.memberNo), history };
 }
@@ -24,7 +24,7 @@ function recordSavings(memberNo, type, amount, reference, notes) {
   const row = emptyRow(sh, hRow, ci(headers,'memberno'));
   const s = (c,v) => { if(c>-1) sh.getRange(row,c+1).setValue(v); };
   s(ci(headers,'date'),today()); s(ci(headers,'timestamp'),now_ts());
-  s(ci(headers,'memberno'),memberNo); s(ci(headers,'type'),type);
+  s(ci(headers,'memberno'),memberNo); s(ci(headers,'deposit type')>-1?ci(headers,'deposit type'):ci(headers,'type'),type);
   s(ci(headers,'amount'),amount); s(ci(headers,'recorded'),auth.member.memberNo);
   s(ci(headers,'reference'),reference||''); s(ci(headers,'notes'),notes||'');
   const newBal = _savingsBalance(memberNo);

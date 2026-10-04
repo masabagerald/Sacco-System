@@ -5,7 +5,7 @@ function getMyFines() {
   const { rows } = readSheet(SH_FINES,'fineid');
   const fines = rows
     .filter(r=>String(r['MemberNo']||'').trim()===auth.member.memberNo)
-    .map(r=>({fineId:r['FineID'],date:r['Date'],amount:num(r['Amount (UGX)']),reason:r['Reason']||'',status:r['Status']||''}))
+    .map(r=>({fineId:r['FineID'],date:_pick(r,['Date','Date of Payment']),amount:num(r['Amount (UGX)']),reason:r['Reason']||'',status:r['Status']||''}))
     .sort((a,b)=>String(b.date).localeCompare(String(a.date)));
   const unpaidTotal=fines.filter(f=>String(f.status).toLowerCase()==='unpaid').reduce((s,f)=>s+f.amount,0);
   return { ok:true, fines, unpaidTotal:r2(unpaidTotal) };
@@ -55,6 +55,6 @@ function getAllFinesForAdmin() {
   return rows.filter(r=>String(r['FineID']||'').trim()!=='').map(r=>{
     const m=_memberByNo(r['MemberNo']);
     return {fineId:r['FineID'],memberNo:r['MemberNo'],memberName:m?m['Full Name']:r['MemberNo'],
-      date:r['Date'],amount:num(r['Amount (UGX)']),reason:r['Reason']||'',status:r['Status']||''};
+      date:_pick(r,['Date','Date of Payment']),amount:num(r['Amount (UGX)']),reason:r['Reason']||'',status:r['Status']||''};
   }).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 }

@@ -5,7 +5,7 @@ function _savingsBalance(memberNo) {
   let bal = 0;
   rows.forEach(r => {
     if (String(r['MemberNo']||'').trim() !== String(memberNo).trim()) return;
-    const t = String(r['Type']||'').trim().toLowerCase();
+    const t = String(_pick(r,['Deposit Type','Type'])).trim().toLowerCase();
     if (t === 'deposit') bal += num(r['Amount (UGX)']);
     else if (t === 'withdrawal') bal -= num(r['Amount (UGX)']);
   });

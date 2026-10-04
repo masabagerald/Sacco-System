@@ -8,7 +8,7 @@ function loadAdmin(){
     $('#d_fin').textContent=fmt(res.unpaidFinesTotal);$('#d_plr').textContent=res.pendingLoanRequests;
     $('#d_pwr').textContent=res.pendingWithdrawalRequests;
     const ot=$('#overdueTb');
-    ot.innerHTML=res.overdueLoans.length?res.overdueLoans.map(l=>'<tr><td>'+esc(l.loanId)+'</td><td>'+esc(l.memberName)+'</td><td class="r">'+Math.round(l.outstandingBalance).toLocaleString('en-US')+'</td><td>'+l.monthsElapsed+'/'+l.term+'</td></tr>').join(''):'<tr class="empty"><td colspan="4">None &mdash; all good.</td></tr>';
+    ot.innerHTML=res.overdueLoans.length?res.overdueLoans.map(l=>'<tr><td>'+esc(l.loanId)+'</td><td>'+esc(l.memberName)+'</td><td class="r">'+Math.round(l.outstandingBalance).toLocaleString('en-US')+'</td><td>'+esc(l.progressLabel)+'</td></tr>').join(''):'<tr class="empty"><td colspan="4">None &mdash; all good.</td></tr>';
   });
   loadMembers(); loadLoanReqAdmin(); loadWdReqAdmin(); loadFinesAdmin();
 }

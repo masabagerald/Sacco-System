@@ -2,12 +2,12 @@
 <div class="modal-bg" id="m_loan" onclick="if(event.target===this)cm('m_loan')">
   <div class="modal"><button class="x" onclick="cm('m_loan')">&times;</button>
     <h3>Issue Loan</h3>
+    <p class="sub">Flat 10% interest, UGX 5,000 processing fee, 8 weeks in 2 instalments.</p>
     <div class="mgrid">
-      <div class="field full"><label>Member</label><select id="ln_mb" onchange="updateLimitInfo()"></select></div>
+      <div class="field full"><label>Member</label><select id="ln_mb" onchange="onIssueMemberChange()"></select></div>
       <div class="field"><label>Principal (UGX)</label><input id="ln_pr" type="number" min="0" oninput="updateLimitInfo()"></div>
-      <div class="field"><label>Monthly Rate (%)</label><input id="ln_rt" type="number" min="0" step="0.1" placeholder="e.g. 5"></div>
-      <div class="field"><label>Term (months)</label><input id="ln_tm" type="number" min="1" value="6"></div>
-      <div class="field full"><label>Purpose</label><input id="ln_pu" type="text" placeholder="optional"></div>
+      <div class="field"><label>Purpose</label><input id="ln_pu" type="text" placeholder="optional"></div>
+      <div class="field full"><label>Guarantors (at least 2)</label><div class="chk-list" id="ln_gt"></div></div>
     </div>
     <div class="lim-warn hidden" id="ln_lim"></div>
     <div class="mgrid hidden" id="ln_ovwrap"><div class="field full"><label>Override Reason</label><input id="ln_ov" type="text" placeholder="required to exceed the limit"></div></div>
@@ -33,10 +33,11 @@
 <div class="modal-bg" id="m_reqLoan" onclick="if(event.target===this)cm('m_reqLoan')">
   <div class="modal"><button class="x" onclick="cm('m_reqLoan')">&times;</button>
     <h3>Request a Loan</h3>
+    <p class="sub">Flat 10% interest, UGX 5,000 processing fee, repaid in 2 instalments over 8 weeks. You need at least two guarantors, each with savings of at least 25% of the loan.</p>
     <div class="mgrid">
       <div class="field"><label>Amount (UGX)</label><input id="rl_am" type="number" min="0"></div>
-      <div class="field"><label>Term (months)</label><input id="rl_tm" type="number" min="1" value="6"></div>
-      <div class="field full"><label>Purpose</label><input id="rl_pu" type="text"></div>
+      <div class="field"><label>Purpose</label><input id="rl_pu" type="text"></div>
+      <div class="field full"><label>Guarantors (at least 2)</label><div class="chk-list" id="rl_gt"></div></div>
     </div>
     <div class="mact"><button class="btn" onclick="cm('m_reqLoan')">Cancel</button><button class="btn solid" id="rl_btn" onclick="submitReqLoan()">Submit Request</button></div>
     <div class="mst" id="rl_st"></div>
@@ -47,9 +48,6 @@
 <div class="modal-bg" id="m_approveLR" onclick="if(event.target===this)cm('m_approveLR')">
   <div class="modal"><button class="x" onclick="cm('m_approveLR')">&times;</button>
     <h3>Approve Loan Request</h3><p class="sub" id="alr_info"></p>
-    <div class="mgrid">
-      <div class="field full"><label>Monthly Rate (%)</label><input id="alr_rt" type="number" min="0" step="0.1" placeholder="e.g. 5"></div>
-    </div>
     <div class="lim-warn hidden" id="alr_lim"></div>
     <div class="mgrid hidden" id="alr_ovwrap"><div class="field full"><label>Override Reason</label><input id="alr_ov" type="text" placeholder="required to exceed the limit"></div></div>
     <div class="mact"><button class="btn" onclick="cm('m_approveLR')">Cancel</button><button class="btn solid" id="alr_btn" onclick="submitApproveLR()">Approve</button></div>

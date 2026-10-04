@@ -6,27 +6,31 @@ function getMyLoans() {
   const { rows: reps }  = readSheet(SH_REPAY,'loanid');
   const result = loans
     .filter(l => String(l['MemberNo']||'').trim()===auth.member.memberNo)
-    .map(l => { const c=_computeLoan(l,reps); const p=_schedule(c.principal,c.monthlyRate,c.term); return {...c,...p}; });
+    .map(l => _computeLoan(l,reps));
   return { ok: true, loans: result };
 }
 
-function issueLoan(memberNo, principal, monthlyRate, termMonths, purpose, overrideReason) {
+// Direct issue by an admin. Same rules as a request: eligibility, guarantors, savings cap (override allowed).
+function issueLoan(memberNo, principal, purpose, overrideReason, guarantorNos) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
-  principal=num(principal); monthlyRate=num(monthlyRate); termMonths=num(termMonths);
-  const lv = validateLoanIssue(principal, monthlyRate); if (!lv.ok) return lv;
+  principal=num(principal);
+  const lv = validateLoanIssue(principal); if (!lv.ok) return lv;
   const el = _loanEligibility(memberNo); if (!el.ok) return el;
+  const gc = _guarantorChecks(memberNo, principal, guarantorNos, ''); if (!gc.ok) return gc;
   const lc = _checkLimit(memberNo, principal);
   if (!lc.withinLimit && !String(overrideReason||'').trim())
     return {ok:false,error:'Exceeds loan-to-savings limit. Savings: '+fmtUGX(lc.savings)+', max: '+fmtUGX(lc.maxLoan)+'. Provide an override reason to proceed.',limitCheck:lc};
-  const newId = _createLoanRow(memberNo, principal, monthlyRate, termMonths, purpose, auth.member.memberNo, overrideReason);
+  const newId = _createLoanRow(memberNo, principal, purpose, auth.member.memberNo, overrideReason);
+  _appendGuarantors('', newId, memberNo, gc.guarantors);
   const m = _memberByNo(memberNo);
-  const proj = _schedule(principal, monthlyRate, termMonths);
+  const t = _flatTerms(principal, PROCESSING_FEE);
   _sendEmail(m?.['Email'],'Loan Issued: '+newId,[
-    ['Loan ID',newId],['Principal',fmtUGX(principal)],['Monthly Rate',monthlyRate+'%'],
-    ['Term',termMonths+' months'],['Est. Monthly Payment',fmtUGX(proj.monthlyPayment)],['Purpose',purpose||'-']
-  ],'Your loan has been issued. The estimated monthly payment is a guide based on equal reducing-balance payments.');
+    ['Loan ID',newId],['Principal',fmtUGX(principal)],['Interest (10% flat)',fmtUGX(t.interest)],
+    ['Processing fee',fmtUGX(t.fee)],['Total to repay',fmtUGX(t.base)],
+    ['Instalment 1 (week 4)',fmtUGX(t.inst1)],['Instalment 2 (week 8)',fmtUGX(t.inst2)],['Purpose',purpose||'-']
+  ],'Your loan has been issued. Please repay in two equal instalments: at week 4 and at week 8. A 10% penalty applies to any balance unpaid at week 8.');
   auditLog('Loan Issued', memberNo, auth.member.memberNo,
-    'Principal: '+fmtUGX(principal)+', Rate: '+monthlyRate+'%, Term: '+termMonths+' months'+(overrideReason?' [OVERRIDE: '+overrideReason+']':''), newId);
+    'Principal: '+fmtUGX(principal)+', Flat 10%, fee '+fmtUGX(PROCESSING_FEE)+', guarantors: '+gc.guarantors.join(', ')+(overrideReason?' [OVERRIDE: '+overrideReason+']':''), newId);
   return { ok: true, loanId: newId };
 }
 
@@ -42,7 +46,7 @@ function recordRepayment(loanId, amount, notes) {
   const s=(c,v)=>{if(c>-1) sh.getRange(row,c+1).setValue(v);};
   s(ci(headers,'date'),today()); s(ci(headers,'timestamp'),now_ts());
   s(ci(headers,'loanid'),loanId); s(ci(headers,'memberno'),loan['MemberNo']);
-  s(ci(headers,'amount'),amount); s(ci(headers,'recorded'),auth.member.memberNo);
+  s(ci(headers,'amount'),amount); s(ci(headers,'total amount'),amount); s(ci(headers,'recorded'),auth.member.memberNo);
   s(ci(headers,'notes'),notes||'');
   const { rows: reps2 } = readSheet(SH_REPAY,'loanid');
   const updated = _computeLoan(loan, reps2);

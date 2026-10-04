@@ -29,21 +29,23 @@ const Api = {
 
   recordSavings: (memberNo, type, amount, reference, notes, onSuccess, onFailure) =>
     callServer('recordSavings', [memberNo, type, amount, reference, notes], onSuccess, onFailure),
-  issueLoan: (memberNo, principal, monthlyRate, termMonths, purpose, overrideReason, onSuccess, onFailure) =>
-    callServer('issueLoan', [memberNo, principal, monthlyRate, termMonths, purpose, overrideReason], onSuccess, onFailure),
+  issueLoan: (memberNo, principal, purpose, overrideReason, guarantorNos, onSuccess, onFailure) =>
+    callServer('issueLoan', [memberNo, principal, purpose, overrideReason, guarantorNos], onSuccess, onFailure),
+  getGuarantorCandidates: (applicantNo, onSuccess, onFailure) =>
+    callServer('getGuarantorCandidates', [applicantNo], onSuccess, onFailure),
   recordRepayment: (loanId, amount, notes, onSuccess, onFailure) =>
     callServer('recordRepayment', [loanId, amount, notes], onSuccess, onFailure),
   addMember: (memberNo, name, email, phone, role, onSuccess, onFailure) =>
     callServer('addMember', [memberNo, name, email, phone, role], onSuccess, onFailure),
-  requestLoan: (amount, termMonths, purpose, onSuccess, onFailure) =>
-    callServer('requestLoan', [amount, termMonths, purpose], onSuccess, onFailure),
+  requestLoan: (amount, purpose, guarantorNos, onSuccess, onFailure) =>
+    callServer('requestLoan', [amount, purpose, guarantorNos], onSuccess, onFailure),
   issueFine: (memberNo, amount, reason, onSuccess, onFailure) =>
     callServer('issueFine', [memberNo, amount, reason], onSuccess, onFailure),
   markFinePaid: (fineId, onSuccess) => callServer('markFinePaid', [fineId], onSuccess),
   requestWithdrawal: (amount, reason, onSuccess, onFailure) =>
     callServer('requestWithdrawal', [amount, reason], onSuccess, onFailure),
-  approveLoanRequest: (requestId, monthlyRate, overrideReason, onSuccess, onFailure) =>
-    callServer('approveLoanRequest', [requestId, monthlyRate, overrideReason], onSuccess, onFailure),
+  approveLoanRequest: (requestId, overrideReason, onSuccess, onFailure) =>
+    callServer('approveLoanRequest', [requestId, overrideReason], onSuccess, onFailure),
   rejectLoanRequest: (requestId, reason, onSuccess, onFailure) =>
     callServer('rejectLoanRequest', [requestId, reason], onSuccess, onFailure),
   approveWithdrawal: (requestId, onSuccess) => callServer('approveWithdrawal', [requestId], onSuccess),

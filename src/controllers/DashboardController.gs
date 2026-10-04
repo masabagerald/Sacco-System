@@ -22,7 +22,7 @@ function getAdminDashboard() {
     unpaidFinesTotal:r2(unpaidFines), pendingLoanRequests:pendingLoanReqs, pendingWithdrawalRequests:pendingWdReqs,
     overdueLoans:overdueLoans.map(l=>({loanId:l.loanId,memberNo:l.memberNo,
       memberName:(_memberByNo(l.memberNo)||{})['Full Name']||l.memberNo,
-      outstandingBalance:l.outstandingBalance,monthsElapsed:l.monthsElapsed,term:l.term})) };
+      outstandingBalance:l.outstandingBalance,progressLabel:l.progressLabel})) };
 }
 
 function getAuditLog(limit) {
