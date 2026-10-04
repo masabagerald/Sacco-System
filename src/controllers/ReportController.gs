@@ -69,7 +69,7 @@ function exportAdminCSV() {
   const { rows: savings } = readSheet(SH_SAVINGS,'memberno');
   const { rows: fines }   = readSheet(SH_FINES,'fineid');
   const lines = [];
-  lines.push('KIRA SACCO — LEDGER EXPORT — '+today());
+  lines.push('MBALE SCHOOL OF CLINICAL OFFICERS INVESTMENT CLUB — LEDGER EXPORT — '+today());
   lines.push('');
   lines.push('MEMBERS');
   lines.push(['MemberNo','Name','Email','Role','Status','Savings (UGX)','Active Loans','Outstanding (UGX)','Unpaid Fines (UGX)'].join(','));
