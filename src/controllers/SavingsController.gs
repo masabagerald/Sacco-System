@@ -10,7 +10,7 @@ function getMySavings() {
   return { ok: true, balance: _savingsBalance(auth.member.memberNo), history };
 }
 
-function recordSavings(memberNo, type, amount, reference, notes) {
+function recordSavings(memberNo, type, amount, notes) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
   type = String(type).trim();
   if (type !== 'Deposit' && type !== 'Withdrawal') return { ok: false, error: 'Type must be Deposit or Withdrawal.' };
@@ -20,13 +20,7 @@ function recordSavings(memberNo, type, amount, reference, notes) {
     const bal = _savingsBalance(memberNo);
     if (amount > bal) return { ok: false, error: 'Withdrawal exceeds balance (' + fmtUGX(bal) + ').' };
   }
-  const { sh, headers, hRow } = readSheet(SH_SAVINGS, 'memberno');
-  const row = emptyRow(sh, hRow, ci(headers,'memberno'));
-  const s = (c,v) => { if(c>-1) sh.getRange(row,c+1).setValue(v); };
-  s(ci(headers,'date'),today()); s(ci(headers,'timestamp'),now_ts());
-  s(ci(headers,'memberno'),memberNo); s(ci(headers,'deposit type')>-1?ci(headers,'deposit type'):ci(headers,'type'),type);
-  s(ci(headers,'amount'),amount); s(ci(headers,'recorded'),auth.member.memberNo);
-  s(ci(headers,'reference'),reference||''); s(ci(headers,'notes'),notes||'');
+  const reference = _addSavingsRow(memberNo, type, amount, auth.member.memberNo, notes);
   const newBal = _savingsBalance(memberNo);
   const m = _memberByNo(memberNo);
   _sendEmail(m?.['Email'], type + ' Confirmation', [

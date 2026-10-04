@@ -55,13 +55,7 @@ function approveWithdrawal(requestId) {
   const bal=_savingsBalance(req['MemberNo']);
   if (amount>bal) return {ok:false,error:'Insufficient balance at time of approval ('+fmtUGX(bal)+').'};
   // record actual withdrawal
-  const { sh:ss, headers:sh2, hRow:hr2 } = readSheet(SH_SAVINGS,'memberno');
-  const row=emptyRow(ss,hr2,ci(sh2,'memberno'));
-  const s=(c,v)=>{if(c>-1)ss.getRange(row,c+1).setValue(v);};
-  s(ci(sh2,'date'),today()); s(ci(sh2,'timestamp'),now_ts());
-  s(ci(sh2,'memberno'),req['MemberNo']); s(ci(sh2,'type'),'Withdrawal');
-  s(ci(sh2,'amount'),amount); s(ci(sh2,'recorded'),auth.member.memberNo);
-  s(ci(sh2,'reference'),requestId); s(ci(sh2,'notes'),'Withdrawal request approved');
+  _addSavingsRow(req['MemberNo'],'Withdrawal',amount,auth.member.memberNo,'Withdrawal request '+requestId+' approved');
   _updateReqStatus(sh,headers,hRow,requestId,'Approved','Approved by '+auth.member.memberNo,auth.member.memberNo);
   const newBal=_savingsBalance(req['MemberNo']);
   const m=_memberByNo(req['MemberNo']);
