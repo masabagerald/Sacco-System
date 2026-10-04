@@ -1,6 +1,6 @@
 // ── CONFIGURATION ─────────────────────────────────────────────────────────────
-const SACCO_NAME         = 'Kira SACCO';
-const BRAND_COLOR        = '#1F5C3B';
+const SACCO_NAME         = 'Mbale School of clinical officers Investment Club';
+const BRAND_COLOR        = '#1f455c';
 const LOAN_TO_SAVINGS_LIMIT = 3;   // max loan = this × member savings
 const OTP_EXPIRY_MS      = 10 * 60 * 1000; // 10 minutes
 
