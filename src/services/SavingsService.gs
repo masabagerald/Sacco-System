@@ -25,7 +25,7 @@ function _nextSavingsRef(type) {
 }
 
 // Appends one savings row with an auto-generated reference. Returns the reference.
-function _addSavingsRow(memberNo, type, amount, recordedBy, notes) {
+function _addSavingsRow(memberNo, type, amount, recordedBy, notes, txDate) {
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
@@ -33,7 +33,7 @@ function _addSavingsRow(memberNo, type, amount, recordedBy, notes) {
     const { sh, headers, hRow } = readSheet(SH_SAVINGS, 'memberno');
     const row = emptyRow(sh, hRow, ci(headers, 'memberno'));
     const s = (c, v) => { if (c > -1) sh.getRange(row, c + 1).setValue(v); };
-    s(ci(headers,'date'), today()); s(ci(headers,'timestamp'), now_ts());
+    s(ci(headers,'date'), txDate || today()); s(ci(headers,'timestamp'), now_ts());
     s(ci(headers,'memberno'), memberNo);
     s(ci(headers,'deposit type') > -1 ? ci(headers,'deposit type') : ci(headers,'type'), type);
     s(ci(headers,'amount'), amount); s(ci(headers,'recorded'), recordedBy);

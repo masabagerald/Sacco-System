@@ -27,14 +27,14 @@ const Api = {
   getAllFinesForAdmin: (onSuccess) => callServer('getAllFinesForAdmin', [], onSuccess),
   getAuditLog: (limit, onSuccess) => callServer('getAuditLog', [limit], onSuccess),
 
-  recordSavings: (memberNo, type, amount, notes, onSuccess, onFailure) =>
-    callServer('recordSavings', [memberNo, type, amount, notes], onSuccess, onFailure),
+  recordSavings: (memberNo, type, amount, notes, txDate, onSuccess, onFailure) =>
+    callServer('recordSavings', [memberNo, type, amount, notes, txDate], onSuccess, onFailure),
   issueLoan: (memberNo, principal, purpose, overrideReason, guarantorNos, onSuccess, onFailure) =>
     callServer('issueLoan', [memberNo, principal, purpose, overrideReason, guarantorNos], onSuccess, onFailure),
   getGuarantorCandidates: (applicantNo, onSuccess, onFailure) =>
     callServer('getGuarantorCandidates', [applicantNo], onSuccess, onFailure),
-  recordRepayment: (loanId, amount, notes, onSuccess, onFailure) =>
-    callServer('recordRepayment', [loanId, amount, notes], onSuccess, onFailure),
+  recordRepayment: (loanId, amount, notes, txDate, onSuccess, onFailure) =>
+    callServer('recordRepayment', [loanId, amount, notes, txDate], onSuccess, onFailure),
   addMember: (memberNo, name, email, phone, role, onSuccess, onFailure) =>
     callServer('addMember', [memberNo, name, email, phone, role], onSuccess, onFailure),
   requestLoan: (amount, purpose, guarantorNos, onSuccess, onFailure) =>

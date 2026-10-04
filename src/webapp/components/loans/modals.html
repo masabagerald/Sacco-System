@@ -21,7 +21,8 @@
   <div class="modal"><button class="x" onclick="cm('m_repay')">&times;</button>
     <h3>Record Repayment</h3><p class="sub" id="rp_info"></p>
     <div class="mgrid">
-      <div class="field full"><label>Amount (UGX)</label><input id="rp_am" type="number" min="0"></div>
+      <div class="field"><label>Amount (UGX)</label><input id="rp_am" type="number" min="0"></div>
+      <div class="field"><label>Date of payment</label><input id="rp_dt" type="date"></div>
       <div class="field full"><label>Notes</label><input id="rp_nt" type="text" placeholder="optional"></div>
     </div>
     <div class="mact"><button class="btn" onclick="cm('m_repay')">Cancel</button><button class="btn solid" id="rp_btn" onclick="submitRepay()">Save</button></div>

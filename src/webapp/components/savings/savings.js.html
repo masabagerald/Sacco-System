@@ -12,13 +12,15 @@ function renderSavings(res){
 }
 
 // ── record savings (admin) ───────────────────────────────────────────────────
-function openRecSavings(){$('#sv_mb').innerHTML=mbOpts();$('#sv_am').value='';$('#sv_nt').value='';mst('sv_st','','');om('m_savings');}
+// Today's date as yyyy-MM-dd in local time (used as the default for date inputs)
+function todayISO(){const d=new Date();const p=x=>String(x).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}
+function openRecSavings(){$('#sv_mb').innerHTML=mbOpts();$('#sv_am').value='';$('#sv_dt').value=todayISO();$('#sv_nt').value='';mst('sv_st','','');om('m_savings');}
 function submitSavings(){
   const mb=$('#sv_mb').value,ty=$('#sv_ty').value,am=$('#sv_am').value;
   if(!mb)return mst('sv_st','err','Select a member.');
   if(!am||n(am)<=0)return mst('sv_st','err','Enter a valid amount.');
   $('#sv_btn').disabled=true;mst('sv_st','','Saving…');
-  Api.recordSavings(mb,ty,am,$('#sv_nt').value.trim(), res=>{
+  Api.recordSavings(mb,ty,am,$('#sv_nt').value.trim(),$('#sv_dt').value, res=>{
     $('#sv_btn').disabled=false;
     if(!res.ok)return mst('sv_st','err',res.error);
     mst('sv_st','ok','Saved. New balance: '+fmt(res.newBalance));

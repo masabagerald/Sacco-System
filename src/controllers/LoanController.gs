@@ -34,17 +34,18 @@ function issueLoan(memberNo, principal, purpose, overrideReason, guarantorNos) {
   return { ok: true, loanId: newId };
 }
 
-function recordRepayment(loanId, amount, notes) {
+function recordRepayment(loanId, amount, notes, txDate) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
   amount = num(amount);
   const av = validateRepaymentAmount(amount); if (!av.ok) return av;
+  const dv = validateTxDate(txDate); if (!dv.ok) return dv;
   const { rows: loans } = readSheet(SH_LOANS,'loanid');
   const loan = loans.find(l => String(l['LoanID']||'').trim()===String(loanId).trim());
   if (!loan) return {ok:false,error:'Loan not found.'};
   const { sh, headers, hRow } = readSheet(SH_REPAY,'loanid');
   const row = emptyRow(sh, hRow, ci(headers,'loanid'));
   const s=(c,v)=>{if(c>-1) sh.getRange(row,c+1).setValue(v);};
-  s(ci(headers,'date'),today()); s(ci(headers,'timestamp'),now_ts());
+  s(ci(headers,'date'),dv.date); s(ci(headers,'timestamp'),now_ts());
   s(ci(headers,'loanid'),loanId); s(ci(headers,'memberno'),loan['MemberNo']);
   s(ci(headers,'amount'),amount); s(ci(headers,'total amount'),amount); s(ci(headers,'recorded'),auth.member.memberNo);
   s(ci(headers,'notes'),notes||'');

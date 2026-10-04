@@ -10,17 +10,18 @@ function getMySavings() {
   return { ok: true, balance: _savingsBalance(auth.member.memberNo), history };
 }
 
-function recordSavings(memberNo, type, amount, notes) {
+function recordSavings(memberNo, type, amount, notes, txDate) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
   type = String(type).trim();
   if (type !== 'Deposit' && type !== 'Withdrawal') return { ok: false, error: 'Type must be Deposit or Withdrawal.' };
   amount = num(amount);
   const av = validatePositiveAmount(amount); if (!av.ok) return av;
+  const dv = validateTxDate(txDate); if (!dv.ok) return dv;
   if (type === 'Withdrawal') {
     const bal = _savingsBalance(memberNo);
     if (amount > bal) return { ok: false, error: 'Withdrawal exceeds balance (' + fmtUGX(bal) + ').' };
   }
-  const reference = _addSavingsRow(memberNo, type, amount, auth.member.memberNo, notes);
+  const reference = _addSavingsRow(memberNo, type, amount, auth.member.memberNo, notes, dv.date);
   const newBal = _savingsBalance(memberNo);
   const m = _memberByNo(memberNo);
   _sendEmail(m?.['Email'], type + ' Confirmation', [

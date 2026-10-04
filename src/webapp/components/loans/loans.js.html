@@ -135,12 +135,12 @@ function submitLoan(){
 }
 
 // ── repayment ─────────────────────────────────────────────────────────────────
-function openRepay(lid,bal){REPAY_LOAN=lid;$('#rp_info').textContent='Loan '+lid+' — outstanding: '+fmt(bal);$('#rp_am').value='';$('#rp_nt').value='';mst('rp_st','','');om('m_repay');}
+function openRepay(lid,bal){REPAY_LOAN=lid;$('#rp_info').textContent='Loan '+lid+' — outstanding: '+fmt(bal);$('#rp_am').value='';$('#rp_dt').value=todayISO();$('#rp_nt').value='';mst('rp_st','','');om('m_repay');}
 function submitRepay(){
   const am=$('#rp_am').value;
   if(!am||n(am)<=0)return mst('rp_st','err','Enter a valid amount.');
   $('#rp_btn').disabled=true;mst('rp_st','','Saving…');
-  Api.recordRepayment(REPAY_LOAN,$('#rp_am').value,$('#rp_nt').value.trim(), res=>{
+  Api.recordRepayment(REPAY_LOAN,$('#rp_am').value,$('#rp_nt').value.trim(),$('#rp_dt').value, res=>{
     $('#rp_btn').disabled=false;
     if(!res.ok)return mst('rp_st','err',res.error);
     mst('rp_st','ok','Recorded. Outstanding: '+fmt(res.loan.outstandingBalance));
