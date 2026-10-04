@@ -10,6 +10,9 @@
     ],
     "types": [
       "google-apps-script"
+    ],
+    "typeRoots": [
+      "./.gas-sync/typings"
     ]
   },
   "include": [

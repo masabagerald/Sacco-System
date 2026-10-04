@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "jsconfig": {
+    "created": false,
+    "originalContent": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2020\",\n    \"module\": \"ESNext\",\n    \"moduleResolution\": \"node\",\n    \"allowJs\": true,\n    \"checkJs\": false,\n    \"lib\": [\n      \"ES2020\"\n    ],\n    \"types\": [\n      \"google-apps-script\"\n    ]\n  },\n  \"include\": [\n    \"**/*.gs\",\n    \"**/*.js\"\n  ],\n  \"exclude\": [\n    \"node_modules\"\n  ]\n}\n"
+  },
+  "settings": {
+    "fileCreated": false,
+    "directoryCreated": false,
+    "added": {
+      "files.exclude": [
+        ".gas-sync"
+      ],
+      "search.exclude": [
+        ".gas-sync"
+      ]
+    }
+  },
+  "typingsVersion": "2.0.8"
+}
