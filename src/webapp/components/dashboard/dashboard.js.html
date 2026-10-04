@@ -19,7 +19,7 @@ function loadAudit(){
     if(!res.ok)return;
     const tb=$('#auditTb');
     if(!res.entries.length){tb.innerHTML='<tr class="empty"><td colspan="6">No audit entries yet.</td></tr>';return;}
-    tb.innerHTML=res.entries.map(e=>'<tr><td>'+esc(e.timestamp)+'</td><td>'+esc(e.action)+'</td><td>'+esc(e.member)+'</td><td>'+esc(e.performedBy)+'</td><td>'+esc(e.details)+'</td><td>'+esc(e.refId)+'</td></tr>').join('');
+    tb.innerHTML=res.entries.map(e=>'<tr><td>'+esc(hd(e.timestamp))+'</td><td>'+esc(e.action)+'</td><td>'+esc(e.member)+'</td><td>'+esc(e.performedBy)+'</td><td>'+esc(e.details)+'</td><td>'+esc(e.refId)+'</td></tr>').join('');
   });
 }
 </script>

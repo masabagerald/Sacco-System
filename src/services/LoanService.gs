@@ -191,7 +191,7 @@ function _loanEligibility(memberNo) {
   if (!deposits.length) return { ok: false, error: 'Member has no savings yet. Loans are only available after saving for a minimum of 12 months.' };
   const first = new Date(Math.min(...deposits.map(r => _ymd(r['Date']).getTime())));
   const eligibleFrom = new Date(first); eligibleFrom.setMonth(eligibleFrom.getMonth() + 12);
-  if (new Date() < eligibleFrom) return { ok: false, error: 'Member must save for at least 12 months before accessing a loan. Eligible from ' + fmt_date(eligibleFrom) + '.' };
+  if (new Date() < eligibleFrom) return { ok: false, error: 'Member must save for at least 12 months before accessing a loan. Eligible from ' + human_date(eligibleFrom) + '.' };
 
   // Sec 7: a member with a running loan cannot access another loan
   const running = _runningLoanOf(mNo);

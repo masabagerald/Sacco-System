@@ -28,7 +28,7 @@ function issueLoan(memberNo, principal, purpose, overrideReason, guarantorNos, t
   _sendEmail(m?.['Email'],'Loan Issued: '+newId,[
     ['Loan ID',newId],['Principal',fmtUGX(principal)],['Interest ('+r2(termDef.rate*100)+'%)',fmtUGX(t.interest)],
     ['Processing fee',fmtUGX(t.fee)],['Total to repay',fmtUGX(t.total)],
-    ['Due date',fmt_date(_addDays(new Date(), termDef.days))],['Purpose',purpose||'-']
+    ['Due date',human_date(_addDays(new Date(), termDef.days))],['Purpose',purpose||'-']
   ],'Your loan has been issued. The full amount is due on the due date shown.');
   auditLog('Loan Issued', memberNo, auth.member.memberNo,
     'Principal: '+fmtUGX(principal)+' over '+termDef.label+' at '+r2(termDef.rate*100)+'%, fee '+fmtUGX(PROCESSING_FEE)+', guarantors: '+gc.guarantors.join(', ')+(overrideReason?' [OVERRIDE: '+overrideReason+']':''), newId);

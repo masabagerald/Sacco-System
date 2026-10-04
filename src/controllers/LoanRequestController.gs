@@ -120,7 +120,7 @@ function approveLoanRequest(requestId, overrideReason) {
   _sendEmail(m?.['Email'],'Loan Request Approved: '+requestId,[
     ['Request ID',requestId],['Loan ID',newId],['Amount',fmtUGX(amount)],
     ['Interest ('+r2(termDef.rate*100)+'%)',fmtUGX(t.interest)],['Processing fee',fmtUGX(t.fee)],
-    ['Total to repay',fmtUGX(t.total)],['Due date',fmt_date(_addDays(new Date(), termDef.days))]
+    ['Total to repay',fmtUGX(t.total)],['Due date',human_date(_addDays(new Date(), termDef.days))]
   ],'Your loan request has been approved and the loan has been issued. The due date is counted from the approval date.');
   auditLog('Loan Request Approved', req['MemberNo'], auth.member.memberNo,
     'Approved '+fmtUGX(amount)+' over '+termDef.label+'. Loan '+newId+' created. Guarantors: '+gc.guarantors.join(', ')+'.'+(overrideReason?' Override: '+overrideReason:''), requestId);

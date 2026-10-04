@@ -24,11 +24,11 @@ function _statementBody(body, data) {
   ]);
 
   _section(body, 'Member details');
-  _kv(body, [['Name', m.name], ['Member no.', m.memberNo], ['Email', m.email], ['Generated on', data.generatedOn]]);
+  _kv(body, [['Name', m.name], ['Member no.', m.memberNo], ['Email', m.email], ['Generated on', human_date(data.generatedOn)]]);
 
   _section(body, 'Savings transactions');
   _table(body, ['Date','Type','Reference','Amount (UGX)'],
-    data.savingsHistory.map(r => [String(r.date), String(r.type), r.reference || '', fmtUGX(r.amount)]), [3]);
+    data.savingsHistory.map(r => [human_date(r.date), String(r.type), r.reference || '', fmtUGX(r.amount)]), [3]);
 
   if (data.loans.length) {
     _section(body, 'Loans');
@@ -37,7 +37,7 @@ function _statementBody(body, data) {
       p.setSpacingBefore(8); p.setSpacingAfter(3);
       p.editAsText().setBold(true).setFontSize(10.5).setForegroundColor(BRAND_INK);
       const rows = [['Principal', fmtUGX(l.principal)], ['Interest', l.rateLabel], ['Term', l.termLabel]];
-      if (l.dueDate) rows.push(['Due date', l.dueDate]);
+      if (l.dueDate) rows.push(['Due date', human_date(l.dueDate)]);
       rows.push(['Total due', fmtUGX(l.totalDue || l.principal)], ['Total repaid', fmtUGX(l.totalRepaid)], ['Outstanding', fmtUGX(l.outstandingBalance)]);
       _kv(body, rows);
       if (l.schedule && l.schedule.length) {
@@ -45,7 +45,7 @@ function _statementBody(body, data) {
         const head = l.scheduleHead || ['Month','Opening','Interest','Payment','Closing'];
         const srows = isReducing
           ? l.schedule.map(s => [String(s.month), fmtUGX(s.opening), fmtUGX(s.interest), fmtUGX(s.payment), fmtUGX(s.closing)])
-          : l.schedule.map(s => [s.label, s.due, fmtUGX(s.amount), fmtUGX(s.balance)]);
+          : l.schedule.map(s => [s.label, human_date(s.due), fmtUGX(s.amount), fmtUGX(s.balance)]);
         body.appendParagraph('').setSpacingAfter(2);
         _table(body, head, srows, isReducing ? [1,2,3,4] : [2,3]);
       }
@@ -55,7 +55,7 @@ function _statementBody(body, data) {
   if (data.fines.length) {
     _section(body, 'Surcharges');
     _table(body, ['Date','Reason','Amount (UGX)','Status'],
-      data.fines.map(f => [String(f.date || ''), f.reason || '', fmtUGX(f.amount), f.status || '']), [2]);
+      data.fines.map(f => [human_date(f.date || ''), f.reason || '', fmtUGX(f.amount), f.status || '']), [2]);
     const tot = body.appendParagraph('Total unpaid: ' + fmtUGX(data.unpaidFinesTotal));
     tot.setSpacingBefore(6);
     tot.editAsText().setBold(true).setForegroundColor(BRAND_COLOR);
@@ -104,8 +104,8 @@ function generateAdminReportPdf() {
   const totalUnpaid = memberRows.reduce((s,m) => s + m.unpaid, 0);
   const activeLoans = loanRows.filter(x => x.c.status === 'Active').length;
 
-  const title = SACCO_NAME + ' Ledger Report — ' + today();
-  const blob = _brandedPdf(title, 'Ledger report  |  ' + today(), body => {
+  const title = SACCO_NAME + ' Ledger Report — ' + human_date(today());
+  const blob = _brandedPdf(title, 'Ledger report  |  ' + human_date(today()), body => {
     _cards(body, [
       ['Members', String(memberRows.length)],
       ['Active loans', String(activeLoans)],
@@ -125,18 +125,18 @@ function generateAdminReportPdf() {
         const c = x.c;
         const interest = c.interest || c.totalInterestAccrued || 0;
         const totalDue = c.totalDue || r2(c.principal + interest);
-        return [c.loanId, c.memberNo, String(c.dateIssued||''), fmtUGX(c.principal), fmtUGX(interest), fmtUGX(totalDue), c.dueDate||'', fmtUGX(c.outstandingBalance), c.status];
+        return [c.loanId, c.memberNo, human_date(c.dateIssued||''), fmtUGX(c.principal), fmtUGX(interest), fmtUGX(totalDue), human_date(c.dueDate||''), fmtUGX(c.outstandingBalance), c.status];
       }),
       [3,4,5,7]);
 
     _section(body, 'Savings transactions');
     _table(body, ['Date','Member no.','Type','Amount (UGX)','Reference'],
-      savingRows.map(r => [String(r['Date']||''), String(r['MemberNo']||''), String(_pick(r,['Deposit Type','Type'])), fmtUGX(num(r['Amount (UGX)'])), String(r['Reference']||'')]),
+      savingRows.map(r => [human_date(r['Date']||''), String(r['MemberNo']||''), String(_pick(r,['Deposit Type','Type'])), fmtUGX(num(r['Amount (UGX)'])), String(r['Reference']||'')]),
       [3]);
 
     _section(body, 'Surcharges');
     _table(body, ['Surcharge ID','Member no.','Date','Amount (UGX)','Status'],
-      fineRows.map(f => [String(f['FineID']||''), String(f['MemberNo']||''), String(_pick(f,['Date','Date of Payment'])), fmtUGX(num(f['Amount (UGX)'])), String(f['Status']||'')]),
+      fineRows.map(f => [String(f['FineID']||''), String(f['MemberNo']||''), human_date(_pick(f,['Date','Date of Payment'])), fmtUGX(num(f['Amount (UGX)'])), String(f['Status']||'')]),
       [3]);
   });
 
@@ -152,7 +152,7 @@ function exportAdminCSV() {
   const { rows: savings } = readSheet(SH_SAVINGS,'memberno');
   const { rows: fines }   = readSheet(SH_FINES,'fineid');
   const lines = [];
-  lines.push('MBALE SCHOOL OF CLINICAL OFFICERS INVESTMENT CLUB — LEDGER EXPORT — '+today());
+  lines.push('MBALE SCHOOL OF CLINICAL OFFICERS INVESTMENT CLUB — LEDGER EXPORT — '+human_date(today()));
   lines.push('');
   lines.push('MEMBERS');
   lines.push(['MemberNo','Name','Email','Role','Status','Savings (UGX)','Active Loans','Outstanding (UGX)','Unpaid Surcharges (UGX)'].join(','));
@@ -172,7 +172,7 @@ function exportAdminCSV() {
     const c=_computeLoan(l,reps);
     lines.push([csvQ(l['LoanID']),csvQ(l['MemberNo']),csvQ(l['Date Issued']),Math.round(num(l['Principal (UGX)'])),num(_pick(l,['Monthly Rate (%)','Weekly Rate (%)'])),num(l['Term (months)']),Math.round(c.outstandingBalance),csvQ(c.status)].join(','));
   });
-  lines.push(''); lines.push('Generated by: '+auth.member.name+' on '+today());
+  lines.push(''); lines.push('Generated by: '+auth.member.name+' on '+human_date(today()));
   auditLog('Admin CSV Export', '', auth.member.memberNo, 'Full ledger exported to CSV.', '');
   return { ok:true, csv: lines.join('\n') };
 }

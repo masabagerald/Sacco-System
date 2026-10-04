@@ -27,7 +27,7 @@ function recordSavings(memberNo, type, amount, notes, txDate) {
   _sendEmail(m?.['Email'], type + ' Confirmation', [
     ['Member', (m?.['Full Name']||memberNo) + ' (' + memberNo + ')'],
     ['Type', type], ['Amount', fmtUGX(amount)], ['New Balance', fmtUGX(newBal)],
-    ['Reference', reference||'-'], ['Date', today()]
+    ['Reference', reference||'-'], ['Date', human_date(today())]
   ], type==='Deposit' ? 'Your savings have been updated.' : 'Your withdrawal has been recorded.');
   auditLog(type, memberNo, auth.member.memberNo,
     type + ' of ' + fmtUGX(amount) + '. New balance: ' + fmtUGX(newBal), reference||'');

@@ -20,7 +20,7 @@ function _brandedPdf(fileTitle, subtitle, buildFn) {
   body.editAsText().setFontFamily('Arial').setFontSize(10).setForegroundColor(BRAND_INK);
   _brandHeader(body, subtitle);
   buildFn(body);
-  const foot = body.appendParagraph('Generated ' + today() + '  |  ' + SACCO_NAME + '  |  Confidential: for members and the committee only.');
+  const foot = body.appendParagraph('Generated ' + human_date(today()) + '  |  ' + SACCO_NAME + '  |  Confidential: for members and the committee only.');
   foot.setSpacingBefore(18);
   foot.editAsText().setFontSize(8).setForegroundColor(BRAND_MUTED);
   doc.saveAndClose();

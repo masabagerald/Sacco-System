@@ -72,16 +72,16 @@ function renderLoans(res){
       [l.model==='reducing'?'Est. Payment':'Total due',money(l.model==='reducing'?l.monthlyPayment:l.totalDue)],
       ['Repaid',money(l.totalRepaid)]
     ];
-    if(l.dueDate)stats.push(['Due date',esc(l.dueDate)]);
+    if(l.dueDate)stats.push(['Due date',esc(hd(l.dueDate))]);
     const head=l.model==='term'
-      ?'<p class="note">Interest '+l.rateLabel+' plus a UGX '+money(l.processingFee)+' processing fee. The full amount is due on '+esc(l.dueDate)+'.</p>'
+      ?'<p class="note">Interest '+l.rateLabel+' plus a UGX '+money(l.processingFee)+' processing fee. The full amount is due on '+esc(hd(l.dueDate))+'.</p>'
       :(flat?'<p class="note">Interest 10% flat plus a UGX '+money(l.processingFee)+' processing fee. Repay in two equal instalments: week 4 and week 8.</p>':'');
     const pen=l.penalty>0?'<p class="note" style="color:var(--bad)">Late penalty applied (10% of the balance unpaid at week 8): '+fmt(l.penalty)+'</p>':'';
     const right=i=>l.model==='reducing'?i>=1:i>=2;
     const schTh=(l.scheduleHead||['Month','Opening','Interest','Payment','Closing']).map((h,i)=>'<th'+(right(i)?' class="r"':'')+'>'+h+'</th>').join('');
     const schRows=l.model==='reducing'
       ?l.schedule.map(r=>'<tr><td>'+r.month+'</td><td class="r">'+money(r.opening)+'</td><td class="r">'+money(r.interest)+'</td><td class="r">'+money(r.payment)+'</td><td class="r">'+money(r.closing)+'</td></tr>').join('')
-      :l.schedule.map(r=>'<tr><td>'+esc(r.label)+'</td><td>'+esc(r.due)+'</td><td class="r">'+money(r.amount)+'</td><td class="r">'+money(r.balance)+'</td></tr>').join('');
+      :l.schedule.map(r=>'<tr><td>'+esc(r.label)+'</td><td>'+esc(hd(r.due))+'</td><td class="r">'+money(r.amount)+'</td><td class="r">'+money(r.balance)+'</td></tr>').join('');
     return '<div class="loan-card"><div class="loan-hd"><span class="lid">'+esc(l.loanId)+'</span>'+badge(slbl,{cleared:'cleared',overdue:'overdue',active:'active'})+'</div>'+
       '<div class="loan-stats">'+stats.map(([k,v])=>'<div><div class="ls-k">'+k+'</div><div class="ls-v">'+v+'</div></div>').join('')+'</div>'+
       head+pen+(l.overrideReason?'<p class="note">Override: '+esc(l.overrideReason)+'</p>':'')+

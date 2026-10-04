@@ -14,7 +14,7 @@ function sendMonthlyStatements() {
     _sendEmail(m['Email'],'Monthly Statement',[
       ['Savings Balance',fmtUGX(savings)],['Active Loans',String(myLoans.length)],
       ['Total Outstanding',fmtUGX(outstanding)],['Unpaid Surcharges',fmtUGX(unpaid)]
-    ],'Here is your '+SACCO_NAME+' monthly summary as of '+today()+'.');
+    ],'Here is your '+SACCO_NAME+' monthly summary as of '+human_date(today())+'.');
   });
 }
 
@@ -46,7 +46,7 @@ function sendRepaymentReminders() {
   });
   if (overdueNames.length||reminderNames.length)
     _notifyAdmins('Repayment Reminder Summary',[
-      ['Overdue notices',String(overdueNames.length)],['Monthly reminders',String(reminderNames.length)],['Date',today()]
+      ['Overdue notices',String(overdueNames.length)],['Monthly reminders',String(reminderNames.length)],['Date',human_date(today())]
     ],'Reminders sent today.'+(overdueNames.length?' Overdue: '+overdueNames.join(', ')+'.':'')+(reminderNames.length?' Monthly: '+reminderNames.join(', ')+'.':''));
 }
 
@@ -63,7 +63,7 @@ function backupSpreadsheet() {
   if(files.length>8) files.slice(8).forEach(f=>{try{DriveApp.getFileById(f.id).setTrashed(true);}catch(e){}});
   _notifyAdmins('Weekly Backup Complete',[
     ['File',fileName],['Folder',folderName+' (Google Drive)'],
-    ['Date',today()],['Backups kept',String(Math.min(files.length,8))]
+    ['Date',human_date(today())],['Backups kept',String(Math.min(files.length,8))]
   ],'Your '+SACCO_NAME+' spreadsheet has been automatically backed up to Google Drive.');
   auditLog('Backup Created', '', 'System', 'Weekly backup: '+fileName, folderName);
 }

@@ -7,7 +7,7 @@ function renderSavings(res){
   if(!res.history.length){tb.innerHTML='<tr class="empty"><td colspan="4">No transactions yet.</td></tr>';return;}
   tb.innerHTML=res.history.slice().reverse().map(r=>{
     const g=r.type==='Deposit';
-    return '<tr><td>'+esc(r.date)+'</td><td>'+esc(r.type)+'</td><td>'+esc(r.reference)+'</td><td class="r '+(g?'g':'b')+'">'+(g?'+':'−')+' '+Math.round(n(r.amount)).toLocaleString('en-US')+'</td></tr>';
+    return '<tr><td>'+esc(hd(r.date))+'</td><td>'+esc(r.type)+'</td><td>'+esc(r.reference)+'</td><td class="r '+(g?'g':'b')+'">'+(g?'+':'−')+' '+Math.round(n(r.amount)).toLocaleString('en-US')+'</td></tr>';
   }).join('');
 }
 
