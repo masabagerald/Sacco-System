@@ -47,3 +47,6 @@ const Config = {
   setUserProp(key, value) { try { PropertiesService.getUserProperties().setProperty(key, value); } catch(e) {} },
   deleteUserProp(key)     { try { PropertiesService.getUserProperties().deleteProperty(key); } catch(e) {} }
 };
+
+// Reasons a member can give for a savings withdrawal request
+const WITHDRAWAL_REASONS = ['Dividends', 'Premium (at exit from MSIC)', 'Welfare package'];

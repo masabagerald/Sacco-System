@@ -4,7 +4,7 @@ function requestWithdrawal(amount, reason) {
   const auth = _caller(); if (!auth.ok) return auth;
   amount=num(amount);
   const av = validatePositiveAmount(amount); if (!av.ok) return av;
-  const rv = validateReason(reason); if (!rv.ok) return rv;
+  if (WITHDRAWAL_REASONS.indexOf(String(reason||'').trim()) < 0) return {ok:false,error:'Choose a reason for the withdrawal.'};
   const bal=_savingsBalance(auth.member.memberNo);
   if (amount>bal) return {ok:false,error:'Amount exceeds savings balance ('+fmtUGX(bal)+').'};
   const { sh, headers, hRow } = readSheet(SH_WD_REQ,'requestid');

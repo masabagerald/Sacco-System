@@ -51,7 +51,7 @@ function openReqWd(){$('#wd_bal').textContent='Current savings balance: '+fmt(SA
 function submitReqWd(){
   const am=$('#wd_am').value,rs=$('#wd_rs').value.trim();
   if(!am||n(am)<=0)return mst('wd_st','err','Enter a valid amount.');
-  if(!rs)return mst('wd_st','err','Please provide a reason.');
+  if(!rs)return mst('wd_st','err','Choose a reason.');
   $('#wd_btn').disabled=true;mst('wd_st','','Submitting…');
   Api.requestWithdrawal(am,rs, res=>{
     $('#wd_btn').disabled=false;
