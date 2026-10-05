@@ -1,6 +1,13 @@
 <script>
 // ── SHARED STATE & HELPERS ─────────────────────────────────────────────────────
 let ME=null, MEMBERS=[], SAVINGS_BAL=0, STMT=null, REPAY_LOAN=null, APPROV_REQ=null, REJECT_LR=null, REJECT_WD=null;
+// Light is the default; dark is a per-browser choice remembered on this device
+function toggleTheme(){
+  const dark=document.documentElement.getAttribute('data-theme')!=='dark';
+  document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+  try{localStorage.setItem('sacco_theme',dark?'dark':'light');}catch(e){}
+  document.getElementById('themeBtn').textContent=dark?'Light mode':'Dark mode';
+}
 // Reader-friendly date for display: "5 Oct 2026" (or "5 Oct 2026, 14:30"). Data keeps yyyy-MM-dd.
 function hd(v){
   const str=String(v==null?'':v);

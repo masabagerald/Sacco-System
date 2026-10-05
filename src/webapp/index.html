@@ -5,6 +5,7 @@
 <title>Mbale School of Clinical Officers Investment Club</title>
 <?!= include('src/webapp/css/styles') ?>
 <?!= include('src/webapp/brand/logo') ?>
+<script>try{if(localStorage.getItem('sacco_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 </head>
 <body>
 
@@ -27,5 +28,6 @@
 <?!= include('src/webapp/components/fines/fines.js') ?>
 <?!= include('src/webapp/components/members/members.js') ?>
 <?!= include('src/webapp/components/reports/reports.js') ?>
+<script>(function(){try{var b=document.getElementById('themeBtn');if(b&&document.documentElement.getAttribute('data-theme')==='dark')b.textContent='Light mode';}catch(e){}})();</script>
 </body>
 </html>

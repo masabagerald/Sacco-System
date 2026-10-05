@@ -1,36 +1,51 @@
 <style>
+/* Light is the default. Dark is applied only when the viewer chooses it (data-theme="dark"). */
 :root{
+  --bg:#f6f8fb; --panel:#ffffff; --panel2:#fbfcfe; --line:#dde5ee;
+  --text:#1d2b3a; --dim:#5b6b7d;
+  --accent:#143452; --accent-soft:#2f6fb0; --on-accent:#ffffff;
+  --good:#2e7d4f; --bad:#b3412e; --warn:#a86b12;
+  --hover:rgba(20,52,82,.04); --overlay:rgba(16,28,42,.42);
+  --header:#ffffff; --field:#ffffff; --shade:rgba(20,52,82,.06);
+  --rad:10px;
+  --shad:0 1px 2px rgba(20,52,82,.06),0 4px 14px rgba(20,52,82,.06);
+}
+:root[data-theme="dark"]{
   --bg:#071627; --panel:#0e2742; --panel2:#133252; --line:#1f3f63;
-  --accent:#4f8fd6; --accent-soft:#a9cdf2; --text:#e8f0f9; --dim:#8fa7c4;
-  --good:#4fb38a; --bad:#e0664f; --warn:#d9a24a; --rad:10px;
+  --text:#e8f0f9; --dim:#8fa7c4;
+  --accent:#4f8fd6; --accent-soft:#a9cdf2; --on-accent:#071627;
+  --good:#4fb38a; --bad:#e0664f; --warn:#d9a24a;
+  --hover:rgba(255,255,255,.03); --overlay:rgba(0,0,0,.6);
+  --header:rgba(0,0,0,.18); --field:#071627; --shade:rgba(255,255,255,.06);
   --shad:0 6px 22px rgba(0,0,0,.38);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{min-height:100%}
-body{background:linear-gradient(160deg,#071627 0%,#061220 100%);color:var(--text);
+body{background:var(--bg);color:var(--text);
   font-family:"Inter","Segoe UI",ui-sans-serif,sans-serif;-webkit-font-smoothing:antialiased}
 .mono{font-family:"IBM Plex Mono","Courier New",monospace}
 
 /* ── header ── */
-header{padding:16px 24px;display:flex;align-items:center;justify-content:space-between;
-  border-bottom:1px solid var(--line);background:rgba(0,0,0,.18);
+header{padding:14px 24px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--line);background:var(--header);
   position:sticky;top:0;z-index:30;backdrop-filter:blur(8px);flex-wrap:wrap;gap:10px}
 .brand{display:flex;align-items:center;gap:10px}
 .brand .logo{width:42px;height:42px}
-.brand h1{font-size:17px;font-weight:700;letter-spacing:.3px}
+.brand h1{font-size:17px;font-weight:700;letter-spacing:.2px}
 .brand .sub{font-size:11px;color:var(--dim);margin-top:2px}
 .hdr-right{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--dim);flex-wrap:wrap}
 .hdr-right b{color:var(--text)}
 
 /* ── buttons ── */
-.btn{padding:8px 15px;border:1px solid var(--accent);background:transparent;color:var(--accent-soft);
+.btn{padding:8px 15px;border:1px solid var(--accent);background:transparent;color:var(--accent);
   border-radius:8px;font-size:13px;cursor:pointer;font-weight:600;transition:all .14s;font-family:inherit}
-.btn:hover{background:var(--accent);color:#071627}
-.btn.solid{background:var(--accent);color:#071627}
-.btn.solid:hover{background:var(--accent-soft)}
+.btn:hover{background:var(--accent);color:var(--on-accent)}
+.btn.solid{background:var(--accent);color:var(--on-accent)}
+.btn.solid:hover{background:var(--accent-soft);border-color:var(--accent-soft)}
 .btn.danger{border-color:var(--bad);color:var(--bad)}
 .btn.danger:hover{background:var(--bad);color:#fff}
 .btn.sm{padding:5px 11px;font-size:12px}
+.btn:focus-visible{outline:2px solid var(--accent-soft);outline-offset:2px}
 .btn:disabled{opacity:.45;cursor:default;pointer-events:none}
 
 /* ── layout ── */
@@ -39,13 +54,13 @@ main{max-width:1040px;margin:0 auto;padding:26px 18px 80px}
 .card{background:linear-gradient(145deg,var(--panel2),var(--panel));border:1px solid var(--line);
   border-radius:var(--rad);padding:16px;box-shadow:var(--shad)}
 .card .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:1.1px;color:var(--dim);margin-bottom:8px}
-.card .val{font-size:24px;font-weight:700;font-family:"IBM Plex Mono",monospace;color:var(--accent-soft)}
-.card .val.bad{color:var(--bad)}.card .val.warn{color:var(--warn)}
+.card .val{font-size:24px;font-weight:700;font-family:"IBM Plex Mono",monospace;color:var(--accent)}
+.card .val.bad{color:var(--bad)}.card .val.warn{color:var(--warn)}.card .val.g{color:var(--good)}
 .card .meta{font-size:11.5px;color:var(--dim);margin-top:5px}
 
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--rad);
   padding:18px;margin-bottom:18px;box-shadow:var(--shad)}
-.panel h2{font-size:14.5px;font-weight:700;letter-spacing:.3px;margin-bottom:4px}
+.panel h2{font-size:14.5px;font-weight:700;letter-spacing:.2px;margin-bottom:4px}
 .panel .sub{font-size:12px;color:var(--dim);margin-bottom:13px}
 .ph{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:13px}
 .ph h2{margin-bottom:4px}
@@ -57,29 +72,29 @@ th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);verti
 th{color:var(--dim);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.7px}
 td.r{text-align:right;font-family:"IBM Plex Mono",monospace;white-space:nowrap}
 td.g{color:var(--good)} td.b{color:var(--bad)}
-tr:hover td{background:rgba(255,255,255,.025)}
+tr:hover td{background:var(--hover)}
 .empty td{text-align:center;color:var(--dim);padding:16px;font-style:italic}
 
-.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.3px;white-space:nowrap}
-.badge.active{background:rgba(79,179,138,.18);color:var(--good)}
-.badge.cleared{background:rgba(79,143,214,.18);color:var(--accent-soft)}
-.badge.overdue{background:rgba(224,102,79,.18);color:var(--bad)}
-.badge.admin{background:rgba(79,143,214,.22);color:var(--accent-soft)}
-.badge.member{background:rgba(255,255,255,.07);color:var(--dim)}
-.badge.pending{background:rgba(217,162,74,.18);color:var(--warn)}
-.badge.approved{background:rgba(79,179,138,.18);color:var(--good)}
-.badge.rejected{background:rgba(224,102,79,.18);color:var(--bad)}
-.badge.unpaid{background:rgba(224,102,79,.18);color:var(--bad)}
-.badge.paid{background:rgba(79,179,138,.18);color:var(--good)}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.2px;white-space:nowrap}
+.badge.active{background:rgba(46,125,79,.12);color:var(--good)}
+.badge.cleared{background:var(--shade);color:var(--accent)}
+.badge.overdue{background:rgba(179,65,46,.12);color:var(--bad)}
+.badge.admin{background:var(--shade);color:var(--accent)}
+.badge.member{background:var(--shade);color:var(--dim)}
+.badge.pending{background:rgba(168,107,18,.14);color:var(--warn)}
+.badge.approved{background:rgba(46,125,79,.12);color:var(--good)}
+.badge.rejected{background:rgba(179,65,46,.12);color:var(--bad)}
+.badge.unpaid{background:rgba(179,65,46,.12);color:var(--bad)}
+.badge.paid{background:rgba(46,125,79,.12);color:var(--good)}
 
 /* ── tabs ── */
 .tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
 .tab{padding:7px 15px;border-radius:8px;border:1px solid var(--line);background:transparent;
   color:var(--dim);font-size:13px;cursor:pointer;font-weight:600;font-family:inherit;transition:all .14s}
-.tab.on{background:var(--accent);color:#071627;border-color:var(--accent)}
+.tab.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 
 /* ── loan cards ── */
-.loan-card{border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:12px;background:rgba(255,255,255,.02)}
+.loan-card{border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:12px;background:var(--panel2)}
 .loan-hd{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
 .loan-hd .lid{font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:14px}
 .loan-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-top:10px}
@@ -98,14 +113,14 @@ tr:hover td{background:rgba(255,255,255,.025)}
 .info-card h1{font-size:20px;margin-bottom:6px}
 .info-card p{font-size:13px;color:var(--dim);line-height:1.55;margin-bottom:10px}
 .field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;text-align:left}
-.field label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--dim)}
+.field label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--dim)}
 .field input,.field select,.field textarea{padding:10px 12px;border:1px solid var(--line);border-radius:8px;
-  background:#071627;color:var(--text);font-size:13px;font-family:inherit}
-.field input:focus,.field select:focus{outline:1px solid var(--accent);border-color:var(--accent)}
+  background:var(--field);color:var(--text);font-size:13px;font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--accent-soft);outline-offset:1px;border-color:var(--accent-soft)}
 .err{color:var(--bad);font-size:12.5px;min-height:16px;margin-top:6px}
 
 /* ── modals ── */
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;
+.modal-bg{position:fixed;inset:0;background:var(--overlay);display:none;align-items:center;
   justify-content:center;z-index:50;padding:16px}
 .modal-bg.on{display:flex}
 .modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;max-width:480px;
@@ -118,13 +133,13 @@ tr:hover td{background:rgba(255,255,255,.025)}
 .mact{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 .mst{font-size:12.5px;color:var(--dim);margin-top:8px;min-height:14px}
 .mst.ok{color:var(--good)}.mst.err{color:var(--bad)}
-.lim-warn{background:rgba(224,102,79,.1);border:1px solid var(--bad);border-radius:8px;
+.lim-warn{background:rgba(179,65,46,.08);border:1px solid var(--bad);border-radius:8px;
   padding:9px 12px;font-size:12.5px;margin-top:10px}
 
 .bar{display:flex;gap:9px;margin-bottom:16px;align-items:center;flex-wrap:wrap}
 .bar span{font-size:12.5px;color:var(--dim)}
 
-.chk-list{display:grid;gap:7px;max-height:190px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:10px;background:rgba(0,0,0,.12)}
+.chk-list{display:grid;gap:7px;max-height:190px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--panel2)}
 .chk-list label{display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer}
 .chk-list input{accent-color:var(--accent);width:15px;height:15px}
 .hidden{display:none!important}
