@@ -25,6 +25,7 @@ const Api = {
   getLoanRequests: (onSuccess) => callServer('getLoanRequests', [], onSuccess),
   getWithdrawalRequests: (onSuccess) => callServer('getWithdrawalRequests', [], onSuccess),
   getAllFinesForAdmin: (onSuccess) => callServer('getAllFinesForAdmin', [], onSuccess),
+  getSavingsTransactions: (filters, onSuccess, onFailure) => callServer('getSavingsTransactions', [filters], onSuccess, onFailure),
   getAuditLog: (limit, onSuccess) => callServer('getAuditLog', [limit], onSuccess),
 
   recordSavings: (memberNo, type, amount, category, notes, txDate, onSuccess, onFailure) =>

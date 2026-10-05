@@ -2,7 +2,7 @@
 // ── ADMIN: MEMBERS ────────────────────────────────────────────────────────────
 function loadMembers(){
   Api.getAllMembersSummary(res=>{
-    if(!res.ok)return; MEMBERS=res.members;
+    if(!res.ok)return; MEMBERS=res.members;if($('#stf_mb'))initSavingsFilter();
     $('#membersTb').innerHTML=res.members.map(m=>'<tr><td>'+esc(m.memberNo)+'</td><td>'+esc(m.name)+'</td><td>'+esc(m.email)+'</td><td>'+badge(m.role,BMAP)+'</td><td>'+esc(m.status)+'</td><td class="r">'+Math.round(n(m.savingsBalance)).toLocaleString('en-US')+'</td></tr>').join('');
   });
 }

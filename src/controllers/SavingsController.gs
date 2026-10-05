@@ -35,3 +35,36 @@ function recordSavings(memberNo, type, amount, category, notes, txDate) {
     type + ' of ' + fmtUGX(amount) + '. New balance: ' + fmtUGX(newBal), reference||'');
   return { ok: true, newBalance: newBal };
 }
+
+// Admin view of deposits and withdrawals, filtered by member, type, payment category and date range.
+// Dates are yyyy-MM-dd, so string comparison orders them correctly.
+function getSavingsTransactions(filters) {
+  const auth = _adminCaller(); if (!auth.ok) return auth;
+  const f = filters || {};
+  const memberNo = String(f.memberNo || '').trim();
+  const type = String(f.type || '').trim();
+  const category = String(f.category || '').trim();
+  const from = String(f.from || '').trim();
+  const to = String(f.to || '').trim();
+  const { rows } = readSheet(SH_SAVINGS, 'memberno');
+  const { rows: members } = readSheet(SH_MEMBERS, 'memberno');
+  const nameOf = {};
+  members.forEach(m => { nameOf[String(m['MemberNo'] || '').trim()] = m['Full Name'] || ''; });
+  let total = 0;
+  const out = rows
+    .filter(r => String(r['MemberNo'] || '').trim() !== '')
+    .filter(r => !memberNo || String(r['MemberNo']).trim() === memberNo)
+    .filter(r => !type || String(_pick(r, ['Deposit Type', 'Type'])).trim().toLowerCase() === type.toLowerCase())
+    .filter(r => !category || String(r['Payment Category'] || '').trim() === category)
+    .filter(r => !from || String(r['Date'] || '') >= from)
+    .filter(r => !to || String(r['Date'] || '') <= to)
+    .map(r => {
+      const no = String(r['MemberNo']).trim();
+      const amount = num(r['Amount (UGX)']);
+      total += amount;
+      return { date: String(r['Date'] || ''), member: no, name: nameOf[no] || '', type: String(_pick(r, ['Deposit Type', 'Type'])),
+        category: String(r['Payment Category'] || ''), reference: String(r['Reference'] || ''), amount: amount };
+    })
+    .sort((a, b) => b.date.localeCompare(a.date));
+  return { ok: true, rows: out, total: r2(total) };
+}

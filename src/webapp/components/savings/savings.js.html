@@ -77,3 +77,22 @@ function submitRejectWd(){
   }, e=>{$('#rjwd_btn').disabled=false;mst('rjwd_st','err','Error: '+e.message);});
 }
 </script>
+
+// ── ADMIN: SAVINGS TRANSACTIONS (filterable) ─────────────────────────────────
+function initSavingsFilter(){
+  const cur=$('#stf_mb').value;
+  $('#stf_mb').innerHTML='<option value="">All members</option>'+MEMBERS.map(m=>'<option value="'+esc(m.memberNo)+'">'+esc(m.memberNo)+' — '+esc(m.name)+'</option>').join('');
+  $('#stf_mb').value=cur;
+}
+function loadSavingsTx(){
+  const f={memberNo:$('#stf_mb').value,type:$('#stf_ty').value,category:$('#stf_cat').value,from:$('#stf_from').value,to:$('#stf_to').value};
+  $('#stf_st').textContent='Loading…';
+  Api.getSavingsTransactions(f, res=>{
+    if(!res.ok){$('#stf_st').textContent='Error: '+res.error;return;}
+    $('#stf_st').textContent=res.rows.length+' transaction(s), total '+fmt(res.total);
+    $('#stfTb').innerHTML=res.rows.length
+      ?res.rows.map(r=>'<tr><td>'+esc(hd(r.date))+'</td><td>'+esc(r.member)+' — '+esc(r.name)+'</td><td>'+esc(r.type)+'</td><td>'+esc(r.category||'-')+'</td><td>'+esc(r.reference)+'</td><td class="r">'+Math.round(r.amount).toLocaleString('en-US')+'</td></tr>').join('')
+      :'<tr class="empty"><td colspan="6">No transactions match these filters.</td></tr>';
+  }, e=>{$('#stf_st').textContent='Error: '+e.message;});
+}
+function clearSavingsFilter(){['stf_mb','stf_ty','stf_cat','stf_from','stf_to'].forEach(id=>$('#'+id).value='');loadSavingsTx();}
