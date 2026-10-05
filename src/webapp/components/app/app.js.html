@@ -30,14 +30,14 @@ function enterApp(){
   $('#loginView').classList.add('hidden');$('#appView').classList.remove('hidden');
   $('#whoName').textContent=ME.name+' ('+ME.memberNo+')';
   $('#whoRole').innerHTML=badge(ME.role,BMAP);
-  if(ME.role==='Admin'){$('#adminTab').classList.remove('hidden');$('#auditTab').classList.remove('hidden');}
-  showTab('my');loadMyAccount();
+  renderRail();restoreRail();
+  showTab('my');setActive('my');loadMyAccount();
 }
 function doLogout(){
   $('#logoutBtn').disabled=true;
   Api.logout(()=>{
     ME=null;MEMBERS=[];STMT=null;
-    $('#appView').classList.add('hidden');$('#adminTab').classList.add('hidden');$('#auditTab').classList.add('hidden');
+    $('#appView').classList.add('hidden');
     $('#logoutBtn').disabled=false;
     showOnly('s_loading');
     Api.tryAutoDetect(res=>{
@@ -59,6 +59,83 @@ function loadMyAccount(){
   Api.getMyLoanRequests(renderLoanReqs);
   Api.getMyWithdrawalRequests(renderWdReqs);
   Api.getMyFines(renderFines);
+}
+
+
+// ── NAVIGATION (desktop rail, phone bottom bar, "Go to" list) ─────────────────
+// pane: which top-level area ('my', 'admin', 'audit'). anchor: section id inside that area.
+const NAV=[
+  {group:'Me', items:[
+    {id:'my',       label:'My account',     icon:'⌂', pane:'my',    anchor:null},
+    {id:'m-loans',  label:'My loans',       icon:'◎', pane:'my',    anchor:'sec-my-loans'},
+    {id:'m-savings',label:'My savings',     icon:'▤', pane:'my',    anchor:'sec-my-savings'},
+    {id:'m-fines',  label:'My surcharges',  icon:'⚑', pane:'my',    anchor:'sec-my-fines'},
+    {id:'m-reports',label:'My statement',   icon:'▣', pane:'my',    anchor:'sec-my-reports'}]},
+  {group:'Admin', admin:true, items:[
+    {id:'dash',     label:'Dashboard',      icon:'▦', pane:'admin', anchor:'sec-dash'},
+    {id:'members',  label:'Members',        icon:'☷', pane:'admin', anchor:'sec-members'},
+    {id:'loans',    label:'Loans',          icon:'◎', pane:'admin', anchor:'sec-loans',   badge:'rb-loans'},
+    {id:'savings',  label:'Savings',        icon:'▤', pane:'admin', anchor:'sec-savings', badge:'rb-wd'},
+    {id:'fines',    label:'Surcharges',     icon:'⚑', pane:'admin', anchor:'sec-fines'},
+    {id:'reports',  label:'Reports',        icon:'▣', pane:'admin', anchor:'sec-reports'},
+    {id:'audit',    label:'Audit log',      icon:'≡', pane:'audit', anchor:null}]}
+];
+const BOTTOM_MEMBER=['my','m-loans','m-savings'];
+const BOTTOM_ADMIN=['dash','loans','members'];
+
+function isAdminUser(){return ME && ME.role==='Admin';}
+function navItems(){
+  return NAV.filter(g=>!g.admin||isAdminUser()).reduce((all,g)=>all.concat(g.items.map(i=>Object.assign({group:g.group},i))),[]);
+}
+
+// Builds the rail, the bottom bar and the "Go to" list for the signed-in user
+function renderRail(){
+  const items=navItems();
+  let rail='';
+  NAV.filter(g=>!g.admin||isAdminUser()).forEach(g=>{
+    rail+='<div class="grp">'+esc(g.group)+'</div>';
+    g.items.forEach(i=>{
+      rail+='<button class="rail-item" data-s="'+i.id+'" onclick="goSec(\''+i.id+'\')" title="'+esc(i.label)+'">'
+        +'<span class="ico">'+i.icon+'</span><span class="lbl">'+esc(i.label)+'</span>'
+        +(i.badge?'<span class="rail-badge hidden" id="'+i.badge+'">0</span>':'')+'</button>';
+    });
+  });
+  rail+='<button class="rail-item rail-toggle" onclick="toggleRail()" title="Collapse or expand the menu"><span class="ico">⟨</span><span class="lbl">Collapse menu</span></button>';
+  $('#rail').innerHTML=rail;
+
+  const pick=isAdminUser()?BOTTOM_ADMIN:BOTTOM_MEMBER;
+  $('#bottombar').innerHTML=pick.map(id=>{
+    const i=items.find(x=>x.id===id);
+    return '<button class="bb-item" data-s="'+id+'" onclick="goSec(\''+id+'\')"><span class="ico">'+i.icon+'</span><span>'+esc(i.label)+'</span></button>';
+  }).join('')+'<button class="bb-item" onclick="openMore()"><span class="ico">⋯</span><span>More</span></button>';
+
+  $('#moreList').innerHTML=items.map(i=>
+    '<button class="btn" style="text-align:left" onclick="cm(\'m_more\');goSec(\''+i.id+'\')">'+i.icon+'  '+esc(i.label)+'</button>').join('');
+}
+
+// Opens the right area and scrolls to the section
+function goSec(id){
+  const it=navItems().find(x=>x.id===id); if(!it)return;
+  showTab(it.pane);
+  setActive(id);
+  if(it.anchor){const el=document.getElementById(it.anchor);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}
+  else window.scrollTo({top:0,behavior:'smooth'});
+}
+function setActive(id){
+  document.querySelectorAll('.rail-item,.bb-item').forEach(b=>b.classList.toggle('on',b.dataset.s===id));
+}
+function openMore(){om('m_more');}
+function toggleRail(){
+  const sh=$('#shell'); sh.classList.toggle('collapsed');
+  try{localStorage.setItem('sacco_rail',sh.classList.contains('collapsed')?'1':'0');}catch(e){}
+}
+function restoreRail(){
+  try{if(localStorage.getItem('sacco_rail')==='1')$('#shell').classList.add('collapsed');}catch(e){}
+}
+// Shows a count on a rail item (for example pending requests). Hidden when zero.
+function setBadge(id,count){
+  const el=document.getElementById(id); if(!el)return;
+  el.textContent=count; el.classList.toggle('hidden',!count);
 }
 
 // ── MODAL UTIL ────────────────────────────────────────────────────────────────

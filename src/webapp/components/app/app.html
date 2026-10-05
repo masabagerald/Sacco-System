@@ -15,36 +15,44 @@
     </div>
   </header>
 
-  <main>
-    <div class="tabs" id="tabs">
-      <button class="tab on" data-t="my" onclick="showTab('my')">My Account</button>
-      <button class="tab hidden" data-t="admin" id="adminTab" onclick="showTab('admin')">Admin</button>
-      <button class="tab hidden" data-t="audit" id="auditTab" onclick="showTab('audit')">Audit Log</button>
-    </div>
+  <div class="shell" id="shell">
+    <!-- Desktop navigation rail. Built from NAV in app.js.html -->
+    <aside class="rail" id="rail" aria-label="Main navigation"></aside>
 
-    <!-- ── MY ACCOUNT ── -->
-    <div id="tab-my">
-      <?!= include('src/webapp/components/dashboard/my') ?>
-      <?!= include('src/webapp/components/reports/my') ?>
-      <?!= include('src/webapp/components/loans/my') ?>
-      <?!= include('src/webapp/components/savings/my') ?>
-      <?!= include('src/webapp/components/fines/my') ?>
-    </div>
+    <main>
+      <!-- ── MY ACCOUNT ── -->
+      <div id="tab-my">
+        <section id="sec-my-top"><?!= include('src/webapp/components/dashboard/my') ?></section>
+        <section id="sec-my-loans"><?!= include('src/webapp/components/loans/my') ?></section>
+        <section id="sec-my-savings"><?!= include('src/webapp/components/savings/my') ?></section>
+        <section id="sec-my-fines"><?!= include('src/webapp/components/fines/my') ?></section>
+        <section id="sec-my-reports"><?!= include('src/webapp/components/reports/my') ?></section>
+      </div>
 
-    <!-- ── ADMIN ── -->
-    <div id="tab-admin" class="hidden">
-      <?!= include('src/webapp/components/dashboard/admin') ?>
-      <?!= include('src/webapp/components/reports/admin') ?>
-      <?!= include('src/webapp/components/loans/admin') ?>
-      <?!= include('src/webapp/components/savings/admin') ?>
-      <?!= include('src/webapp/components/members/admin') ?>
-      <?!= include('src/webapp/components/fines/admin') ?>
-    </div>
+      <!-- ── ADMIN ── -->
+      <div id="tab-admin" class="hidden">
+        <section id="sec-dash"><?!= include('src/webapp/components/dashboard/admin') ?></section>
+        <section id="sec-members"><?!= include('src/webapp/components/members/admin') ?></section>
+        <section id="sec-loans"><?!= include('src/webapp/components/loans/admin') ?></section>
+        <section id="sec-savings"><?!= include('src/webapp/components/savings/admin') ?></section>
+        <section id="sec-fines"><?!= include('src/webapp/components/fines/admin') ?></section>
+        <section id="sec-reports"><?!= include('src/webapp/components/reports/admin') ?></section>
+      </div>
 
-    <!-- ── AUDIT LOG ── -->
-    <div id="tab-audit" class="hidden">
-      <?!= include('src/webapp/components/dashboard/audit') ?>
-    </div>
+      <!-- ── AUDIT LOG ── -->
+      <div id="tab-audit" class="hidden">
+        <section><?!= include('src/webapp/components/dashboard/audit') ?></section>
+      </div>
+    </main>
+  </div>
 
-  </main>
+  <!-- Phone navigation: four items, the last opens the full list -->
+  <nav class="bottombar" id="bottombar" aria-label="Main navigation"></nav>
+
+  <div class="modal-bg" id="m_more" onclick="if(event.target===this)cm('m_more')">
+    <div class="modal"><button class="x" onclick="cm('m_more')">&times;</button>
+      <h3>Go to</h3>
+      <div id="moreList" style="display:grid;gap:6px;margin-top:12px"></div>
+    </div>
+  </div>
 </div>

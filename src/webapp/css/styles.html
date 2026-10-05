@@ -144,4 +144,33 @@ tr:hover td{background:var(--hover)}
 .chk-list input{accent-color:var(--accent);width:15px;height:15px}
 .hidden{display:none!important}
 @media(max-width:580px){.mgrid{grid-template-columns:1fr}}
+
+/* ── app shell: rail on desktop, bottom bar on phones ── */
+.shell{display:block}
+.rail{display:none}
+.bottombar{display:none}
+.rail .grp{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);padding:14px 10px 6px}
+.rail-item,.bb-item{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border:none;border-radius:8px;
+  background:none;color:var(--dim);font:inherit;font-size:13px;font-weight:600;cursor:pointer;text-align:left}
+.rail-item:hover,.bb-item:hover{background:var(--shade);color:var(--text)}
+.rail-item:focus-visible,.bb-item:focus-visible{outline:2px solid var(--accent-soft);outline-offset:1px}
+.rail-item.on,.bb-item.on{background:var(--shade);color:var(--accent)}
+.rail-item .ico,.bb-item .ico{width:20px;text-align:center;font-size:15px;flex-shrink:0}
+.rail-badge{margin-left:auto;background:var(--bad);color:#fff;font-size:10.5px;font-weight:700;border-radius:10px;padding:1px 7px}
+.rail-toggle{margin-top:14px;border-top:1px solid var(--line);border-radius:0;padding-top:12px}
+@media(min-width:900px){
+  .shell{display:grid;grid-template-columns:232px minmax(0,1fr);align-items:start}
+  .rail{display:block;position:sticky;top:64px;height:calc(100vh - 64px);overflow:auto;border-right:1px solid var(--line);background:var(--panel);padding:10px}
+  .shell.collapsed{grid-template-columns:72px minmax(0,1fr)}
+  .shell.collapsed .lbl,.shell.collapsed .grp,.shell.collapsed .rail-badge{display:none}
+  .shell.collapsed .rail-item{justify-content:center;padding:9px 0}
+  .shell.collapsed .rail-toggle .ico{transform:rotate(180deg)}
+}
+@media(max-width:899px){
+  .bottombar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--header);
+    border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom));gap:4px}
+  .bb-item{flex-direction:column;justify-content:center;gap:2px;font-size:11px;text-align:center;padding:6px 2px}
+  .bb-item .ico{width:auto;font-size:17px}
+  main{padding-bottom:96px}
+}
 </style>
