@@ -76,7 +76,7 @@ function submitRejectWd(){
     mst('rjwd_st','ok','Rejected.');loadWdReqAdmin();setTimeout(()=>cm('m_rejectWd'),900);
   }, e=>{$('#rjwd_btn').disabled=false;mst('rjwd_st','err','Error: '+e.message);});
 }
-</script>
+
 
 // ── ADMIN: SAVINGS TRANSACTIONS (filterable) ─────────────────────────────────
 function initSavingsFilter(){
@@ -96,3 +96,4 @@ function loadSavingsTx(){
   }, e=>{$('#stf_st').textContent='Error: '+e.message;});
 }
 function clearSavingsFilter(){['stf_mb','stf_ty','stf_cat','stf_from','stf_to'].forEach(id=>$('#'+id).value='');loadSavingsTx();}
+</script>
