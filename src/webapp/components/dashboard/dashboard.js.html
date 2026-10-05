@@ -7,6 +7,15 @@ function loadAdmin(){
     $('#d_out').textContent=fmt(res.totalLoansOutstanding);$('#d_lc').textContent=res.activeLoanCount+' active';
     $('#d_fin').textContent=fmt(res.unpaidFinesTotal);$('#d_plr').textContent=res.pendingLoanRequests;
     $('#d_pwr').textContent=res.pendingWithdrawalRequests;
+    $('#d_dep').textContent=fmt(res.depositsThisMonth);$('#d_wdm').textContent=fmt(res.withdrawalsThisMonth);
+    $('#d_rep').textContent=fmt(res.repaymentsThisMonth);
+    $('#d_li').textContent=res.loansIssuedThisMonth;$('#d_lia').textContent=fmt(res.loansIssuedAmountThisMonth);
+    $('#d_od').textContent=res.overdueCount;$('#d_oda').textContent=fmt(res.overdueAmount);
+    $('#d_us').textContent=res.unpaidSurchargeCount;
+    $('#d_catSub').textContent='Month of '+res.month+'. Deposits saved before categories existed show as Uncategorised.';
+    const tot=res.categoryTotals.reduce((s,c)=>s+c.amount,0);
+    $('#d_catTb').innerHTML=res.categoryTotals.map(c=>'<tr><td>'+esc(c.category)+'</td><td class="r">'+Math.round(c.amount).toLocaleString('en-US')+'</td></tr>').join('')
+      +'<tr><td><strong>Total</strong></td><td class="r"><strong>'+Math.round(tot).toLocaleString('en-US')+'</strong></td></tr>';
     const ot=$('#overdueTb');
     ot.innerHTML=res.overdueLoans.length?res.overdueLoans.map(l=>'<tr><td>'+esc(l.loanId)+'</td><td>'+esc(l.memberName)+'</td><td class="r">'+Math.round(l.outstandingBalance).toLocaleString('en-US')+'</td><td>'+esc(l.progressLabel)+'</td></tr>').join(''):'<tr class="empty"><td colspan="4">None &mdash; all good.</td></tr>';
   });

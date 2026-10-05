@@ -7,6 +7,21 @@
   <div class="card"><div class="lbl">Pending (Withdrawals)</div><div class="val mono" id="d_pwr">0</div></div>
 </div>
 
+<div class="cards">
+  <div class="card"><div class="lbl">Deposits (this month)</div><div class="val mono g" id="d_dep">UGX 0</div></div>
+  <div class="card"><div class="lbl">Withdrawals (this month)</div><div class="val mono" id="d_wdm">UGX 0</div></div>
+  <div class="card"><div class="lbl">Repayments (this month)</div><div class="val mono g" id="d_rep">UGX 0</div></div>
+  <div class="card"><div class="lbl">Loans issued (this month)</div><div class="val mono" id="d_li">0</div><div class="meta" id="d_lia"></div></div>
+  <div class="card"><div class="lbl">Overdue loans</div><div class="val mono bad" id="d_od">0</div><div class="meta" id="d_oda"></div></div>
+  <div class="card"><div class="lbl">Unpaid surcharges</div><div class="val mono warn" id="d_us">0</div><div class="meta">count of open items</div></div>
+</div>
+
+<div class="panel">
+  <h2>Deposits by Payment Category (this month)</h2><p class="sub" id="d_catSub"></p>
+  <table><thead><tr><th>Category</th><th class="r">Amount (UGX)</th></tr></thead>
+  <tbody id="d_catTb"><tr class="empty"><td colspan="2">Loading&hellip;</td></tr></tbody></table>
+</div>
+
 <div class="panel">
   <h2>Overdue Loans</h2><p class="sub">Past term with outstanding balance.</p>
   <table><thead><tr><th>Loan</th><th>Member</th><th class="r">Outstanding</th><th>Months/Term</th></tr></thead>
