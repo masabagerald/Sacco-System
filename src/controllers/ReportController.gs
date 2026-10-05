@@ -27,8 +27,8 @@ function _statementBody(body, data) {
   _kv(body, [['Name', m.name], ['Member no.', m.memberNo], ['Email', m.email], ['Generated on', human_date(data.generatedOn)]]);
 
   _section(body, 'Savings transactions');
-  _table(body, ['Date','Type','Reference','Amount (UGX)'],
-    data.savingsHistory.map(r => [human_date(r.date), String(r.type), r.reference || '', fmtUGX(r.amount)]), [3]);
+  _table(body, ['Date','Type','Category','Reference','Amount (UGX)'],
+    data.savingsHistory.map(r => [human_date(r.date), String(r.type), r.category || '-', r.reference || '', fmtUGX(r.amount)]), [4]);
 
   if (data.loans.length) {
     _section(body, 'Loans');
@@ -130,9 +130,9 @@ function generateAdminReportPdf() {
       [3,4,5,7]);
 
     _section(body, 'Savings transactions');
-    _table(body, ['Date','Member no.','Type','Amount (UGX)','Reference'],
-      savingRows.map(r => [human_date(r['Date']||''), String(r['MemberNo']||''), String(_pick(r,['Deposit Type','Type'])), fmtUGX(num(r['Amount (UGX)'])), String(r['Reference']||'')]),
-      [3]);
+    _table(body, ['Date','Member no.','Type','Category','Amount (UGX)','Reference'],
+      savingRows.map(r => [human_date(r['Date']||''), String(r['MemberNo']||''), String(_pick(r,['Deposit Type','Type'])), String(r['Payment Category']||'-'), fmtUGX(num(r['Amount (UGX)'])), String(r['Reference']||'')]),
+      [4]);
 
     _section(body, 'Surcharges');
     _table(body, ['Surcharge ID','Member no.','Date','Amount (UGX)','Status'],
@@ -164,8 +164,8 @@ function exportAdminCSV() {
     lines.push([csvQ(m['MemberNo']),csvQ(m['Full Name']),csvQ(m['Email']),csvQ(m['Role']),csvQ(m['Status']),Math.round(bal),myLoans.length,Math.round(out),Math.round(unpaid)].join(','));
   });
   lines.push(''); lines.push('SAVINGS TRANSACTIONS');
-  lines.push(['Date','MemberNo','Type','Amount (UGX)','Reference','Recorded By'].join(','));
-  savings.forEach(r=>lines.push([csvQ(r['Date']),csvQ(r['MemberNo']),csvQ(_pick(r,['Deposit Type','Type'])),Math.round(num(r['Amount (UGX)'])),csvQ(r['Reference']||''),csvQ(r['Recorded By']||'')].join(',')));
+  lines.push(['Date','MemberNo','Type','Category','Amount (UGX)','Reference','Recorded By'].join(','));
+  savings.forEach(r=>lines.push([csvQ(r['Date']),csvQ(r['MemberNo']),csvQ(_pick(r,['Deposit Type','Type'])),csvQ(r['Payment Category']||''),Math.round(num(r['Amount (UGX)'])),csvQ(r['Reference']||''),csvQ(r['Recorded By']||'')].join(',')));
   lines.push(''); lines.push('LOANS');
   lines.push(['LoanID','MemberNo','Date Issued','Principal','Rate %','Term','Outstanding (UGX)','Status'].join(','));
   loans.filter(l=>String(l['LoanID']||'').trim()!=='').forEach(l=>{

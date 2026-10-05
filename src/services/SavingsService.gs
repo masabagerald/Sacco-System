@@ -25,12 +25,13 @@ function _nextSavingsRef(type) {
 }
 
 // Appends one savings row with an auto-generated reference. Returns the reference.
-function _addSavingsRow(memberNo, type, amount, recordedBy, notes, txDate) {
+function _addSavingsRow(memberNo, type, amount, recordedBy, notes, txDate, category) {
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
     const ref = _nextSavingsRef(type);
     const { sh, headers, hRow } = readSheet(SH_SAVINGS, 'memberno');
+    if (category && ci(headers, 'payment category') < 0) throw new Error('Savings sheet needs a Payment Category column. Run setupGuaranteeSchema() once from the script editor.');
     const row = emptyRow(sh, hRow, ci(headers, 'memberno'));
     const s = (c, v) => { if (c > -1) sh.getRange(row, c + 1).setValue(v); };
     s(ci(headers,'date'), txDate || today()); s(ci(headers,'timestamp'), now_ts());
@@ -38,6 +39,7 @@ function _addSavingsRow(memberNo, type, amount, recordedBy, notes, txDate) {
     s(ci(headers,'deposit type') > -1 ? ci(headers,'deposit type') : ci(headers,'type'), type);
     s(ci(headers,'amount'), amount); s(ci(headers,'recorded'), recordedBy);
     s(ci(headers,'reference'), ref); s(ci(headers,'notes'), notes || '');
+    s(ci(headers,'payment category'), category || '');
     return ref;
   } finally { lock.releaseLock(); }
 }

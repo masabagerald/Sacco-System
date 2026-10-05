@@ -4,9 +4,10 @@
     <h3>Record Savings Transaction</h3>
     <div class="mgrid">
       <div class="field full"><label>Member</label><select id="sv_mb"></select></div>
-      <div class="field"><label>Type</label><select id="sv_ty"><option>Deposit</option><option>Withdrawal</option></select></div>
+      <div class="field"><label>Type</label><select id="sv_ty" onchange="toggleCat()"><option>Deposit</option><option>Withdrawal</option></select></div>
       <div class="field"><label>Amount (UGX)</label><input id="sv_am" type="number" min="0"></div>
       <div class="field"><label>Date of transaction</label><input id="sv_dt" type="date"></div>
+      <div class="field full" id="sv_catwrap"><label>Payment category (required for deposits)</label><select id="sv_cat"><option value="">— select —</option><option>Membership Fee</option><option>Monthly Premium Fee</option><option>Operations Fee</option><option>Welfare Fee</option><option>Surcharge Fee</option></select></div>
       <div class="field full"><label>Notes</label><input id="sv_nt" type="text" placeholder="optional"></div>
     </div>
     <div class="mact"><button class="btn" onclick="cm('m_savings')">Cancel</button><button class="btn solid" id="sv_btn" onclick="submitSavings()">Save</button></div>

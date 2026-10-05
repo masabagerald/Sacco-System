@@ -50,3 +50,6 @@ const Config = {
 
 // Reasons a member can give for a savings withdrawal request
 const WITHDRAWAL_REASONS = ['Dividends', 'Premium (at exit from MSIC)', 'Welfare package'];
+
+// Categories a deposit must be filed under
+const PAYMENT_CATEGORIES = ['Membership Fee', 'Monthly Premium Fee', 'Operations Fee', 'Welfare Fee', 'Surcharge Fee'];

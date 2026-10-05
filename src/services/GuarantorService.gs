@@ -124,6 +124,7 @@ function setupGuaranteeSchema() {
   };
   addColumns(SH_LOANS, 'loanid', ['Loan Model', 'Processing Fee (UGX)', 'Term (days)', 'Interest Rate (%)', 'Due Date']);
   addColumns(SH_LOAN_REQ, 'requestid', ['Repayment Term', 'Total Due']);
+  addColumns(SH_SAVINGS, 'memberno', ['Payment Category']);
 
   Logger.log('Guarantee schema ready.');
 }

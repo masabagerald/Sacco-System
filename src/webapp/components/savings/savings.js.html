@@ -7,20 +7,22 @@ function renderSavings(res){
   if(!res.history.length){tb.innerHTML='<tr class="empty"><td colspan="4">No transactions yet.</td></tr>';return;}
   tb.innerHTML=res.history.slice().reverse().map(r=>{
     const g=r.type==='Deposit';
-    return '<tr><td>'+esc(hd(r.date))+'</td><td>'+esc(r.type)+'</td><td>'+esc(r.reference)+'</td><td class="r '+(g?'g':'b')+'">'+(g?'+':'−')+' '+Math.round(n(r.amount)).toLocaleString('en-US')+'</td></tr>';
+    return '<tr><td>'+esc(hd(r.date))+'</td><td>'+esc(r.type)+'</td><td>'+esc(r.category||'-')+'</td><td>'+esc(r.reference)+'</td><td class="r '+(g?'g':'b')+'">'+(g?'+':'−')+' '+Math.round(n(r.amount)).toLocaleString('en-US')+'</td></tr>';
   }).join('');
 }
 
 // ── record savings (admin) ───────────────────────────────────────────────────
 // Today's date as yyyy-MM-dd in local time (used as the default for date inputs)
 function todayISO(){const d=new Date();const p=x=>String(x).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}
-function openRecSavings(){$('#sv_mb').innerHTML=mbOpts();$('#sv_am').value='';$('#sv_dt').value=todayISO();$('#sv_nt').value='';mst('sv_st','','');om('m_savings');}
+function toggleCat(){$('#sv_catwrap').classList.toggle('hidden',$('#sv_ty').value!=='Deposit');}
+function openRecSavings(){$('#sv_mb').innerHTML=mbOpts();$('#sv_am').value='';$('#sv_dt').value=todayISO();$('#sv_cat').value='';toggleCat();$('#sv_nt').value='';mst('sv_st','','');om('m_savings');}
 function submitSavings(){
-  const mb=$('#sv_mb').value,ty=$('#sv_ty').value,am=$('#sv_am').value;
+  const mb=$('#sv_mb').value,ty=$('#sv_ty').value,am=$('#sv_am').value,cat=$('#sv_cat').value;
   if(!mb)return mst('sv_st','err','Select a member.');
   if(!am||n(am)<=0)return mst('sv_st','err','Enter a valid amount.');
+  if(ty==='Deposit'&&!cat)return mst('sv_st','err','Select the payment category for this deposit.');
   $('#sv_btn').disabled=true;mst('sv_st','','Saving…');
-  Api.recordSavings(mb,ty,am,$('#sv_nt').value.trim(),$('#sv_dt').value, res=>{
+  Api.recordSavings(mb,ty,am,cat,$('#sv_nt').value.trim(),$('#sv_dt').value, res=>{
     $('#sv_btn').disabled=false;
     if(!res.ok)return mst('sv_st','err',res.error);
     mst('sv_st','ok','Saved. New balance: '+fmt(res.newBalance));

@@ -27,8 +27,8 @@ const Api = {
   getAllFinesForAdmin: (onSuccess) => callServer('getAllFinesForAdmin', [], onSuccess),
   getAuditLog: (limit, onSuccess) => callServer('getAuditLog', [limit], onSuccess),
 
-  recordSavings: (memberNo, type, amount, notes, txDate, onSuccess, onFailure) =>
-    callServer('recordSavings', [memberNo, type, amount, notes, txDate], onSuccess, onFailure),
+  recordSavings: (memberNo, type, amount, category, notes, txDate, onSuccess, onFailure) =>
+    callServer('recordSavings', [memberNo, type, amount, category, notes, txDate], onSuccess, onFailure),
   issueLoan: (memberNo, principal, purpose, overrideReason, guarantorNos, termKey, onSuccess, onFailure) =>
     callServer('issueLoan', [memberNo, principal, purpose, overrideReason, guarantorNos, termKey], onSuccess, onFailure),
   getLoanTerms: (onSuccess, onFailure) => callServer('getLoanTerms', [], onSuccess, onFailure),
