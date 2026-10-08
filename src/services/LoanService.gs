@@ -1,15 +1,19 @@
 // ── LOAN CALCULATIONS & LOW-LEVEL LOAN ROW HELPERS ────────────────────────────
 
-// Three loan models live side by side:
-//  - Term (current): interest set by the repayment term (LOAN_TERMS) plus the processing fee.
-//    One payment, due on the due date.
+// Four loan models live side by side:
+//  - Member (Founder/Delegate loans): 10% interest, minimum 2 months, UGX 5,000 fee. One payment
+//    due at the end of the term, counted in months.
+//  - Term (Non-Member Soft Loans only): interest set by the repayment term (LOAN_TERMS) plus the
+//    UGX 10,000 processing fee. One payment, due on the due date, counted in days.
 //  - Flat (Article 4, earlier loans): 10% flat + UGX 5,000 fee, two instalments at weeks 4 and 8.
 //    Still owed at week 8 -> 10% late penalty on the balance.
 //  - Reducing (oldest loans): monthly reducing balance at the rate entered at the time.
+const MEMBER_LOAN_MODEL = 'Member';
 const TERM_LOAN_MODEL = 'Term';
 const FLAT_LOAN_MODEL = 'Flat';
 
 function _modelOf(loan) { return String(loan['Loan Model']||'').trim().toLowerCase(); }
+function _isMemberLoan(loan) { return _modelOf(loan) === MEMBER_LOAN_MODEL.toLowerCase(); }
 function _isTerm(loan) { return _modelOf(loan) === TERM_LOAN_MODEL.toLowerCase(); }
 function _isFlat(loan) { return _modelOf(loan) === FLAT_LOAN_MODEL.toLowerCase(); }
 
@@ -19,11 +23,31 @@ function _ymd(v) {
   return m ? new Date(+m[1], +m[2]-1, +m[3]) : new Date(v);
 }
 function _addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function _addMonths(d, n) { const x = new Date(d); x.setMonth(x.getMonth() + n); return x; }
 
-// Amounts for a term loan. Used by the issue email and the request preview.
-function _termTerms(principal, termDef) {
-  const interest = r2(principal * termDef.rate);
-  return { rate: termDef.rate, interest, fee: PROCESSING_FEE, total: r2(principal + interest + PROCESSING_FEE) };
+// Decides which loan product a member is offered, based on membership type. termInput is the
+// repayment-term key (Non-Member Soft Loans) or the number of months (Founder/Delegate loans).
+function _loanSpecFor(membershipType, termInput) {
+  const type = String(membershipType||'').trim();
+  if (type === 'Non-Member') {
+    const def = _termByKey(termInput);
+    if (!def) return { ok: false, error: 'Choose a repayment term.' };
+    return { ok: true, spec: { model: TERM_LOAN_MODEL, days: def.days, rate: def.rate, fee: PROCESSING_FEE, label: def.label, guarantorsRequired: false } };
+  }
+  if (type === 'Founder Member' || type === 'Delegate Member') {
+    const months = Math.round(num(termInput));
+    if (!months || months < MEMBER_LOAN_MIN_MONTHS)
+      return { ok: false, error: 'Minimum loan term is ' + MEMBER_LOAN_MIN_MONTHS + ' months.' };
+    return { ok: true, spec: { model: MEMBER_LOAN_MODEL, months: months, rate: MEMBER_LOAN_RATE, fee: MEMBER_LOAN_FEE,
+      label: months + ' month' + (months > 1 ? 's' : ''), guarantorsRequired: true } };
+  }
+  return { ok: false, error: 'This member\'s membership type has not been set (Founder Member, Delegate Member or Non-Member). Ask an admin to set it before applying for a loan.' };
+}
+
+// Amounts for a given loan spec (model/rate/fee/term). Shared by the issue email and the request preview.
+function _loanAmounts(principal, spec) {
+  const interest = r2(principal * spec.rate);
+  return { rate: spec.rate, interest, fee: spec.fee, total: r2(principal + interest + spec.fee) };
 }
 
 // Flat-loan amounts (Article 4). Used by the legacy calculation.
@@ -39,7 +63,8 @@ function _computeLoan(loan, allRepayments) {
     .filter(r => String(r['LoanID']||'').trim() === String(loan['LoanID']||'').trim())
     .map(r => ({ date: _ymd(r['Date']), amount: num(_pick(r,['Amount (UGX)','Total Amount Paid'])) }))
     .sort((a,b) => a.date - b.date);
-  if (_isTerm(loan)) return _computeTerm(loan, reps);
+  if (_isMemberLoan(loan)) return _computeSingleDue(loan, reps, 'member', MEMBER_LOAN_RATE, MEMBER_LOAN_FEE);
+  if (_isTerm(loan)) return _computeSingleDue(loan, reps, 'term', 0, PROCESSING_FEE);
   return _isFlat(loan) ? _computeFlat(loan, reps) : _computeReducing(loan, reps);
 }
 
@@ -47,32 +72,49 @@ function _progressLabel(overdue, status) {
   return overdue ? 'Overdue' : (status === LOAN_STATUS.CLEARED ? 'Cleared' : 'On track');
 }
 
-// Term loan: one payment, due on the due date.
-function _computeTerm(loan, reps) {
+// One payment due on a due date. Used for both the Member loan (term in months) and the
+// Non-Member Soft Loan (term in days) -- they only differ in how the due date and label are derived.
+function _computeSingleDue(loan, reps, model, rateFallback, feeFallback) {
   const principal = num(loan['Principal (UGX)']);
   const issued = _ymd(loan['Date Issued']);
-  const days = num(loan['Term (days)']);
-  const def = LOAN_TERMS.find(t => t.days === days) || { label: days + ' days', days: days, rate: 0 };
-  const rate = num(loan['Interest Rate (%)']) ? num(loan['Interest Rate (%)']) / 100 : def.rate;
-  const fee = num(loan['Processing Fee (UGX)']) || PROCESSING_FEE;
+  const rate = num(loan['Interest Rate (%)']) ? num(loan['Interest Rate (%)']) / 100 : rateFallback;
+  const fee = num(loan['Processing Fee (UGX)']) || feeFallback;
+  let due, termLabel, termValue;
+  if (model === 'member') {
+    const months = num(loan['Term (months)']) || MEMBER_LOAN_MIN_MONTHS;
+    due = loan['Due Date'] ? _ymd(loan['Due Date']) : _addMonths(issued, months);
+    termLabel = months + ' month' + (months > 1 ? 's' : '');
+    termValue = months;
+  } else {
+    const days = num(loan['Term (days)']);
+    const def = LOAN_TERMS.find(t => t.days === days) || { label: days + ' days' };
+    due = loan['Due Date'] ? _ymd(loan['Due Date']) : _addDays(issued, days);
+    termLabel = def.label;
+    termValue = days;
+  }
   const interest = r2(principal * rate);
-  const total = r2(principal + interest + fee);
-  const due = loan['Due Date'] ? _ymd(loan['Due Date']) : _addDays(issued, days);
+  const base = r2(principal + interest + fee);
+  // 10% overdue surcharge on principal+interest (not the fee), applied once by processLoanDueDates()
+  // and stored on the sheet -- read here, never computed live, so it can't change after the fact.
+  const surcharge = num(loan['Overdue Surcharge (UGX)']) || 0;
+  const total = r2(base + surcharge);
   const totalRepaid = r2(reps.reduce((s,r) => s + r.amount, 0));
   const outstanding = Math.max(0, r2(total - totalRepaid));
   const status = outstanding <= 0.5 ? LOAN_STATUS.CLEARED : String(loan['Status']||LOAN_STATUS.ACTIVE);
   // Overdue once the due date has passed and money is still owed
   const overdue = status === LOAN_STATUS.ACTIVE && new Date() >= _addDays(due, 1);
+  const schedule = [{ label: 'Full payment', due: fmt_date(due), amount: base, balance: Math.max(0, r2(base - totalRepaid)) }];
+  if (surcharge > 0) schedule.push({ label: 'Overdue surcharge (10%)', due: fmt_date(due), amount: surcharge, balance: outstanding });
   return {
-    loanId: loan['LoanID'], memberNo: loan['MemberNo'], model: 'term', principal,
-    monthlyRate: rate * 100, rateLabel: r2(rate * 100) + '%', term: days, termLabel: def.label,
+    loanId: loan['LoanID'], memberNo: loan['MemberNo'], model, principal,
+    monthlyRate: rate * 100, rateLabel: r2(rate * 100) + '%', term: termValue, termLabel,
     dateIssued: loan['Date Issued'], dueDate: fmt_date(due), purpose: loan['Purpose']||'',
     overrideReason: loan['Override Reason']||'', monthsElapsed: null,
-    processingFee: fee, interest, penalty: 0, totalDue: total,
+    processingFee: fee, interest, penalty: surcharge, totalDue: total,
     totalInterestAccrued: interest, totalRepaid, outstandingBalance: outstanding, status, overdue,
     progressLabel: _progressLabel(overdue, status),
     monthlyPayment: total, scheduleHead: ['Payment','Due date','Amount','Balance after'],
-    schedule: [{ label: 'Full payment', due: fmt_date(due), amount: total, balance: outstanding }]
+    schedule
   };
 }
 
@@ -181,19 +223,22 @@ function _runningLoanOf(memberNo) {
 }
 
 // Member-level eligibility for a new loan. Hard rules, no override.
-function _loanEligibility(memberNo) {
+// Non-Members have no savings, so the 12-month savings rule (Founder/Delegate loans only) is skipped for them.
+function _loanEligibility(memberNo, membershipType) {
   const mNo = String(memberNo).trim();
 
-  // Sec 1: must have saved for at least 12 months (counted from first deposit)
-  const { rows: savRows } = readSheet(SH_SAVINGS, 'memberno');
-  const deposits = savRows.filter(r => String(r['MemberNo']||'').trim() === mNo
-    && String(_pick(r,['Deposit Type','Type'])).trim().toLowerCase() === 'deposit' && r['Date']);
-  if (!deposits.length) return { ok: false, error: 'Member has no savings yet. Loans are only available after saving for a minimum of 12 months.' };
-  const first = new Date(Math.min(...deposits.map(r => _ymd(r['Date']).getTime())));
-  const eligibleFrom = new Date(first); eligibleFrom.setMonth(eligibleFrom.getMonth() + 12);
-  if (new Date() < eligibleFrom) return { ok: false, error: 'Member must save for at least 12 months before accessing a loan. Eligible from ' + human_date(eligibleFrom) + '.' };
+  if (String(membershipType||'').trim() !== 'Non-Member') {
+    // Sec 1: must have saved for at least 12 months (counted from first deposit)
+    const { rows: savRows } = readSheet(SH_SAVINGS, 'memberno');
+    const deposits = savRows.filter(r => String(r['MemberNo']||'').trim() === mNo
+      && String(_pick(r,['Deposit Type','Type'])).trim().toLowerCase() === 'deposit' && r['Date']);
+    if (!deposits.length) return { ok: false, error: 'Member has no savings yet. Loans are only available after saving for a minimum of 12 months.' };
+    const first = new Date(Math.min(...deposits.map(r => _ymd(r['Date']).getTime())));
+    const eligibleFrom = new Date(first); eligibleFrom.setMonth(eligibleFrom.getMonth() + 12);
+    if (new Date() < eligibleFrom) return { ok: false, error: 'Member must save for at least 12 months before accessing a loan. Eligible from ' + human_date(eligibleFrom) + '.' };
+  }
 
-  // Sec 7: a member with a running loan cannot access another loan
+  // Sec 7: a member with a running loan cannot access another loan (all membership types)
   const running = _runningLoanOf(mNo);
   if (running) return { ok: false, error: 'Member already has a running loan (' + running.loanId + '). A new loan can only be accessed after it is fully cleared. (Art. 4, Sec. 7)' };
 
@@ -203,12 +248,12 @@ function _loanEligibility(memberNo) {
   return { ok: true };
 }
 
-// Creates a term loan row. termDef is an entry of LOAN_TERMS.
-function _createLoanRow(memberNo, principal, purpose, issuedBy, overrideReason, termDef) {
+// Creates a loan row from a _loanSpecFor() spec (Member: months; Term: days).
+function _createLoanRow(memberNo, principal, purpose, issuedBy, overrideReason, spec) {
   const { sh, headers, hRow } = readSheet(SH_LOANS,'loanid');
-  const needed = ['loan model','processing fee','term (days)','interest rate','due date'];
+  const needed = ['loan model','processing fee','interest rate','due date'];
   if (needed.some(n => ci(headers, n) < 0))
-    throw new Error('Loans sheet is missing one of these columns: Loan Model, Processing Fee (UGX), Term (days), Interest Rate (%), Due Date. Run setupGuaranteeSchema() once from the script editor.');
+    throw new Error('Loans sheet is missing one of these columns: Loan Model, Processing Fee (UGX), Interest Rate (%), Due Date. Run setupGuaranteeSchema() once from the script editor.');
   const newId = nextId(SH_LOANS,'loanid','L');
   const row = emptyRow(sh, hRow, ci(headers,'loanid'));
   const s = (c,v) => { if(c>-1) sh.getRange(row,c+1).setValue(v); };
@@ -218,9 +263,15 @@ function _createLoanRow(memberNo, principal, purpose, issuedBy, overrideReason, 
   s(ci(headers,'principal'),principal); s(ci(headers,'status'),LOAN_STATUS.ACTIVE);
   s(ci(headers,'issued by'),issuedBy); s(ci(headers,'purpose'),purpose||'');
   s(ci(headers,'override'),overrideReason||'');
-  s(ci(headers,'loan model'),TERM_LOAN_MODEL); s(ci(headers,'processing fee'),PROCESSING_FEE);
-  s(ci(headers,'term (days)'),termDef.days); s(ci(headers,'interest rate'),r2(termDef.rate*100));
-  s(ci(headers,'due date'),fmt_date(_addDays(issued, termDef.days)));
+  s(ci(headers,'loan model'),spec.model); s(ci(headers,'processing fee'),spec.fee);
+  s(ci(headers,'interest rate'),r2(spec.rate*100));
+  if (spec.model === MEMBER_LOAN_MODEL) {
+    s(ci(headers,'term (months)'),spec.months);
+    s(ci(headers,'due date'),fmt_date(_addMonths(issued, spec.months)));
+  } else {
+    s(ci(headers,'term (days)'),spec.days);
+    s(ci(headers,'due date'),fmt_date(_addDays(issued, spec.days)));
+  }
   return newId;
 }
 
@@ -230,4 +281,14 @@ function _setLoanStatus(loanId, status) {
   const data=sh.getDataRange().getValues();
   for (let r=hRow+1;r<data.length;r++)
     if (String(data[r][cId]).trim()===String(loanId).trim()) { if(cSt>-1)sh.getRange(r+1,cSt+1).setValue(status); break; }
+}
+
+// Persists the one-time 10% overdue surcharge on a loan. Reading it back (in _computeSingleDue)
+// is what makes it idempotent -- once a nonzero value is stored, it is never recalculated.
+function _setLoanOverdueSurcharge(loanId, amount) {
+  const { sh, headers, hRow } = readSheet(SH_LOANS,'loanid');
+  const cId=ci(headers,'loanid'), cS=ci(headers,'overdue surcharge');
+  const data=sh.getDataRange().getValues();
+  for (let r=hRow+1;r<data.length;r++)
+    if (String(data[r][cId]).trim()===String(loanId).trim()) { if(cS>-1)sh.getRange(r+1,cS+1).setValue(amount); break; }
 }

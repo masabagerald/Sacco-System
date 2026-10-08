@@ -4,11 +4,26 @@
     <h3>Add Member</h3>
     <div class="mgrid">
       <div class="field"><label>Role</label><select id="mb_rl"><option>Member</option><option>Admin</option></select></div>
+      <div class="field"><label>Membership type</label><select id="mb_mt"><option value="">— not set —</option><option>Founder Member</option><option>Delegate Member</option><option>Non-Member</option></select></div>
       <div class="field full"><label>Full Name</label><input id="mb_nm" type="text"></div>
       <div class="field full"><label>Email (Gmail for sign-in)</label><input id="mb_em" type="email" placeholder="name@gmail.com"></div>
       <div class="field"><label>Phone</label><input id="mb_ph" type="text" placeholder="optional"></div>
     </div>
     <div class="mact"><button class="btn" onclick="cm('m_member')">Cancel</button><button class="btn solid" id="mb_btn" onclick="submitMember()">Add Member</button></div>
     <div class="mst" id="mb_st"></div>
+  </div>
+</div>
+
+<!-- Edit member -->
+<div class="modal-bg" id="m_editMember" onclick="if(event.target===this)cm('m_editMember')">
+  <div class="modal"><button class="x" onclick="cm('m_editMember')">&times;</button>
+    <h3>Edit Member</h3><p class="sub" id="em_info"></p>
+    <div class="mgrid">
+      <div class="field"><label>Role</label><select id="em_rl"><option>Member</option><option>Admin</option></select></div>
+      <div class="field"><label>Membership type</label><select id="em_mt"><option value="">— not set —</option><option>Founder Member</option><option>Delegate Member</option><option>Non-Member</option></select></div>
+      <div class="field full"><label>Status</label><select id="em_st"><option>Active</option><option>Inactive</option></select></div>
+    </div>
+    <div class="mact"><button class="btn" onclick="cm('m_editMember')">Cancel</button><button class="btn solid" id="em_btn" onclick="submitEditMember()">Save</button></div>
+    <div class="mst" id="em_st2"></div>
   </div>
 </div>

@@ -1,17 +1,38 @@
 <script>
+let EDIT_MEMBER_NO=null;
 // ── ADMIN: MEMBERS ────────────────────────────────────────────────────────────
+const MEMBER_CACHE={};
 function loadMembers(){
   Api.getAllMembersSummary(res=>{
     if(!res.ok)return; MEMBERS=res.members;if($('#stf_mb'))initSavingsFilter();
-    $('#membersTb').innerHTML=res.members.map(m=>'<tr><td>'+esc(m.memberNo)+'</td><td>'+esc(m.name)+'</td><td>'+esc(m.email)+'</td><td>'+badge(m.role,BMAP)+'</td><td>'+esc(m.status)+'</td><td class="r">'+Math.round(n(m.savingsBalance)).toLocaleString('en-US')+'</td></tr>').join('');
+    res.members.forEach(m=>{MEMBER_CACHE[m.memberNo]=m;});
+    $('#membersTb').innerHTML=res.members.map(m=>'<tr><td>'+esc(m.memberNo)+'</td><td>'+esc(m.name)+'</td><td>'+esc(m.email)+'</td><td>'+badge(m.role,BMAP)+'</td><td>'+esc(m.membershipType||'—')+'</td><td>'+esc(m.status)+'</td><td class="r">'+Math.round(n(m.savingsBalance)).toLocaleString('en-US')+'</td><td><button class="btn sm" onclick="openEditMember(\''+esc(m.memberNo)+'\')">Edit</button></td></tr>').join('');
   });
 }
-function openAddMember(){['mb_nm','mb_em','mb_ph'].forEach(i=>$('#'+i).value='');$('#mb_rl').value='Member';mst('mb_st','','');om('m_member');}
+function openEditMember(no){
+  const m=MEMBER_CACHE[no]; if(!m)return;
+  $('#em_info').textContent=m.name+' ('+m.memberNo+')';
+  $('#em_rl').value=m.role==='Admin'?'Admin':'Member';
+  $('#em_mt').value=m.membershipType||'';
+  $('#em_st').value=m.status==='Inactive'?'Inactive':'Active';
+  mst('em_st2','','');
+  EDIT_MEMBER_NO=no;
+  om('m_editMember');
+}
+function submitEditMember(){
+  $('#em_btn').disabled=true;mst('em_st2','','Saving…');
+  Api.updateMember(EDIT_MEMBER_NO,$('#em_rl').value,$('#em_mt').value,$('#em_st').value, res=>{
+    $('#em_btn').disabled=false;
+    if(!res.ok)return mst('em_st2','err',res.error);
+    mst('em_st2','ok','Saved.');loadAdmin();setTimeout(()=>cm('m_editMember'),700);
+  }, e=>{$('#em_btn').disabled=false;mst('em_st2','err','Error: '+e.message);});
+}
+function openAddMember(){['mb_nm','mb_em','mb_ph'].forEach(i=>$('#'+i).value='');$('#mb_rl').value='Member';$('#mb_mt').value='';mst('mb_st','','');om('m_member');}
 function submitMember(){
   const nm=$('#mb_nm').value.trim(),em=$('#mb_em').value.trim();
   if(!nm||!em)return mst('mb_st','err','Name and email are required.');
   $('#mb_btn').disabled=true;mst('mb_st','','Saving…');
-  Api.addMember(nm,em,$('#mb_ph').value.trim(),$('#mb_rl').value, res=>{
+  Api.addMember(nm,em,$('#mb_ph').value.trim(),$('#mb_rl').value,$('#mb_mt').value, res=>{
     $('#mb_btn').disabled=false;
     if(!res.ok)return mst('mb_st','err',res.error);
     mst('mb_st','ok','Member added as '+res.memberNo+'.');loadAdmin();setTimeout(()=>cm('m_member'),900);

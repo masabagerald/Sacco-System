@@ -14,15 +14,24 @@ function renderSavings(res){
 // ── record savings (admin) ───────────────────────────────────────────────────
 // Today's date as yyyy-MM-dd in local time (used as the default for date inputs)
 function todayISO(){const d=new Date();const p=x=>String(x).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}
-function toggleCat(){$('#sv_catwrap').classList.toggle('hidden',$('#sv_ty').value!=='Deposit');}
+function toggleCat(){
+  $('#sv_catwrap').classList.toggle('hidden',$('#sv_ty').value!=='Deposit');
+  if($('#sv_ty').value!=='Deposit'){$('#sv_cat').value='';toggleSurchargeReason();}
+}
+function toggleSurchargeReason(){
+  const on=$('#sv_ty').value==='Deposit'&&$('#sv_cat').value==='Surcharge';
+  $('#sv_srwrap').classList.toggle('hidden',!on);
+  if(!on)$('#sv_sr').value='';
+}
 function openRecSavings(){$('#sv_mb').innerHTML=mbOpts();$('#sv_am').value='';$('#sv_dt').value=todayISO();$('#sv_cat').value='';toggleCat();$('#sv_nt').value='';mst('sv_st','','');om('m_savings');}
 function submitSavings(){
-  const mb=$('#sv_mb').value,ty=$('#sv_ty').value,am=$('#sv_am').value,cat=$('#sv_cat').value;
+  const mb=$('#sv_mb').value,ty=$('#sv_ty').value,am=$('#sv_am').value,cat=$('#sv_cat').value,sr=$('#sv_sr').value;
   if(!mb)return mst('sv_st','err','Select a member.');
   if(!am||n(am)<=0)return mst('sv_st','err','Enter a valid amount.');
   if(ty==='Deposit'&&!cat)return mst('sv_st','err','Select the payment category for this deposit.');
+  if(ty==='Deposit'&&cat==='Surcharge'&&!sr)return mst('sv_st','err','Select the surcharge reason.');
   $('#sv_btn').disabled=true;mst('sv_st','','Saving…');
-  Api.recordSavings(mb,ty,am,cat,$('#sv_nt').value.trim(),$('#sv_dt').value, res=>{
+  Api.recordSavings(mb,ty,am,cat,sr,$('#sv_nt').value.trim(),$('#sv_dt').value, res=>{
     $('#sv_btn').disabled=false;
     if(!res.ok)return mst('sv_st','err',res.error);
     mst('sv_st','ok','Saved. New balance: '+fmt(res.newBalance));
@@ -44,26 +53,37 @@ function loadWdReqAdmin(){
     const tb=$('#wdReqAdminTb');
     if(!res.requests.length){tb.innerHTML='<tr class="empty"><td colspan="7">No requests.</td></tr>';return;}
     tb.innerHTML=res.requests.map(r=>{
-      const acts=r.status==='Pending'?'<button class="btn sm" onclick="approveWd(\''+r.requestId+'\')">Approve</button> <button class="btn sm danger" onclick="openRejectWd(\''+r.requestId+'\')">Reject</button>':'';
-      return '<tr><td>'+esc(r.requestId)+'</td><td>'+esc(r.memberName)+'</td><td class="r">'+Math.round(r.amount).toLocaleString('en-US')+'</td><td class="r">'+Math.round(r.currentBalance).toLocaleString('en-US')+'</td><td>'+esc(r.reason)+'</td><td>'+badge(r.status,BMAP)+'</td><td>'+acts+'</td></tr>';
+      const already=ME.memberNo===r.initiatedBy?'<div class="note">You initiated this — another admin must approve it.</div>'
+        :(ME.memberNo===r.approver1?'<div class="note">You gave the first approval — a different admin must give the second.</div>':'');
+      const canAct=(r.status==='Pending'||r.status==='Partially Approved')&&ME.memberNo!==r.initiatedBy&&ME.memberNo!==r.approver1;
+      const approveLbl=r.approver1?'Approve (2nd &amp; final)':'Approve (1st)';
+      const acts=canAct?'<button class="btn sm" onclick="approveWd(\''+r.requestId+'\')">'+approveLbl+'</button> <button class="btn sm danger" onclick="openRejectWd(\''+r.requestId+'\')">Reject</button>':already;
+      const approvals='<div class="note">Approvals: '+(r.approver1Name?esc(r.approver1Name):'none yet')+(r.approver2Name?', '+esc(r.approver2Name):'')+' (needs 2)</div>';
+      return '<tr><td>'+esc(r.requestId)+'</td><td>'+esc(r.memberName)+'<div class="note">Initiated by '+esc(r.initiatedByName)+'</div>'+approvals+'</td><td class="r">'+Math.round(r.amount).toLocaleString('en-US')+'</td><td class="r">'+Math.round(r.currentBalance).toLocaleString('en-US')+'</td><td>'+esc(r.reason)+'</td><td>'+badge(r.status,BMAP)+'</td><td>'+acts+'</td></tr>';
     }).join('');
   });
 }
-function openReqWd(){$('#wd_bal').textContent='Current savings balance: '+fmt(SAVINGS_BAL);$('#wd_am').value='';$('#wd_rs').value='';mst('wd_st','','');om('m_reqWd');}
+function toggleWdOther(){$('#wd_otwrap').classList.toggle('hidden',$('#wd_rs').value!=='Others');}
+function openReqWd(){$('#wd_bal').textContent='Current savings balance: '+fmt(SAVINGS_BAL);$('#wd_am').value='';$('#wd_rs').value='';$('#wd_ot').value='';toggleWdOther();mst('wd_st','','');om('m_reqWd');}
 function submitReqWd(){
-  const am=$('#wd_am').value,rs=$('#wd_rs').value.trim();
+  const am=$('#wd_am').value,rs=$('#wd_rs').value.trim(),ot=$('#wd_ot').value.trim();
   if(!am||n(am)<=0)return mst('wd_st','err','Enter a valid amount.');
   if(!rs)return mst('wd_st','err','Choose a reason.');
+  if(rs==='Others'&&!ot)return mst('wd_st','err','Enter a reason.');
   $('#wd_btn').disabled=true;mst('wd_st','','Submitting…');
-  Api.requestWithdrawal(am,rs, res=>{
+  Api.requestWithdrawal(am,rs,ot, res=>{
     $('#wd_btn').disabled=false;
     if(!res.ok)return mst('wd_st','err',res.error);
     mst('wd_st','ok','Request '+res.requestId+' submitted.');loadMyAccount();setTimeout(()=>cm('m_reqWd'),900);
   }, e=>{$('#wd_btn').disabled=false;mst('wd_st','err','Error: '+e.message);});
 }
 function approveWd(id){
-  if(!confirm('Approve withdrawal request '+id+'? This deducts from savings immediately.'))return;
-  Api.approveWithdrawal(id, res=>{if(!res.ok)return alert('Error: '+res.error);loadWdReqAdmin();loadAdmin();loadMyAccount();});
+  if(!confirm('Give your approval to withdrawal request '+id+'? A second, different admin is needed before funds are released.'))return;
+  Api.approveWithdrawal(id, res=>{
+    if(!res.ok)return alert('Error: '+res.error);
+    if(res.stage==='first')alert(res.message);
+    loadWdReqAdmin();loadAdmin();loadMyAccount();
+  });
 }
 function openRejectWd(id){REJECT_WD=id;$('#rjwd_rs').value='';mst('rjwd_st','','');om('m_rejectWd');}
 function submitRejectWd(){

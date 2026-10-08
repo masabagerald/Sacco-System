@@ -28,24 +28,26 @@ const Api = {
   getSavingsTransactions: (filters, onSuccess, onFailure) => callServer('getSavingsTransactions', [filters], onSuccess, onFailure),
   getAuditLog: (limit, onSuccess) => callServer('getAuditLog', [limit], onSuccess),
 
-  recordSavings: (memberNo, type, amount, category, notes, txDate, onSuccess, onFailure) =>
-    callServer('recordSavings', [memberNo, type, amount, category, notes, txDate], onSuccess, onFailure),
-  issueLoan: (memberNo, principal, purpose, overrideReason, guarantorNos, termKey, onSuccess, onFailure) =>
-    callServer('issueLoan', [memberNo, principal, purpose, overrideReason, guarantorNos, termKey], onSuccess, onFailure),
-  getLoanTerms: (onSuccess, onFailure) => callServer('getLoanTerms', [], onSuccess, onFailure),
+  recordSavings: (memberNo, type, amount, category, surchargeReason, notes, txDate, onSuccess, onFailure) =>
+    callServer('recordSavings', [memberNo, type, amount, category, surchargeReason, notes, txDate], onSuccess, onFailure),
+  issueLoan: (memberNo, principal, purpose, guarantorNos, termKey, onSuccess, onFailure) =>
+    callServer('issueLoan', [memberNo, principal, purpose, guarantorNos, termKey], onSuccess, onFailure),
+  getLoanTerms: (forMemberNo, onSuccess, onFailure) => callServer('getLoanTerms', [forMemberNo], onSuccess, onFailure),
   getGuarantorCandidates: (applicantNo, onSuccess, onFailure) =>
     callServer('getGuarantorCandidates', [applicantNo], onSuccess, onFailure),
   recordRepayment: (loanId, amount, notes, txDate, onSuccess, onFailure) =>
     callServer('recordRepayment', [loanId, amount, notes, txDate], onSuccess, onFailure),
-  addMember: (name, email, phone, role, onSuccess, onFailure) =>
-    callServer('addMember', [name, email, phone, role], onSuccess, onFailure),
+  addMember: (name, email, phone, role, membershipType, onSuccess, onFailure) =>
+    callServer('addMember', [name, email, phone, role, membershipType], onSuccess, onFailure),
+  updateMember: (memberNo, role, membershipType, status, onSuccess, onFailure) =>
+    callServer('updateMember', [memberNo, role, membershipType, status], onSuccess, onFailure),
   requestLoan: (amount, termKey, purpose, guarantorNos, onSuccess, onFailure) =>
     callServer('requestLoan', [amount, termKey, purpose, guarantorNos], onSuccess, onFailure),
   issueFine: (memberNo, amount, reason, onSuccess, onFailure) =>
     callServer('issueFine', [memberNo, amount, reason], onSuccess, onFailure),
   markFinePaid: (fineId, onSuccess) => callServer('markFinePaid', [fineId], onSuccess),
-  requestWithdrawal: (amount, reason, onSuccess, onFailure) =>
-    callServer('requestWithdrawal', [amount, reason], onSuccess, onFailure),
+  requestWithdrawal: (amount, reason, otherText, onSuccess, onFailure) =>
+    callServer('requestWithdrawal', [amount, reason, otherText], onSuccess, onFailure),
   approveLoanRequest: (requestId, overrideReason, onSuccess, onFailure) =>
     callServer('approveLoanRequest', [requestId, overrideReason], onSuccess, onFailure),
   rejectLoanRequest: (requestId, reason, onSuccess, onFailure) =>

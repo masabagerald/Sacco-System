@@ -1,54 +1,71 @@
 <script>
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 const LR_CACHE={};
-let LOAN_TERMS_CACHE=null, LOAN_FEE=10000;
+let LOAN_PRODUCT=null; // {ok,product:'soft'|'member'|'none',fee,terms?,rate?,minMonths?,membershipType}
 const money=v=>Math.round(v).toLocaleString('en-US');
 const termTxt=r=>r.termLabel||'';
 
-// Checkbox list of guarantor candidates (members other than the applicant)
+// Checkbox list of guarantor candidates (Founder Members other than the applicant)
 function renderCandidates(id,res){
   const box=$('#'+id);
   if(!res.ok){box.innerHTML='<p class="note">'+esc(res.error)+'</p>';return;}
   box.innerHTML=res.candidates.length
     ?res.candidates.map(c=>'<label><input type="checkbox" value="'+esc(c.memberNo)+'"> '+esc(c.name)+' <span class="note">('+esc(c.memberNo)+')</span></label>').join('')
-    :'<p class="note">No other active members to pick from.</p>';
+    :'<p class="note">No eligible Founder Members to pick from.</p>';
 }
 function pickedGuarantors(id){return [...document.querySelectorAll('#'+id+' input:checked')].map(x=>x.value);}
 
-// ── LOAN TERMS & QUOTE ────────────────────────────────────────────────────────
-// Loads the term table and fee from the server (the single source of truth), then fills the term picker
-function loadLoanTerms(cb){
-  if(LOAN_TERMS_CACHE)return cb&&cb();
-  Api.getLoanTerms(res=>{
-    if(res.ok){LOAN_TERMS_CACHE=res.terms;LOAN_FEE=res.fee;}
-    cb&&cb();
-  });
+// ── LOAN PRODUCT, TERM FIELD & QUOTE ───────────────────────────────────────────
+// Loads which loan product applies (set by membership type) from the server — the single
+// source of truth for rate/fee/term shape. forMemberNo: admin loading for a specific member.
+function loadLoanProduct(forMemberNo,cb){
+  Api.getLoanTerms(forMemberNo||null, res=>{ LOAN_PRODUCT = res.ok ? res : {product:'none'}; cb&&cb(); });
 }
-function fillTermOptions(selId){
-  $('#'+selId).innerHTML=(LOAN_TERMS_CACHE||[]).map(t=>'<option value="'+esc(t.key)+'">'+esc(t.label)+' ('+t.rate+'% interest)</option>').join('');
+// Renders the term field: a dropdown of terms for a Non-Member Soft Loan, or a "months" input
+// (fixed 10% rate) for a Founder/Delegate loan. fid is the rendered field's element id.
+function renderTermField(wrapId){
+  const w=$('#'+wrapId), fid=wrapId+'_input';
+  if(!LOAN_PRODUCT||LOAN_PRODUCT.product==='none'){
+    w.innerHTML='<p class="note">Membership type not set. Ask an admin to set it (Founder Member, Delegate Member or Non-Member) before a loan can be requested.</p>';
+    return;
+  }
+  if(LOAN_PRODUCT.product==='soft'){
+    w.innerHTML='<select id="'+fid+'">'+LOAN_PRODUCT.terms.map(t=>'<option value="'+esc(t.key)+'">'+esc(t.label)+' ('+t.rate+'% interest)</option>').join('')+'</select>';
+  } else {
+    w.innerHTML='<input id="'+fid+'" type="number" min="'+LOAN_PRODUCT.minMonths+'" step="1" value="'+LOAN_PRODUCT.minMonths+'">'
+      +'<p class="note" style="margin-top:4px">Fixed rate '+LOAN_PRODUCT.rate+'%, fee '+fmt(LOAN_PRODUCT.fee)+'. Minimum '+LOAN_PRODUCT.minMonths+' months.</p>';
+  }
 }
-// Breakdown of the total due, shown before the applicant submits. Same arithmetic as the server.
-function quoteHtml(amount,termKey){
-  const t=(LOAN_TERMS_CACHE||[]).find(x=>x.key===termKey);
-  const p=Math.round(n(amount));
-  if(!t||!p||p<=0)return '<p class="note">Enter an amount and choose a term to see the total due.</p>';
-  const interest=Math.round(p*t.rate/100);
-  const total=p+interest+LOAN_FEE;
-  const due=new Date();due.setDate(due.getDate()+t.days);
+function termFieldValue(wrapId){ const el=$('#'+wrapId+'_input'); return el?el.value:''; }
+function needsGuarantors(){ return !!(LOAN_PRODUCT && LOAN_PRODUCT.product==='member'); }
+
+function quoteRow(k,v){ return '<tr><td style="color:var(--dim)">'+k+'</td><td class="r">'+v+'</td></tr>'; }
+function quoteTable(p,rate,interest,fee,total,due){
   const dueTxt=due.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-  const qrow=(k,v)=>'<tr><td style="color:var(--dim)">'+k+'</td><td class="r">'+v+'</td></tr>';
   return '<table><tbody>'+
-    qrow('Principal loan amount',fmt(p))+
-    qrow('Interest rate',t.rate+'%')+
-    qrow('Interest amount',fmt(interest))+
-    qrow('Processing fee',fmt(LOAN_FEE))+
-    qrow('<strong>Total amount due</strong>','<strong>'+fmt(total)+'</strong>')+
-    qrow('Due date (if approved today)',dueTxt)+
+    quoteRow('Principal loan amount',fmt(p))+quoteRow('Interest rate',rate+'%')+quoteRow('Interest amount',fmt(interest))+
+    quoteRow('Processing fee',fmt(fee))+quoteRow('<strong>Total amount due</strong>','<strong>'+fmt(total)+'</strong>')+
+    quoteRow('Due date (if approved today)',dueTxt)+
     '</tbody></table><p class="note">The due date is counted from the day the loan is approved.</p>';
 }
-function updateQuote(amId,tmId,outId){
-  $('#'+outId).innerHTML=quoteHtml($('#'+amId).value,$('#'+tmId).value);
+// Breakdown of the total due, shown before submitting. Same arithmetic as the server.
+function quoteHtml(amount,wrapId){
+  const p=Math.round(n(amount));
+  if(!LOAN_PRODUCT||LOAN_PRODUCT.product==='none')return '<p class="note">Enter an amount to see the total due.</p>';
+  if(LOAN_PRODUCT.product==='soft'){
+    const t=(LOAN_PRODUCT.terms||[]).find(x=>x.key===termFieldValue(wrapId));
+    if(!t||!p||p<=0)return '<p class="note">Enter an amount and choose a term to see the total due.</p>';
+    const interest=Math.round(p*t.rate/100),total=p+interest+LOAN_PRODUCT.fee;
+    const due=new Date();due.setDate(due.getDate()+t.days);
+    return quoteTable(p,t.rate,interest,LOAN_PRODUCT.fee,total,due);
+  }
+  const months=Math.round(n(termFieldValue(wrapId)));
+  if(!p||p<=0||!months||months<LOAN_PRODUCT.minMonths)return '<p class="note">Enter an amount and a term of at least '+LOAN_PRODUCT.minMonths+' months.</p>';
+  const interest=Math.round(p*LOAN_PRODUCT.rate/100),total=p+interest+LOAN_PRODUCT.fee;
+  const due=new Date();due.setMonth(due.getMonth()+months);
+  return quoteTable(p,LOAN_PRODUCT.rate,interest,LOAN_PRODUCT.fee,total,due);
 }
+function updateQuote(amId,wrapId,outId){ $('#'+outId).innerHTML=quoteHtml($('#'+amId).value,wrapId); }
 
 // ── MY LOANS ──────────────────────────────────────────────────────────────────
 function renderLoans(res){
@@ -60,6 +77,7 @@ function renderLoans(res){
   if(!res.loans.length){el.innerHTML='<p class="note">No loans on record.</p>';return;}
   el.innerHTML=res.loans.map(l=>{
     const flat=l.model==='flat';
+    const singleDue=l.model==='term'||l.model==='member';
     const slbl=l.status==='Cleared'?'Cleared':(l.overdue?'Overdue':'Active');
     const s=l.status==='Cleared'?'cleared':(l.overdue?'overdue':'active');
     const repBtn=ME.role==='Admin'&&l.status==='Active'?'<button class="btn sm" onclick="openRepay(\''+l.loanId+'\','+l.outstandingBalance+')">Record Repayment</button>':'';
@@ -73,10 +91,10 @@ function renderLoans(res){
       ['Repaid',money(l.totalRepaid)]
     ];
     if(l.dueDate)stats.push(['Due date',esc(hd(l.dueDate))]);
-    const head=l.model==='term'
+    const head=singleDue
       ?'<p class="note">Interest '+l.rateLabel+' plus a UGX '+money(l.processingFee)+' processing fee. The full amount is due on '+esc(hd(l.dueDate))+'.</p>'
       :(flat?'<p class="note">Interest 10% flat plus a UGX '+money(l.processingFee)+' processing fee. Repay in two equal instalments: week 4 and week 8.</p>':'');
-    const pen=l.penalty>0?'<p class="note" style="color:var(--bad)">Late penalty applied (10% of the balance unpaid at week 8): '+fmt(l.penalty)+'</p>':'';
+    const pen=l.penalty>0?'<p class="note" style="color:var(--bad)">'+(flat?'Late penalty applied (10% of the balance unpaid at week 8): ':'Overdue surcharge applied (10% of loan + interest): ')+fmt(l.penalty)+'</p>':'';
     const right=i=>l.model==='reducing'?i>=1:i>=2;
     const schTh=(l.scheduleHead||['Month','Opening','Interest','Payment','Closing']).map((h,i)=>'<th'+(right(i)?' class="r"':'')+'>'+h+'</th>').join('');
     const schRows=l.model==='reducing'
@@ -107,11 +125,16 @@ function loadLoanReqAdmin(){
     res.requests.forEach(r=>{LR_CACHE[r.requestId]=r;});
     tb.innerHTML=res.requests.map(r=>{
       const lim=r.withinLimit?'<span class="badge approved">Within limit</span>':'<span class="badge overdue">Over limit</span>';
-      const gl=r.guarantors.length?r.guarantors.map(g=>esc(g.name)+' ('+esc(g.memberNo)+') - '+esc(g.response)).join(', '):'None';
+      const gl=r.guarantorsRequired?(r.guarantors.length?r.guarantors.map(g=>esc(g.name)+' ('+esc(g.memberNo)+') - '+esc(g.response)).join(', '):'None'):'Not required (Soft Loan)';
       const due=r.decisionOverdue?'<div class="note" style="color:var(--bad)">Decision overdue ('+r.daysPending+' days, limit 3)</div>'
         :(r.daysPending!==null?'<div class="note">Pending '+r.daysPending+' day(s)</div>':'');
-      const acts=r.status==='Pending'?'<button class="btn sm" onclick="openApproveLR(\''+r.requestId+'\')">Approve</button> <button class="btn sm danger" onclick="openRejectLR(\''+r.requestId+'\')">Reject</button>':'';
-      return '<tr><td>'+esc(r.requestId)+'</td><td>'+esc(r.memberName)+'<div class="note">Guarantors: '+gl+'</div></td><td class="r">'+money(r.amount)+'<div class="note">Total '+fmt(r.total)+'</div></td><td>'+esc(r.termLabel)+'</td><td>'+esc(r.purpose)+'</td><td>'+lim+'</td><td>'+badge(r.status,BMAP)+due+'</td><td>'+acts+'</td></tr>';
+      const already=ME.memberNo===r.initiatedBy?'<div class="note">You initiated this request — another admin must approve it.</div>'
+        :(ME.memberNo===r.approver1?'<div class="note">You gave the first approval — a different admin must give the second.</div>':'');
+      const approvals='<div class="note">Approvals: '+(r.approver1Name?esc(r.approver1Name):'none yet')+(r.approver2Name?', '+esc(r.approver2Name):'')+' (needs 2)</div>';
+      const canAct=(r.status==='Pending'||r.status==='Partially Approved')&&ME.memberNo!==r.initiatedBy&&ME.memberNo!==r.approver1;
+      const approveLbl=r.approver1?'Approve (2nd &amp; final)':'Approve (1st)';
+      const acts=canAct?'<button class="btn sm" onclick="openApproveLR(\''+r.requestId+'\')">'+approveLbl+'</button> <button class="btn sm danger" onclick="openRejectLR(\''+r.requestId+'\')">Reject</button>':already;
+      return '<tr><td>'+esc(r.requestId)+'</td><td>'+esc(r.memberName)+'<div class="note">'+esc(r.membershipType||'—')+' &middot; Guarantors: '+gl+'</div><div class="note">Initiated by '+esc(r.initiatedByName)+'</div>'+approvals+'</td><td class="r">'+money(r.amount)+'<div class="note">Total '+fmt(r.total)+'</div></td><td>'+esc(r.termLabel)+'</td><td>'+esc(r.purpose)+'</td><td>'+lim+'</td><td>'+badge(r.status,BMAP)+due+'</td><td>'+acts+'</td></tr>';
     }).join('');
   });
 }
@@ -119,18 +142,23 @@ function loadLoanReqAdmin(){
 // ── request loan ──────────────────────────────────────────────────────────────
 function openReqLoan(){
   $('#rl_am').value='';$('#rl_pu').value='';mst('rl_st','','');
-  $('#rl_gt').innerHTML='<p class="note">Loading members&hellip;</p>';
-  $('#rl_q').innerHTML='';
+  $('#rl_gt').innerHTML='';$('#rl_gtwrap').classList.add('hidden');
+  $('#rl_q').innerHTML='';$('#rl_tmwrap').innerHTML='<p class="note">Loading&hellip;</p>';
   om('m_reqLoan');
-  loadLoanTerms(()=>{fillTermOptions('rl_tm');updateQuote('rl_am','rl_tm','rl_q');});
-  Api.getGuarantorCandidates(null, res=>renderCandidates('rl_gt',res));
+  loadLoanProduct(null, ()=>{
+    renderTermField('rl_tmwrap');
+    updateQuote('rl_am','rl_tmwrap','rl_q');
+    $('#rl_gtwrap').classList.toggle('hidden', !needsGuarantors());
+    if(needsGuarantors()) Api.getGuarantorCandidates(null, res=>renderCandidates('rl_gt',res));
+  });
 }
 function submitReqLoan(){
-  const am=$('#rl_am').value, tm=$('#rl_tm').value;
+  const am=$('#rl_am').value, tm=termFieldValue('rl_tmwrap');
   if(!am||n(am)<=0)return mst('rl_st','err','Enter a valid amount.');
+  if(!LOAN_PRODUCT||LOAN_PRODUCT.product==='none')return mst('rl_st','err','Your membership type has not been set. Contact an admin.');
   if(!tm)return mst('rl_st','err','Choose a repayment term.');
-  const gs=pickedGuarantors('rl_gt');
-  if(gs.length<2)return mst('rl_st','err','Select at least two guarantors.');
+  const gs=needsGuarantors()?pickedGuarantors('rl_gt'):[];
+  if(needsGuarantors()&&gs.length<2)return mst('rl_st','err','Select at least two guarantors.');
   $('#rl_btn').disabled=true;mst('rl_st','','Submitting…');
   Api.requestLoan(am,tm,$('#rl_pu').value.trim(),gs, res=>{
     $('#rl_btn').disabled=false;
@@ -141,41 +169,49 @@ function submitReqLoan(){
 
 // ── issue loan ────────────────────────────────────────────────────────────────
 function openIssueLoan(){
-  $('#ln_mb').innerHTML=mbOpts();$('#ln_pr').value='';$('#ln_pu').value='';$('#ln_ov').value='';
-  $('#ln_lim').classList.add('hidden');$('#ln_ovwrap').classList.add('hidden');
-  $('#ln_gt').innerHTML='<p class="note">Select a member to load guarantors.</p>';
-  $('#ln_q').innerHTML='';
+  $('#ln_mb').innerHTML=mbOpts();$('#ln_pr').value='';$('#ln_pu').value='';
+  $('#ln_lim').classList.add('hidden');
+  $('#ln_gt').innerHTML='';$('#ln_gtwrap').classList.add('hidden');
+  $('#ln_q').innerHTML='';$('#ln_tmwrap').innerHTML='<p class="note">Select a member first.</p>';
+  LOAN_PRODUCT=null;
   mst('ln_st','','');om('m_loan');
-  loadLoanTerms(()=>{fillTermOptions('ln_tm');updateQuote('ln_pr','ln_tm','ln_q');});
 }
 function onIssueMemberChange(){
   updateLimitInfo();
-  const mb=$('#ln_mb').value; if(!mb)return;
+  const mb=$('#ln_mb').value;
+  if(!mb){$('#ln_tmwrap').innerHTML='<p class="note">Select a member first.</p>';$('#ln_gtwrap').classList.add('hidden');LOAN_PRODUCT=null;return;}
   $('#ln_gt').innerHTML='<p class="note">Loading&hellip;</p>';
-  Api.getGuarantorCandidates(mb, res=>renderCandidates('ln_gt',res));
+  $('#ln_tmwrap').innerHTML='<p class="note">Loading&hellip;</p>';
+  loadLoanProduct(mb, ()=>{
+    renderTermField('ln_tmwrap');
+    updateQuote('ln_pr','ln_tmwrap','ln_q');
+    $('#ln_gtwrap').classList.toggle('hidden', !needsGuarantors());
+    if(needsGuarantors()) Api.getGuarantorCandidates(mb, res=>renderCandidates('ln_gt',res));
+  });
 }
 function updateLimitInfo(){
   const mb=$('#ln_mb').value,pr=n($('#ln_pr').value);
-  const box=$('#ln_lim'), wrap=$('#ln_ovwrap');
+  const box=$('#ln_lim');
   const m=MEMBERS.find(x=>x.memberNo===mb);
-  if(!mb||!pr||!m){box.classList.add('hidden');wrap.classList.add('hidden');return;}
+  if(!mb||!pr||!m){box.classList.add('hidden');return;}
   const max=n(m.savingsBalance)*0.5;
-  if(pr>max){box.classList.remove('hidden');box.textContent='Exceeds the 50% savings limit (savings '+fmt(m.savingsBalance)+', max '+fmt(max)+'). Override reason required.';wrap.classList.remove('hidden');}
-  else{box.classList.add('hidden');wrap.classList.add('hidden');}
+  if(pr>max){box.classList.remove('hidden');box.textContent='Exceeds the 50% savings guideline (savings '+fmt(m.savingsBalance)+', max '+fmt(max)+'). The approving admins can override this with a reason.';}
+  else box.classList.add('hidden');
 }
 function submitLoan(){
-  const mb=$('#ln_mb').value,pr=$('#ln_pr').value,tm=$('#ln_tm').value;
+  const mb=$('#ln_mb').value,pr=$('#ln_pr').value,tm=termFieldValue('ln_tmwrap');
   if(!mb)return mst('ln_st','err','Select a member.');
   if(!pr||n(pr)<=0)return mst('ln_st','err','Enter a valid principal.');
+  if(!LOAN_PRODUCT||LOAN_PRODUCT.product==='none')return mst('ln_st','err','This member\'s membership type has not been set.');
   if(!tm)return mst('ln_st','err','Choose a repayment term.');
-  const gs=pickedGuarantors('ln_gt');
-  if(gs.length<2)return mst('ln_st','err','Select at least two guarantors.');
+  const gs=needsGuarantors()?pickedGuarantors('ln_gt'):[];
+  if(needsGuarantors()&&gs.length<2)return mst('ln_st','err','Select at least two guarantors.');
   $('#ln_btn').disabled=true;mst('ln_st','','Saving…');
-  Api.issueLoan(mb,pr,$('#ln_pu').value.trim(),$('#ln_ov').value.trim(),gs,tm, res=>{
+  Api.issueLoan(mb,pr,$('#ln_pu').value.trim(),gs,tm, res=>{
     $('#ln_btn').disabled=false;
-    if(!res.ok){mst('ln_st','err',res.error);if(res.limitCheck)$('#ln_ovwrap').classList.remove('hidden');return;}
-    mst('ln_st','ok','Loan '+res.loanId+' issued.');
-    if(mb===ME.memberNo)loadMyAccount();loadAdmin();setTimeout(()=>cm('m_loan'),900);
+    if(!res.ok)return mst('ln_st','err',res.error);
+    mst('ln_st','ok','Proposed as request '+res.requestId+'. It needs two different admin approvals before the loan is issued.');
+    loadLoanReqAdmin();loadAdmin();setTimeout(()=>cm('m_loan'),1800);
   }, e=>{$('#ln_btn').disabled=false;mst('ln_st','err','Error: '+e.message);});
 }
 
@@ -197,8 +233,8 @@ function submitRepay(){
 function openApproveLR(id){
   const r=LR_CACHE[id]; if(!r)return;
   APPROV_REQ=r;
-  const gl=r.guarantors.map(g=>g.name+' ('+g.memberNo+')').join(', ')||'none';
-  $('#alr_info').textContent=r.memberName+' requests '+fmt(r.amount)+' over '+r.termLabel+' (total due '+fmt(r.total)+'). Guarantors: '+gl+'. Savings: '+fmt(r.savings)+', max: '+fmt(r.maxLoan)+'.';
+  const gl=r.guarantorsRequired?(r.guarantors.map(g=>g.name+' ('+g.memberNo+')').join(', ')||'none'):'not required (Soft Loan)';
+  $('#alr_info').textContent=r.memberName+' ('+(r.membershipType||'membership type not set')+') requests '+fmt(r.amount)+' over '+r.termLabel+' (total due '+fmt(r.total)+'). Guarantors: '+gl+'. Savings: '+fmt(r.savings)+', max: '+fmt(r.maxLoan)+'.';
   $('#alr_ov').value='';mst('alr_st','','');
   if(!r.withinLimit){$('#alr_lim').classList.remove('hidden');$('#alr_lim').textContent='Exceeds the 50% savings limit. Override reason required.';$('#alr_ovwrap').classList.remove('hidden');}
   else{$('#alr_lim').classList.add('hidden');$('#alr_ovwrap').classList.add('hidden');}
@@ -209,7 +245,8 @@ function submitApproveLR(){
   Api.approveLoanRequest(APPROV_REQ.requestId,$('#alr_ov').value.trim(), res=>{
     $('#alr_btn').disabled=false;
     if(!res.ok){mst('alr_st','err',res.error);if(res.limitCheck)$('#alr_ovwrap').classList.remove('hidden');return;}
-    mst('alr_st','ok','Approved. Loan '+res.loanId+' created.');loadLoanReqAdmin();loadAdmin();setTimeout(()=>cm('m_approveLR'),900);
+    mst('alr_st','ok',res.stage==='first'?res.message:'Fully approved. Loan '+res.loanId+' created.');
+    loadLoanReqAdmin();loadAdmin();setTimeout(()=>cm('m_approveLR'),1400);
   }, e=>{$('#alr_btn').disabled=false;mst('alr_st','err','Error: '+e.message);});
 }
 function openRejectLR(id){REJECT_LR=id;$('#rjlr_rs').value='';mst('rjlr_st','','');om('m_rejectLR');}

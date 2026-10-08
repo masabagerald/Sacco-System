@@ -7,7 +7,8 @@
       <div class="field"><label>Type</label><select id="sv_ty" onchange="toggleCat()"><option>Deposit</option><option>Withdrawal</option></select></div>
       <div class="field"><label>Amount (UGX)</label><input id="sv_am" type="number" min="0"></div>
       <div class="field"><label>Date of transaction</label><input id="sv_dt" type="date"></div>
-      <div class="field full" id="sv_catwrap"><label>Payment category (required for deposits)</label><select id="sv_cat"><option value="">— select —</option><option>Membership Fee</option><option>Monthly Premium Fee</option><option>Operations Fee</option><option>Welfare Fee</option><option>Surcharge Fee</option></select></div>
+      <div class="field full" id="sv_catwrap"><label>Payment category (required for deposits)</label><select id="sv_cat" onchange="toggleSurchargeReason()"><option value="">— select —</option><option>Membership Fee</option><option>Annual Subscription Fee</option><option>Monthly Premium</option><option>Operations Fee</option><option>Welfare Fee</option><option>Surcharge</option></select></div>
+      <div class="field full hidden" id="sv_srwrap"><label>Surcharge reason</label><select id="sv_sr"><option value="">— select —</option><option>Surcharge on Unpaid Premium</option><option>Surcharge on Unpaid Loan</option><option>Surcharge on Unpaid Loan Balance</option><option>Surcharge on Unpaid Interest</option></select></div>
       <div class="field full"><label>Notes</label><input id="sv_nt" type="text" placeholder="optional"></div>
     </div>
     <div class="mact"><button class="btn" onclick="cm('m_savings')">Cancel</button><button class="btn solid" id="sv_btn" onclick="submitSavings()">Save</button></div>
@@ -21,7 +22,8 @@
     <h3>Request Withdrawal</h3><p class="sub" id="wd_bal"></p>
     <div class="mgrid">
       <div class="field full"><label>Amount (UGX)</label><input id="wd_am" type="number" min="0"></div>
-      <div class="field full"><label>Reason</label><select id="wd_rs"><option value="">— select —</option><option>Dividends</option><option>Premium (at exit from MSIC)</option><option>Welfare package</option></select></div>
+      <div class="field full"><label>Reason</label><select id="wd_rs" onchange="toggleWdOther()"><option value="">— select —</option><option>Exit from MSIC</option><option>Dividends</option><option>Welfare</option><option>Others</option></select></div>
+      <div class="field full hidden" id="wd_otwrap"><label>Please specify</label><input id="wd_ot" type="text" placeholder="required for Others"></div>
     </div>
     <div class="mact"><button class="btn" onclick="cm('m_reqWd')">Cancel</button><button class="btn solid" id="wd_btn" onclick="submitReqWd()">Submit Request</button></div>
     <div class="mst" id="wd_st"></div>

@@ -1,18 +1,18 @@
-<!-- Issue loan -->
+<!-- Propose loan (admin-initiated; still needs two different admins to approve) -->
 <div class="modal-bg" id="m_loan" onclick="if(event.target===this)cm('m_loan')">
   <div class="modal"><button class="x" onclick="cm('m_loan')">&times;</button>
-    <h3>Issue Loan</h3>
+    <h3>Propose a Loan</h3>
+    <p class="sub">This creates a request. Two different admins (not you) must still approve it before the loan is issued.</p>
     <div class="mgrid">
       <div class="field full"><label>Member</label><select id="ln_mb" onchange="onIssueMemberChange()"></select></div>
-      <div class="field"><label>Principal (UGX)</label><input id="ln_pr" type="number" min="0" oninput="updateLimitInfo();updateQuote('ln_pr','ln_tm','ln_q')"></div>
-      <div class="field"><label>Repayment term</label><select id="ln_tm" onchange="updateQuote('ln_pr','ln_tm','ln_q')"></select></div>
+      <div class="field"><label>Principal (UGX)</label><input id="ln_pr" type="number" min="0" oninput="updateLimitInfo();updateQuote('ln_pr','ln_tmwrap','ln_q')"></div>
+      <div class="field"><label>Repayment term</label><div id="ln_tmwrap" onchange="updateQuote('ln_pr','ln_tmwrap','ln_q')" oninput="updateQuote('ln_pr','ln_tmwrap','ln_q')"><p class="note">Select a member first.</p></div></div>
       <div class="field full"><label>Purpose</label><input id="ln_pu" type="text" placeholder="optional"></div>
       <div class="field full"><div id="ln_q"></div></div>
-      <div class="field full"><label>Guarantors (at least 2)</label><div class="chk-list" id="ln_gt"></div></div>
+      <div class="field full hidden" id="ln_gtwrap"><label>Guarantors (at least 2, must be Founder Members)</label><div class="chk-list" id="ln_gt"></div></div>
     </div>
     <div class="lim-warn hidden" id="ln_lim"></div>
-    <div class="mgrid hidden" id="ln_ovwrap"><div class="field full"><label>Override Reason</label><input id="ln_ov" type="text" placeholder="required to exceed the limit"></div></div>
-    <div class="mact"><button class="btn" onclick="cm('m_loan')">Cancel</button><button class="btn solid" id="ln_btn" onclick="submitLoan()">Issue Loan</button></div>
+    <div class="mact"><button class="btn" onclick="cm('m_loan')">Cancel</button><button class="btn solid" id="ln_btn" onclick="submitLoan()">Propose Loan</button></div>
     <div class="mst" id="ln_st"></div>
   </div>
 </div>
@@ -37,11 +37,11 @@
     <h3>Request a Loan</h3>
     <p class="sub">Choose the amount and term. The total due is shown before you submit. You need at least two guarantors, each with savings of at least 25% of the loan.</p>
     <div class="mgrid">
-      <div class="field"><label>Amount (UGX)</label><input id="rl_am" type="number" min="0" oninput="updateQuote('rl_am','rl_tm','rl_q')"></div>
-      <div class="field"><label>Repayment term</label><select id="rl_tm" onchange="updateQuote('rl_am','rl_tm','rl_q')"></select></div>
+      <div class="field"><label>Amount (UGX)</label><input id="rl_am" type="number" min="0" oninput="updateQuote('rl_am','rl_tmwrap','rl_q')"></div>
+      <div class="field"><label>Repayment term</label><div id="rl_tmwrap" onchange="updateQuote('rl_am','rl_tmwrap','rl_q')" oninput="updateQuote('rl_am','rl_tmwrap','rl_q')"><p class="note">Loading&hellip;</p></div></div>
       <div class="field full"><div id="rl_q"></div></div>
       <div class="field full"><label>Purpose</label><input id="rl_pu" type="text"></div>
-      <div class="field full"><label>Guarantors (at least 2)</label><div class="chk-list" id="rl_gt"></div></div>
+      <div class="field full hidden" id="rl_gtwrap"><label>Guarantors (at least 2, must be Founder Members)</label><div class="chk-list" id="rl_gt"></div></div>
     </div>
     <div class="mact"><button class="btn" onclick="cm('m_reqLoan')">Cancel</button><button class="btn solid" id="rl_btn" onclick="submitReqLoan()">Submit Request</button></div>
     <div class="mst" id="rl_st"></div>

@@ -176,3 +176,67 @@ function exportAdminCSV() {
   auditLog('Admin CSV Export', '', auth.member.memberNo, 'Full ledger exported to CSV.', '');
   return { ok:true, csv: lines.join('\n') };
 }
+
+
+// ── MONTHLY AUDIT REPORT (covers the just-completed calendar month) ──────────
+
+function _prevMonthPrefix() {
+  const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1);
+  return Utilities.formatDate(d, Session.getScriptTimeZone(), "yyyy-MM");
+}
+
+function sendMonthlyAuditReport() {
+  const prefix = _prevMonthPrefix();
+  const { rows: loanReqs } = readSheet(SH_LOAN_REQ, "requestid");
+  const { rows: wdReqs }   = readSheet(SH_WD_REQ, "requestid");
+  const { rows: guarRows } = readSheet(SH_GUARANTORS, "requestid");
+  const { rows: audit }    = readSheet(SH_AUDIT, "timestamp");
+  const { rows: members }  = readSheet(SH_MEMBERS, "memberno");
+  const nameOf = {}; members.forEach(m => { nameOf[String(m["MemberNo"]||"").trim()] = m["Full Name"] || ""; });
+  const name = no => nameOf[String(no||"").trim()] || no || "-";
+
+  const gByReq = {};
+  guarRows.forEach(g => { const id = String(g["RequestID"]||"").trim(); if (!id) return; (gByReq[id] = gByReq[id] || []).push(g); });
+
+  const inMonth = r => String(r["Timestamp"]||"").indexOf(prefix) === 0;
+
+  const loanRows = loanReqs.filter(r => String(r["RequestID"]||"").trim() !== "" && inMonth(r)).map(r => {
+    const id = String(r["RequestID"]).trim();
+    const g = gByReq[id] || [];
+    const gText = x => x ? name(x["GuarantorNo"]) + ": " + (x["Response"]||"Pending") + (x["Responded At"] ? " (" + x["Responded At"] + ")" : "") : "-";
+    return [id, name(r["MemberNo"]), name(r["Initiated By"]||r["MemberNo"]), String(r["Timestamp"]||""),
+      gText(g[0]), gText(g[1]),
+      r["Approver 1"] ? name(r["Approver 1"]) + " @ " + (r["Approver 1 At"]||"") : "-",
+      r["Approver 2"] ? name(r["Approver 2"]) + " @ " + (r["Approver 2 At"]||"") : "-",
+      r["Status"]||"", r["Decision Notes"]||""];
+  });
+
+  const wdRows = wdReqs.filter(r => String(r["RequestID"]||"").trim() !== "" && inMonth(r)).map(r => [
+    String(r["RequestID"]), name(r["MemberNo"]), name(r["Initiated By"]||r["MemberNo"]), String(r["Timestamp"]||""),
+    r["Approver 1"] ? name(r["Approver 1"]) + " @ " + (r["Approver 1 At"]||"") : "-",
+    r["Approver 2"] ? name(r["Approver 2"]) + " @ " + (r["Approver 2 At"]||"") : "-",
+    r["Status"]||"", r["Decision Notes"]||""]);
+
+  const auditRows = audit.filter(inMonth).map(r => [
+    String(r["Timestamp"]||""), r["Action"]||"", name(r["Member (Affected)"]), name(r["Performed By"]), r["Details"]||"", r["Reference ID"]||""]);
+
+  const title = SACCO_NAME + " Monthly Audit Report — " + prefix;
+  const blob = _brandedPdf(title, "Audit report for " + prefix, body => {
+    _cards(body, [["Loan decisions", String(loanRows.length)], ["Withdrawal decisions", String(wdRows.length)], ["Audit log entries", String(auditRows.length)]]);
+    _section(body, "Loan Requests");
+    _table(body, ["Request","Member","Initiated by","Created","Guarantor 1","Guarantor 2","Approver 1","Approver 2","Status","Notes"], loanRows, []);
+    _section(body, "Withdrawal Requests");
+    _table(body, ["Request","Member","Initiated by","Created","Approver 1","Approver 2","Status","Notes"], wdRows, []);
+    _section(body, "Full Audit Log");
+    _table(body, ["Timestamp","Action","Member","Performed by","Details","Reference"], auditRows, []);
+  });
+
+  members.filter(m => String(m["Role"]||"").toLowerCase() === "admin" && m["Email"]).forEach(m => {
+    try {
+      MailApp.sendEmail({ to: m["Email"], name: SACCO_NAME, subject: "[" + SACCO_NAME + "] Monthly Audit Report — " + prefix,
+        htmlBody: _emailShell("Monthly audit report", "<p style='margin:0 0 10px;'>Attached is the audit report for " + prefix + ", covering loan and withdrawal decisions and the full audit log.</p>"),
+        attachments: [blob.copyBlob().setName(title + ".pdf")], inlineImages: { clubseal: _logoBlob() } });
+    } catch (e) { Logger.log("Monthly audit report email failed for " + m["Email"] + ": " + e); }
+  });
+  auditLog("Monthly Audit Report Sent", "", "System", "Report for " + prefix + " emailed to admins.", "");
+}

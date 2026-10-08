@@ -39,6 +39,7 @@ function _guarantorChecks(applicantNo, amount, guarantorNos, excludeRequestId) {
     const m = _memberByNo(g);
     if (!m) return { ok: false, error: 'Guarantor ' + g + ' was not found.' };
     if (String(m['Status']||'').trim().toLowerCase() !== 'active') return { ok: false, error: 'Guarantor ' + g + ' is not an active member.' };
+    if (String(m['Membership Type']||'').trim() !== 'Founder Member') return { ok: false, error: 'Guarantor ' + g + ' must be a Founder Member.' };
     const running = _runningLoanOf(g);
     if (running) return { ok: false, error: 'Guarantor ' + g + ' has a running loan (' + running.loanId + ') and cannot guarantee anyone. (Art. 4, Sec. 6)' };
     if (_liveGuaranteesOf(g, excludeRequestId) > 0) return { ok: false, error: 'Guarantor ' + g + ' is already guaranteeing another loan. A member can guarantee only one member at a time. (Art. 4, Sec. 5)' };
@@ -96,7 +97,7 @@ function getGuarantorCandidates(applicantNo) {
   const who = (isAdmin && applicantNo) ? String(applicantNo).trim() : auth.member.memberNo;
   const { rows } = readSheet(SH_MEMBERS, 'memberno');
   return { ok: true, candidates: rows
-    .filter(m => String(m['Status']||'').trim().toLowerCase() === 'active' && String(m['MemberNo']||'').trim() !== who)
+    .filter(m => String(m['Status']||'').trim().toLowerCase() === 'active' && String(m['Membership Type']||'').trim() === 'Founder Member' && String(m['MemberNo']||'').trim() !== who)
     .map(m => ({ memberNo: String(m['MemberNo']).trim(), name: m['Full Name'] || '' })) };
 }
 
@@ -122,9 +123,11 @@ function setupGuaranteeSchema() {
       if (!hdr.some(h => h.startsWith(name.toLowerCase()))) sh.getRange(hRow + 1, lastCol + 1).setValue(name);
     });
   };
-  addColumns(SH_LOANS, 'loanid', ['Loan Model', 'Processing Fee (UGX)', 'Term (days)', 'Interest Rate (%)', 'Due Date']);
-  addColumns(SH_LOAN_REQ, 'requestid', ['Repayment Term', 'Total Due']);
-  addColumns(SH_SAVINGS, 'memberno', ['Payment Category']);
+  addColumns(SH_LOANS, 'loanid', ['Loan Model', 'Processing Fee (UGX)', 'Term (days)', 'Interest Rate (%)', 'Due Date', 'Overdue Surcharge (UGX)']);
+  addColumns(SH_LOAN_REQ, 'requestid', ['Repayment Term', 'Total Due', 'Initiated By', 'Approver 1', 'Approver 1 At', 'Approver 2', 'Approver 2 At']);
+  addColumns(SH_SAVINGS, 'memberno', ['Payment Category', 'Surcharge Reason']);
+  addColumns(SH_MEMBERS, 'memberno', ['Membership Type']);
+  addColumns(SH_WD_REQ, 'requestid', ['Initiated By', 'Approver 1', 'Approver 1 At', 'Approver 2', 'Approver 2 At']);
 
   Logger.log('Guarantee schema ready.');
 }

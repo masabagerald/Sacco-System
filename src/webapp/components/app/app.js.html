@@ -23,7 +23,7 @@ const fmt=v=>'UGX '+Math.round(n(v)).toLocaleString('en-US');
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const badge=(s,map)=>'<span class="badge '+(map[s.toLowerCase()]||s.toLowerCase())+'">'+esc(s)+'</span>';
 const BMAP={active:'active',cleared:'cleared',overdue:'overdue',admin:'admin',member:'member',
-  pending:'pending',approved:'approved',rejected:'rejected',unpaid:'unpaid',paid:'paid'};
+  pending:'pending',approved:'approved',rejected:'rejected',unpaid:'unpaid',paid:'paid','partially approved':'partial'};
 
 // ── APP SHELL ───────────────────────────────────────────────────────────────────
 function enterApp(){

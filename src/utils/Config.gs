@@ -49,7 +49,21 @@ const Config = {
 };
 
 // Reasons a member can give for a savings withdrawal request
-const WITHDRAWAL_REASONS = ['Dividends', 'Premium (at exit from MSIC)', 'Welfare package'];
+const WITHDRAWAL_REASONS = ['Exit from MSIC', 'Dividends', 'Welfare', 'Others'];
 
 // Categories a deposit must be filed under
-const PAYMENT_CATEGORIES = ['Membership Fee', 'Monthly Premium Fee', 'Operations Fee', 'Welfare Fee', 'Surcharge Fee'];
+const PAYMENT_CATEGORIES = ['Membership Fee', 'Annual Subscription Fee', 'Monthly Premium', 'Operations Fee', 'Welfare Fee', 'Surcharge'];
+const SURCHARGE_REASONS = ['Surcharge on Unpaid Premium', 'Surcharge on Unpaid Loan', 'Surcharge on Unpaid Loan Balance', 'Surcharge on Unpaid Interest'];
+
+// Membership type: a member's business privileges (separate from Role, which is login/admin access)
+const MEMBERSHIP_TYPES = ['Founder Member', 'Delegate Member', 'Non-Member'];
+
+// Founder/Delegate loans (this spec): 10% interest, minimum 2 months, UGX 5,000 fee
+const MEMBER_LOAN_RATE = 0.10;
+const MEMBER_LOAN_MIN_MONTHS = 2;
+const MEMBER_LOAN_FEE = 5000;
+
+// Overdue rule (all single-due-date loans: Founder/Delegate Member loans and Non-Member Soft Loans)
+const OVERDUE_SURCHARGE_RATE = 0.10;       // 10% on principal+interest once the due date is missed
+const OVERDUE_REMINDER_DAYS_BEFORE = 3;    // reminder 3 days before the due date
+const OVERDUE_MAX_DAILY_NOTICE_DAYS = 14;  // daily overdue notices stop after 2 weeks

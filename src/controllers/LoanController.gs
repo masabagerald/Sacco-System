@@ -10,29 +10,14 @@ function getMyLoans() {
   return { ok: true, loans: result };
 }
 
-// Direct issue by an admin. Same rules as a request: eligibility, guarantors, term, savings cap (override allowed).
-function issueLoan(memberNo, principal, purpose, overrideReason, guarantorNos, termKey) {
+// An admin proposing a loan on a member's behalf. This does NOT create the loan -- it creates a
+// Pending request, exactly like a member's own request, that still needs two different admins
+// (neither of them the proposer) to approve before the loan exists. Segregation of duties.
+function issueLoan(memberNo, principal, purpose, guarantorNos, termInput) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
   principal=num(principal);
   const lv = validateLoanIssue(principal); if (!lv.ok) return lv;
-  const termDef = _termByKey(termKey); if (!termDef) return {ok:false,error:'Choose a repayment term.'};
-  const el = _loanEligibility(memberNo); if (!el.ok) return el;
-  const gc = _guarantorChecks(memberNo, principal, guarantorNos, ''); if (!gc.ok) return gc;
-  const lc = _checkLimit(memberNo, principal);
-  if (!lc.withinLimit && !String(overrideReason||'').trim())
-    return {ok:false,error:'Exceeds loan-to-savings limit. Savings: '+fmtUGX(lc.savings)+', max: '+fmtUGX(lc.maxLoan)+'. Provide an override reason to proceed.',limitCheck:lc};
-  const newId = _createLoanRow(memberNo, principal, purpose, auth.member.memberNo, overrideReason, termDef);
-  _appendGuarantors('', newId, memberNo, gc.guarantors);
-  const m = _memberByNo(memberNo);
-  const t = _termTerms(principal, termDef);
-  _sendEmail(m?.['Email'],'Loan Issued: '+newId,[
-    ['Loan ID',newId],['Principal',fmtUGX(principal)],['Interest ('+r2(termDef.rate*100)+'%)',fmtUGX(t.interest)],
-    ['Processing fee',fmtUGX(t.fee)],['Total to repay',fmtUGX(t.total)],
-    ['Due date',human_date(_addDays(new Date(), termDef.days))],['Purpose',purpose||'-']
-  ],'Your loan has been issued. The full amount is due on the due date shown.');
-  auditLog('Loan Issued', memberNo, auth.member.memberNo,
-    'Principal: '+fmtUGX(principal)+' over '+termDef.label+' at '+r2(termDef.rate*100)+'%, fee '+fmtUGX(PROCESSING_FEE)+', guarantors: '+gc.guarantors.join(', ')+(overrideReason?' [OVERRIDE: '+overrideReason+']':''), newId);
-  return { ok: true, loanId: newId };
+  return _submitLoanRequest(memberNo, auth.member.memberNo, auth.member.name + ' (admin)', principal, termInput, purpose, guarantorNos);
 }
 
 function recordRepayment(loanId, amount, notes, txDate) {

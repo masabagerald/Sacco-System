@@ -25,7 +25,7 @@ function _nextSavingsRef(type) {
 }
 
 // Appends one savings row with an auto-generated reference. Returns the reference.
-function _addSavingsRow(memberNo, type, amount, recordedBy, notes, txDate, category) {
+function _addSavingsRow(memberNo, type, amount, recordedBy, notes, txDate, category, surchargeReason) {
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
@@ -40,6 +40,7 @@ function _addSavingsRow(memberNo, type, amount, recordedBy, notes, txDate, categ
     s(ci(headers,'amount'), amount); s(ci(headers,'recorded'), recordedBy);
     s(ci(headers,'reference'), ref); s(ci(headers,'notes'), notes || '');
     s(ci(headers,'payment category'), category || '');
+    s(ci(headers,'surcharge reason'), surchargeReason || '');
     return ref;
   } finally { lock.releaseLock(); }
 }

@@ -7,6 +7,7 @@ function makeMemberRecord(row) {
     email: row['Email'],
     phone: row['Phone'] || '',
     role: String(row['Role']||'Member').trim(),
+    membershipType: row['Membership Type'] || '',
     status: row['Status'] || ''
   };
 }
