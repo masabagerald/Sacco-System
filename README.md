@@ -5,11 +5,12 @@ A Google Apps Script web app for running a small SACCO (savings and credit coope
 ## Features
 
 - **Sign-in without passwords** — auto-detects the signed-in Google account, or falls back to a 6-digit one-time code emailed to the member.
-- **Savings** — deposit/withdrawal ledger with running balance per member.
+- **Savings / deposit accounts** — each member's deposits are held in three accounts with separate balances: **Principal**, **Operations** and **Welfare**. Admins record contributions against an account (the payment category must belong to it) and can correct or reverse an entry; the original row is never edited — a reversal row (and, for a correction, a replacement row) is appended and the change is written to the audit log.
+- **Withdrawal requests** — Founder Members request a withdrawal from a chosen account (eligible membership types are set by `WITHDRAWAL_MEMBERSHIP_TYPES` in `Config.gs`). The amount must be within that account's balance, less requests still awaiting approval. Two different admins must approve, and neither may be the initiator or the account holder.
 - **Loans** — reducing-balance interest calculation, projected amortization schedule, loan-to-savings limit with admin override, repayment tracking.
 - **Loan & withdrawal requests** — members submit requests; admins approve (with limit checks) or reject with a reason.
 - **Fines** — issue, track, and mark as paid.
-- **Admin dashboard** — member/savings/loan/fine totals, pending requests, overdue loans.
+- **Admin dashboard** — member/savings/loan/fine totals, pending requests, overdue loans, and Principal / Operations / Welfare tabs with cumulative contributions, withdrawals and balance per account (calculated from the ledger each time it loads).
 - **Audit log** — every state-changing action is recorded automatically.
 - **Reports** — per-member PDF statement (saved to Drive) and a full ledger CSV export.
 - **Scheduled jobs** — monthly statements, repayment reminders, and weekly spreadsheet backups via time-driven triggers.
@@ -149,3 +150,14 @@ Edit the constants at the top of `src/utils/Config.gs`:
 - All amounts are stored and displayed in UGX.
 - The web app runs as the deploying user (`executeAs: USER_DEPLOYING` in `appsscript.json`), so it only needs the deployer's Sheet/Drive/Mail permissions — members never need direct access to the spreadsheet.
 - Email failures are swallowed (`EmailService.gs`) so a transaction still succeeds even if a notification can't be sent; audit log writes are similarly non-fatal.
+
+## Upgrading to deposit accounts
+
+After deploying, run `setupGuaranteeSchema()` once from the Apps Script editor. It adds the `Deposit Account` and `Reverses` columns to the **Savings** tab and `Deposit Account` to **Withdrawal Requests**. It is safe to run again.
+
+Existing rows are not changed. Rows without an account are placed by their payment category: Operations Fee → Operations, Welfare Fee → Welfare, everything else (including older withdrawals) → Principal. Each member's total savings therefore stays the same. Withdrawal requests made before this change draw on Principal.
+
+## Tests
+
+- `npm test` runs every suite locally under Node, with in-memory stand-ins for the Apps Script services (`tests/gas-fakes.js`). It covers the `.gs` suites in `src/tests/` and the controller-level tests in `tests/*.integration.js`.
+- The `.gs` suites can also be run from the Apps Script editor: `runDepositAccountTests()`, `runLoanServiceTests()`.

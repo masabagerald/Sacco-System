@@ -125,9 +125,9 @@ function setupGuaranteeSchema() {
   };
   addColumns(SH_LOANS, 'loanid', ['Loan Model', 'Processing Fee (UGX)', 'Term (days)', 'Interest Rate (%)', 'Due Date', 'Overdue Surcharge (UGX)']);
   addColumns(SH_LOAN_REQ, 'requestid', ['Repayment Term', 'Total Due', 'Initiated By', 'Approver 1', 'Approver 1 At', 'Approver 2', 'Approver 2 At']);
-  addColumns(SH_SAVINGS, 'memberno', ['Payment Category', 'Surcharge Reason']);
+  addColumns(SH_SAVINGS, 'memberno', ['Payment Category', 'Surcharge Reason', 'Deposit Account', 'Reverses']);
   addColumns(SH_MEMBERS, 'memberno', ['Membership Type']);
-  addColumns(SH_WD_REQ, 'requestid', ['Initiated By', 'Approver 1', 'Approver 1 At', 'Approver 2', 'Approver 2 At']);
+  addColumns(SH_WD_REQ, 'requestid', ['Initiated By', 'Approver 1', 'Approver 1 At', 'Approver 2', 'Approver 2 At', 'Deposit Account']);
 
   Logger.log('Guarantee schema ready.');
 }

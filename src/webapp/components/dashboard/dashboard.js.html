@@ -17,10 +17,29 @@ function loadAdmin(){
     const tot=res.categoryTotals.reduce((s,c)=>s+c.amount,0);
     $('#d_catTb').innerHTML=res.categoryTotals.map(c=>'<tr><td>'+esc(c.category)+'</td><td class="r">'+Math.round(c.amount).toLocaleString('en-US')+'</td></tr>').join('')
       +'<tr><td><strong>Total</strong></td><td class="r"><strong>'+Math.round(tot).toLocaleString('en-US')+'</strong></td></tr>';
+    DEP_ACCS=res.depositAccounts||[];renderAccTab();
     const ot=$('#overdueTb');
     ot.innerHTML=res.overdueLoans.length?res.overdueLoans.map(l=>'<tr><td>'+esc(l.loanId)+'</td><td>'+esc(l.memberName)+'</td><td class="r">'+Math.round(l.outstandingBalance).toLocaleString('en-US')+'</td><td>'+esc(l.progressLabel)+'</td></tr>').join(''):'<tr class="empty"><td colspan="4">None &mdash; all good.</td></tr>';
   });
   loadMembers(); loadLoanReqAdmin(); loadWdReqAdmin(); loadFinesAdmin();
+}
+
+// ── DEPOSIT ACCOUNT TABS (Principal / Operations / Welfare) ───────────────────
+let DEP_ACCS=[], ACC_TAB='Principal';
+function showAccTab(a){ACC_TAB=a;renderAccTab();}
+function renderAccTab(){
+  document.querySelectorAll('#d_accTabs .tab').forEach(b=>b.classList.toggle('on',b.dataset.acc===ACC_TAB));
+  const a=DEP_ACCS.find(x=>x.account===ACC_TAB); if(!a)return;
+  const money=v=>Math.round(n(v)).toLocaleString('en-US');
+  $('#d_accLbl').textContent='Total '+a.account+' contributions';
+  $('#d_accContrib').textContent=fmt(a.contributions);
+  $('#d_accMonth').textContent=fmt(a.contributionsThisMonth)+' this month';
+  $('#d_accWd').textContent=fmt(a.withdrawals);
+  $('#d_accBal').textContent=fmt(a.balance);
+  $('#d_accTb').innerHTML=a.members.length
+    ?a.members.map(m=>'<tr><td>'+esc(m.memberNo)+' — '+esc(m.name)+'</td><td class="r">'+money(m.contributions)+'</td><td class="r">'+money(m.withdrawals)+'</td><td class="r">'+money(m.balance)+'</td></tr>').join('')
+      +'<tr><td><strong>Total</strong></td><td class="r"><strong>'+money(a.contributions)+'</strong></td><td class="r"><strong>'+money(a.withdrawals)+'</strong></td><td class="r"><strong>'+money(a.balance)+'</strong></td></tr>'
+    :'<tr class="empty"><td colspan="4">No '+esc(a.account)+' contributions recorded yet.</td></tr>';
 }
 
 // ── AUDIT LOG ─────────────────────────────────────────────────────────────────

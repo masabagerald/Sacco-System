@@ -49,7 +49,7 @@ const Config = {
 };
 
 // Reasons a member can give for a savings withdrawal request
-const WITHDRAWAL_REASONS = ['Exit from MSIC', 'Dividends', 'Welfare', 'Others'];
+const WITHDRAWAL_REASONS = ['Exit from MSIC', 'Dividends', 'Welfare', 'Operations', 'Others'];
 
 // Categories a deposit must be filed under
 const PAYMENT_CATEGORIES = ['Membership Fee', 'Annual Subscription Fee', 'Monthly Premium', 'Operations Fee', 'Welfare Fee', 'Surcharge'];
@@ -57,6 +57,26 @@ const SURCHARGE_REASONS = ['Surcharge on Unpaid Premium', 'Surcharge on Unpaid L
 
 // Membership type: a member's business privileges (separate from Role, which is login/admin access)
 const MEMBERSHIP_TYPES = ['Founder Member', 'Delegate Member', 'Non-Member'];
+
+// Deposit accounts: each member's deposits are held in three accounts with separate balances.
+const DEPOSIT_ACCOUNTS = ['Principal', 'Operations', 'Welfare'];
+// Payment categories that may be filed under each account. Rows saved before accounts existed
+// are placed by their category; anything not listed under Operations or Welfare is Principal.
+const ACCOUNT_CATEGORIES = {
+  Principal:  ['Membership Fee', 'Annual Subscription Fee', 'Monthly Premium', 'Surcharge'],
+  Operations: ['Operations Fee'],
+  Welfare:    ['Welfare Fee']
+};
+// Membership types that may request a withdrawal from their deposit accounts.
+// Add 'Delegate Member' here if the committee extends the privilege to Delegates.
+const WITHDRAWAL_MEMBERSHIP_TYPES = ['Founder Member'];
+
+// Savings ledger transaction types. Corrections never edit a row: they add a reversal row
+// (linked by the Reverses column) and, for a correction, a replacement row.
+const TX_DEPOSIT = 'Deposit';
+const TX_WITHDRAWAL = 'Withdrawal';
+const TX_DEPOSIT_REVERSAL = 'Deposit Reversal';
+const TX_WITHDRAWAL_REVERSAL = 'Withdrawal Reversal';
 
 // Founder/Delegate loans (this spec): 10% interest, minimum 2 months, UGX 5,000 fee
 const MEMBER_LOAN_RATE = 0.10;

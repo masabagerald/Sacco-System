@@ -28,8 +28,12 @@ const Api = {
   getSavingsTransactions: (filters, onSuccess, onFailure) => callServer('getSavingsTransactions', [filters], onSuccess, onFailure),
   getAuditLog: (limit, onSuccess) => callServer('getAuditLog', [limit], onSuccess),
 
-  recordSavings: (memberNo, type, amount, category, surchargeReason, notes, txDate, onSuccess, onFailure) =>
-    callServer('recordSavings', [memberNo, type, amount, category, surchargeReason, notes, txDate], onSuccess, onFailure),
+  recordSavings: (memberNo, type, amount, account, category, surchargeReason, notes, txDate, onSuccess, onFailure) =>
+    callServer('recordSavings', [memberNo, type, amount, account, category, surchargeReason, notes, txDate], onSuccess, onFailure),
+  reverseSavingsTransaction: (reference, reason, onSuccess, onFailure) =>
+    callServer('reverseSavingsTransaction', [reference, reason], onSuccess, onFailure),
+  correctContribution: (reference, amount, account, category, surchargeReason, txDate, reason, onSuccess, onFailure) =>
+    callServer('correctContribution', [reference, amount, account, category, surchargeReason, txDate, reason], onSuccess, onFailure),
   issueLoan: (memberNo, principal, purpose, guarantorNos, termKey, onSuccess, onFailure) =>
     callServer('issueLoan', [memberNo, principal, purpose, guarantorNos, termKey], onSuccess, onFailure),
   getLoanTerms: (forMemberNo, onSuccess, onFailure) => callServer('getLoanTerms', [forMemberNo], onSuccess, onFailure),
@@ -46,8 +50,8 @@ const Api = {
   issueFine: (memberNo, amount, reason, onSuccess, onFailure) =>
     callServer('issueFine', [memberNo, amount, reason], onSuccess, onFailure),
   markFinePaid: (fineId, onSuccess) => callServer('markFinePaid', [fineId], onSuccess),
-  requestWithdrawal: (amount, reason, otherText, onSuccess, onFailure) =>
-    callServer('requestWithdrawal', [amount, reason, otherText], onSuccess, onFailure),
+  requestWithdrawal: (amount, reason, otherText, account, onSuccess, onFailure) =>
+    callServer('requestWithdrawal', [amount, reason, otherText, account], onSuccess, onFailure),
   approveLoanRequest: (requestId, overrideReason, onSuccess, onFailure) =>
     callServer('approveLoanRequest', [requestId, overrideReason], onSuccess, onFailure),
   rejectLoanRequest: (requestId, reason, onSuccess, onFailure) =>

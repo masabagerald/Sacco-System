@@ -1,40 +1,64 @@
 <script>
+// ── DEPOSIT ACCOUNTS ──────────────────────────────────────────────────────────
+// Mirrors ACCOUNT_CATEGORIES in Config.gs (the server re-checks every entry).
+const ACCOUNTS=['Principal','Operations','Welfare'];
+const ACCOUNT_CATEGORIES={
+  Principal:['Membership Fee','Annual Subscription Fee','Monthly Premium','Surcharge'],
+  Operations:['Operations Fee'],
+  Welfare:['Welfare Fee']
+};
+let MY_SAV=null, ADJ_TX=null;
+// Signed amount cell: money in is green "+", money out is red "−"
+function signedCell(sign,amount){return '<td class="r '+(sign>0?'g':'b')+'">'+(sign>0?'+':'−')+' '+Math.round(n(amount)).toLocaleString('en-US')+'</td>';}
+const txSign=t=>({'deposit':1,'withdrawal reversal':1,'withdrawal':-1,'deposit reversal':-1})[String(t).toLowerCase()]||0;
+
 // ── MY SAVINGS ────────────────────────────────────────────────────────────────
 function renderSavings(res){
   if(!res.ok)return;
+  MY_SAV=res;
   SAVINGS_BAL=res.balance;$('#c_savings').textContent=fmt(res.balance);
+  ACCOUNTS.forEach(a=>{$('#c_acc_'+a).textContent=fmt(res.accounts[a]);});
+  $('#wdReqBtn').classList.toggle('hidden',!res.canWithdraw);
+  if(!res.canWithdraw)$('#wdReqSub').textContent='Withdrawal requests are open to Founder Members.';
   const tb=$('#savingsTb');
-  if(!res.history.length){tb.innerHTML='<tr class="empty"><td colspan="4">No transactions yet.</td></tr>';return;}
-  tb.innerHTML=res.history.slice().reverse().map(r=>{
-    const g=r.type==='Deposit';
-    return '<tr><td>'+esc(hd(r.date))+'</td><td>'+esc(r.type)+'</td><td>'+esc(r.category||'-')+'</td><td>'+esc(r.reference)+'</td><td class="r '+(g?'g':'b')+'">'+(g?'+':'−')+' '+Math.round(n(r.amount)).toLocaleString('en-US')+'</td></tr>';
-  }).join('');
+  if(!res.history.length){tb.innerHTML='<tr class="empty"><td colspan="6">No transactions yet.</td></tr>';return;}
+  tb.innerHTML=res.history.slice().reverse().map(r=>
+    '<tr><td>'+esc(hd(r.date))+'</td><td>'+esc(r.type)+(r.reverses?'<div class="note">of '+esc(r.reverses)+'</div>':'')+'</td><td>'+esc(r.account)+'</td><td>'+esc(r.category||'-')+'</td><td>'+esc(r.reference)+'</td>'+signedCell(txSign(r.type),r.amount)+'</tr>'
+  ).join('');
 }
 
 // ── record savings (admin) ───────────────────────────────────────────────────
 // Today's date as yyyy-MM-dd in local time (used as the default for date inputs)
 function todayISO(){const d=new Date();const p=x=>String(x).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}
+// Fills the payment category list for the chosen account. px: 'sv' (record) or 'aj' (adjust)
+function fillCatOpts(px,selected){
+  const cats=ACCOUNT_CATEGORIES[$('#'+px+'_acc').value]||[];
+  $('#'+px+'_cat').innerHTML=(cats.length===1?'':'<option value="">— select —</option>')+cats.map(c=>'<option>'+esc(c)+'</option>').join('');
+  if(selected&&cats.indexOf(selected)>-1)$('#'+px+'_cat').value=selected;
+  toggleSurchargeReason(px);
+}
 function toggleCat(){
   $('#sv_catwrap').classList.toggle('hidden',$('#sv_ty').value!=='Deposit');
-  if($('#sv_ty').value!=='Deposit'){$('#sv_cat').value='';toggleSurchargeReason();}
+  toggleSurchargeReason('sv');
 }
-function toggleSurchargeReason(){
-  const on=$('#sv_ty').value==='Deposit'&&$('#sv_cat').value==='Surcharge';
-  $('#sv_srwrap').classList.toggle('hidden',!on);
-  if(!on)$('#sv_sr').value='';
+function toggleSurchargeReason(px){
+  const on=(px!=='sv'||$('#sv_ty').value==='Deposit')&&$('#'+px+'_cat').value==='Surcharge';
+  $('#'+px+'_srwrap').classList.toggle('hidden',!on);
+  if(!on)$('#'+px+'_sr').value='';
 }
-function openRecSavings(){$('#sv_mb').innerHTML=mbOpts();$('#sv_am').value='';$('#sv_dt').value=todayISO();$('#sv_cat').value='';toggleCat();$('#sv_nt').value='';mst('sv_st','','');om('m_savings');}
+function openRecSavings(){$('#sv_mb').innerHTML=mbOpts();$('#sv_am').value='';$('#sv_dt').value=todayISO();$('#sv_acc').value='';fillCatOpts('sv');toggleCat();$('#sv_nt').value='';mst('sv_st','','');om('m_savings');}
 function submitSavings(){
-  const mb=$('#sv_mb').value,ty=$('#sv_ty').value,am=$('#sv_am').value,cat=$('#sv_cat').value,sr=$('#sv_sr').value;
+  const mb=$('#sv_mb').value,ty=$('#sv_ty').value,am=$('#sv_am').value,acc=$('#sv_acc').value,cat=ty==='Deposit'?$('#sv_cat').value:'',sr=$('#sv_sr').value;
   if(!mb)return mst('sv_st','err','Select a member.');
   if(!am||n(am)<=0)return mst('sv_st','err','Enter a valid amount.');
+  if(!acc)return mst('sv_st','err','Select the deposit account.');
   if(ty==='Deposit'&&!cat)return mst('sv_st','err','Select the payment category for this deposit.');
   if(ty==='Deposit'&&cat==='Surcharge'&&!sr)return mst('sv_st','err','Select the surcharge reason.');
   $('#sv_btn').disabled=true;mst('sv_st','','Saving…');
-  Api.recordSavings(mb,ty,am,cat,sr,$('#sv_nt').value.trim(),$('#sv_dt').value, res=>{
+  Api.recordSavings(mb,ty,am,acc,cat,sr,$('#sv_nt').value.trim(),$('#sv_dt').value, res=>{
     $('#sv_btn').disabled=false;
     if(!res.ok)return mst('sv_st','err',res.error);
-    mst('sv_st','ok','Saved. New balance: '+fmt(res.newBalance));
+    mst('sv_st','ok','Saved ('+res.reference+'). '+acc+' balance: '+fmt(res.accountBalance)+', total savings: '+fmt(res.newBalance));
     loadAdmin();if(mb===ME.memberNo)loadMyAccount();
     setTimeout(()=>cm('m_savings'),900);
   }, e=>{$('#sv_btn').disabled=false;mst('sv_st','err','Error: '+e.message);});
@@ -44,34 +68,45 @@ function submitSavings(){
 function renderWdReqs(res){
   if(!res.ok)return;
   const tb=$('#wdReqTb');
-  if(!res.requests.length){tb.innerHTML='<tr class="empty"><td colspan="5">No withdrawal requests.</td></tr>';return;}
-  tb.innerHTML=res.requests.map(r=>'<tr><td>'+esc(r.requestId)+'</td><td class="r">'+Math.round(r.amount).toLocaleString('en-US')+'</td><td>'+esc(r.reason)+'</td><td>'+badge(r.status,BMAP)+'</td><td>'+esc(r.decisionNotes)+'</td></tr>').join('');
+  if(!res.requests.length){tb.innerHTML='<tr class="empty"><td colspan="6">No withdrawal requests.</td></tr>';return;}
+  tb.innerHTML=res.requests.map(r=>'<tr><td>'+esc(r.requestId)+'</td><td>'+esc(r.account)+'</td><td class="r">'+Math.round(r.amount).toLocaleString('en-US')+'</td><td>'+esc(r.reason)+'</td><td>'+badge(r.status,BMAP)+'</td><td>'+esc(r.decisionNotes)+'</td></tr>').join('');
 }
 function loadWdReqAdmin(){
   Api.getWithdrawalRequests(res=>{
     if(!res.ok)return;
     const tb=$('#wdReqAdminTb');
-    if(!res.requests.length){tb.innerHTML='<tr class="empty"><td colspan="7">No requests.</td></tr>';return;}
+    if(!res.requests.length){tb.innerHTML='<tr class="empty"><td colspan="8">No requests.</td></tr>';return;}
     tb.innerHTML=res.requests.map(r=>{
-      const already=ME.memberNo===r.initiatedBy?'<div class="note">You initiated this — another admin must approve it.</div>'
-        :(ME.memberNo===r.approver1?'<div class="note">You gave the first approval — a different admin must give the second.</div>':'');
-      const canAct=(r.status==='Pending'||r.status==='Partially Approved')&&ME.memberNo!==r.initiatedBy&&ME.memberNo!==r.approver1;
+      const open=r.status==='Pending'||r.status==='Partially Approved';
+      const why=ME.memberNo===r.initiatedBy?'You initiated this — another admin must approve it.'
+        :ME.memberNo===r.memberNo?'This is your own account — another admin must approve it.'
+        :ME.memberNo===r.approver1?'You gave the first approval — a different admin must give the second.':'';
+      const canAct=open&&!why;
       const approveLbl=r.approver1?'Approve (2nd &amp; final)':'Approve (1st)';
-      const acts=canAct?'<button class="btn sm" onclick="approveWd(\''+r.requestId+'\')">'+approveLbl+'</button> <button class="btn sm danger" onclick="openRejectWd(\''+r.requestId+'\')">Reject</button>':already;
+      const acts=canAct?'<button class="btn sm" onclick="approveWd(\''+r.requestId+'\')">'+approveLbl+'</button> <button class="btn sm danger" onclick="openRejectWd(\''+r.requestId+'\')">Reject</button>':(open?'<div class="note">'+why+'</div>':'');
       const approvals='<div class="note">Approvals: '+(r.approver1Name?esc(r.approver1Name):'none yet')+(r.approver2Name?', '+esc(r.approver2Name):'')+' (needs 2)</div>';
-      return '<tr><td>'+esc(r.requestId)+'</td><td>'+esc(r.memberName)+'<div class="note">Initiated by '+esc(r.initiatedByName)+'</div>'+approvals+'</td><td class="r">'+Math.round(r.amount).toLocaleString('en-US')+'</td><td class="r">'+Math.round(r.currentBalance).toLocaleString('en-US')+'</td><td>'+esc(r.reason)+'</td><td>'+badge(r.status,BMAP)+'</td><td>'+acts+'</td></tr>';
+      return '<tr><td>'+esc(r.requestId)+'</td><td>'+esc(r.memberName)+'<div class="note">Initiated by '+esc(r.initiatedByName)+'</div>'+approvals+'</td><td>'+esc(r.account)+'</td><td class="r">'+Math.round(r.amount).toLocaleString('en-US')+'</td><td class="r">'+Math.round(r.currentBalance).toLocaleString('en-US')+'</td><td>'+esc(r.reason)+'</td><td>'+badge(r.status,BMAP)+'</td><td>'+acts+'</td></tr>';
     }).join('');
   });
 }
 function toggleWdOther(){$('#wd_otwrap').classList.toggle('hidden',$('#wd_rs').value!=='Others');}
-function openReqWd(){$('#wd_bal').textContent='Current savings balance: '+fmt(SAVINGS_BAL);$('#wd_am').value='';$('#wd_rs').value='';$('#wd_ot').value='';toggleWdOther();mst('wd_st','','');om('m_reqWd');}
+function showWdAvail(){
+  const a=$('#wd_acc').value;
+  if(!MY_SAV){$('#wd_bal').textContent='';return;}
+  $('#wd_bal').textContent=a
+    ?a+' balance: '+fmt(MY_SAV.accounts[a])+(MY_SAV.available[a]<MY_SAV.accounts[a]?' · available after pending requests: '+fmt(MY_SAV.available[a]):'')
+    :'Balances — '+ACCOUNTS.map(x=>x+': '+fmt(MY_SAV.accounts[x])).join(' · ');
+}
+function openReqWd(){$('#wd_acc').value='';showWdAvail();$('#wd_am').value='';$('#wd_rs').value='';$('#wd_ot').value='';toggleWdOther();mst('wd_st','','');om('m_reqWd');}
 function submitReqWd(){
-  const am=$('#wd_am').value,rs=$('#wd_rs').value.trim(),ot=$('#wd_ot').value.trim();
+  const acc=$('#wd_acc').value,am=$('#wd_am').value,rs=$('#wd_rs').value.trim(),ot=$('#wd_ot').value.trim();
+  if(!acc)return mst('wd_st','err','Choose the account to withdraw from.');
   if(!am||n(am)<=0)return mst('wd_st','err','Enter a valid amount.');
+  if(MY_SAV&&n(am)>MY_SAV.available[acc])return mst('wd_st','err','Amount exceeds the available '+acc+' balance ('+fmt(MY_SAV.available[acc])+').');
   if(!rs)return mst('wd_st','err','Choose a reason.');
   if(rs==='Others'&&!ot)return mst('wd_st','err','Enter a reason.');
   $('#wd_btn').disabled=true;mst('wd_st','','Submitting…');
-  Api.requestWithdrawal(am,rs,ot, res=>{
+  Api.requestWithdrawal(am,rs,ot,acc, res=>{
     $('#wd_btn').disabled=false;
     if(!res.ok)return mst('wd_st','err',res.error);
     mst('wd_st','ok','Request '+res.requestId+' submitted.');loadMyAccount();setTimeout(()=>cm('m_reqWd'),900);
@@ -99,21 +134,70 @@ function submitRejectWd(){
 
 
 // ── ADMIN: SAVINGS TRANSACTIONS (filterable) ─────────────────────────────────
+let STF_ROWS=[];
 function initSavingsFilter(){
   const cur=$('#stf_mb').value;
   $('#stf_mb').innerHTML='<option value="">All members</option>'+MEMBERS.map(m=>'<option value="'+esc(m.memberNo)+'">'+esc(m.memberNo)+' — '+esc(m.name)+'</option>').join('');
   $('#stf_mb').value=cur;
 }
 function loadSavingsTx(){
-  const f={memberNo:$('#stf_mb').value,type:$('#stf_ty').value,category:$('#stf_cat').value,from:$('#stf_from').value,to:$('#stf_to').value};
+  const f={memberNo:$('#stf_mb').value,type:$('#stf_ty').value,account:$('#stf_acc').value,category:$('#stf_cat').value,from:$('#stf_from').value,to:$('#stf_to').value};
   $('#stf_st').textContent='Loading…';
   Api.getSavingsTransactions(f, res=>{
     if(!res.ok){$('#stf_st').textContent='Error: '+res.error;return;}
-    $('#stf_st').textContent=res.rows.length+' transaction(s), total '+fmt(res.total);
+    STF_ROWS=res.rows;
+    $('#stf_st').textContent=res.rows.length+' transaction(s), net '+fmt(res.net);
     $('#stfTb').innerHTML=res.rows.length
-      ?res.rows.map(r=>'<tr><td>'+esc(hd(r.date))+'</td><td>'+esc(r.member)+' — '+esc(r.name)+'</td><td>'+esc(r.type)+'</td><td>'+esc(r.category||'-')+'</td><td>'+esc(r.reference)+'</td><td class="r">'+Math.round(r.amount).toLocaleString('en-US')+'</td></tr>').join('')
-      :'<tr class="empty"><td colspan="6">No transactions match these filters.</td></tr>';
+      ?res.rows.map((r,i)=>{
+        const t=r.type.toLowerCase();
+        const adj=r.reversedBy?'<span class="note">Reversed by '+esc(r.reversedBy)+'</span>'
+          :(t==='deposit'||t==='withdrawal')?'<button class="btn sm" onclick="openAdjTx('+i+')">Adjust</button>':'';
+        return '<tr><td>'+esc(hd(r.date))+'</td><td>'+esc(r.member)+' — '+esc(r.name)+'</td><td>'+esc(r.type)+(r.reverses?'<div class="note">of '+esc(r.reverses)+'</div>':'')+'</td><td>'+esc(r.account)+'</td><td>'+esc(r.category||'-')+'</td><td>'+esc(r.reference)+(r.notes?'<div class="note">'+esc(r.notes)+'</div>':'')+'</td>'+signedCell(r.sign,r.amount)+'<td>'+adj+'</td></tr>';
+      }).join('')
+      :'<tr class="empty"><td colspan="8">No transactions match these filters.</td></tr>';
   }, e=>{$('#stf_st').textContent='Error: '+e.message;});
 }
-function clearSavingsFilter(){['stf_mb','stf_ty','stf_cat','stf_from','stf_to'].forEach(id=>$('#'+id).value='');loadSavingsTx();}
+function clearSavingsFilter(){['stf_mb','stf_ty','stf_acc','stf_cat','stf_from','stf_to'].forEach(id=>$('#'+id).value='');loadSavingsTx();}
+
+// ── ADMIN: CORRECT / REVERSE A TRANSACTION ───────────────────────────────────
+function openAdjTx(i){
+  const r=STF_ROWS[i]; if(!r)return;
+  ADJ_TX=r;
+  const isDep=r.type.toLowerCase()==='deposit';
+  $('#aj_info').textContent=r.type+' '+r.reference+' — '+r.member+' '+r.name+', '+fmt(r.amount)+' ('+r.account+(r.category?', '+r.category:'')+'), '+hd(r.date);
+  $('#aj_mode').value=isDep?'correct':'reverse';
+  $('#aj_mode').querySelector('option[value="correct"]').disabled=!isDep;
+  $('#aj_am').value=r.amount;$('#aj_dt').value=r.date;$('#aj_acc').value=r.account;fillCatOpts('aj',r.category);
+  $('#aj_sr').value=r.surchargeReason||'';
+  $('#aj_rs').value='';mst('aj_st','','');toggleAdjMode();om('m_adjTx');
+}
+function toggleAdjMode(){
+  const c=$('#aj_mode').value==='correct';
+  document.querySelectorAll('#m_adjTx .aj-c').forEach(el=>el.classList.toggle('hidden',!c));
+  if(c)toggleSurchargeReason('aj');else $('#aj_srwrap').classList.add('hidden');
+  $('#aj_btn').textContent=c?'Save correction':'Reverse transaction';
+}
+function submitAdjTx(){
+  const r=ADJ_TX, rs=$('#aj_rs').value.trim();
+  if(!rs)return mst('aj_st','err','Enter the reason for the change.');
+  const done=res=>{
+    $('#aj_btn').disabled=false;
+    if(!res.ok)return mst('aj_st','err',res.error);
+    mst('aj_st','ok','Saved ('+(res.reversalRef?res.reversalRef+' + '+res.reference:res.reference)+').');
+    loadSavingsTx();loadAdmin();if(r.member===ME.memberNo)loadMyAccount();
+    setTimeout(()=>cm('m_adjTx'),900);
+  };
+  const fail=e=>{$('#aj_btn').disabled=false;mst('aj_st','err','Error: '+e.message);};
+  if($('#aj_mode').value==='reverse'){
+    if(!confirm('Reverse '+r.reference+'? This adds a reversal entry; the original stays in the ledger.'))return;
+    $('#aj_btn').disabled=true;mst('aj_st','','Saving…');
+    return Api.reverseSavingsTransaction(r.reference,rs,done,fail);
+  }
+  const am=$('#aj_am').value,acc=$('#aj_acc').value,cat=$('#aj_cat').value,sr=$('#aj_sr').value;
+  if(!am||n(am)<=0)return mst('aj_st','err','Enter a valid amount.');
+  if(!cat)return mst('aj_st','err','Select the payment category.');
+  if(cat==='Surcharge'&&!sr)return mst('aj_st','err','Select the surcharge reason.');
+  $('#aj_btn').disabled=true;mst('aj_st','','Saving…');
+  Api.correctContribution(r.reference,am,acc,cat,sr,$('#aj_dt').value,rs,done,fail);
+}
 </script>

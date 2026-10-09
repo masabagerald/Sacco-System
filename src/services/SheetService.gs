@@ -64,3 +64,10 @@ function nextId(sheetName, headerHint, prefix) {
   }
   return prefix + String(max + 1).padStart(3, '0');
 }
+
+// Runs fn while holding the script lock (one writer at a time across all users).
+function _withScriptLock(fn) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try { return fn(); } finally { lock.releaseLock(); }
+}

@@ -11,7 +11,8 @@ function getAdminDashboard() {
   const { rows: savRows }  = readSheet(SH_SAVINGS,'memberno');
   const month = fmt_date(new Date()).slice(0,7);  // yyyy-MM
   const active = members.filter(m=>String(m['MemberNo']||'').trim()!=='');
-  const totalSavings = active.reduce((s,m)=>s+_savingsBalance(m['MemberNo']),0);
+  const totalSavings = active.reduce((s,m)=>s+_accountBalancesFromRows(savRows,m['MemberNo']).total,0);
+  const nameOf = {}; active.forEach(m => { nameOf[String(m['MemberNo']).trim()] = m['Full Name'] || ''; });
   const computedLoans = loans.filter(l=>String(l['LoanID']||'').trim()!=='').map(l=>_computeLoan(l,reps));
   const activeLoans = computedLoans.filter(l=>l.status==='Active');
   const totalOutstanding = activeLoans.reduce((s,l)=>s+l.outstandingBalance,0);
@@ -19,20 +20,22 @@ function getAdminDashboard() {
   const unpaidFines = fines.filter(f=>String(f['FineID']||'').trim()!==''&&String(f['Status']||'').toLowerCase()==='unpaid').reduce((s,f)=>s+num(f['Amount (UGX)']),0);
   const pendingLoanReqs = loanReqs.filter(r=>String(r['RequestID']||'').trim()!==''&&String(r['Status']||'').trim()==='Pending').length;
   const pendingWdReqs   = wdReqs.filter(r=>String(r['RequestID']||'').trim()!==''&&String(r['Status']||'').trim()==='Pending').length;
-  // Savings this month, by type and by payment category
+  // Savings this month, by type and by payment category (reversals posted this month net off)
   let deposits = 0, withdrawals = 0;
   const byCategory = {};
   PAYMENT_CATEGORIES.forEach(c => { byCategory[c] = 0; });
   byCategory['Uncategorised'] = 0;
   savRows.filter(r => String(r['Date']||'').indexOf(month) === 0).forEach(r => {
     const amt = num(r['Amount (UGX)']);
-    const t = String(_pick(r,['Deposit Type','Type'])).trim().toLowerCase();
-    if (t === 'deposit') {
-      deposits += amt;
+    const t = _txType(r).toLowerCase();
+    if (t === 'deposit' || t === 'deposit reversal') {
+      const signed = t === 'deposit' ? amt : -amt;
+      deposits += signed;
       const cat = String(r['Payment Category']||'').trim();
       const key = PAYMENT_CATEGORIES.indexOf(cat) > -1 ? cat : 'Uncategorised';
-      byCategory[key] += amt;
+      byCategory[key] += signed;
     } else if (t === 'withdrawal') withdrawals += amt;
+    else if (t === 'withdrawal reversal') withdrawals -= amt;
   });
   const repaid = reps.filter(r => String(r['Date']||'').indexOf(month) === 0)
     .reduce((s,r) => s + num(_pick(r,['Amount (UGX)','Total Amount Paid'])), 0);
@@ -45,6 +48,7 @@ function getAdminDashboard() {
     loansIssuedAmountThisMonth: r2(issuedThisMonth.reduce((s,l) => s + num(l['Principal (UGX)']), 0)),
     overdueCount: overdueLoans.length, overdueAmount: r2(overdueAmount), unpaidSurchargeCount: unpaidFineCount,
     categoryTotals: Object.keys(byCategory).map(k => ({ category: k, amount: r2(byCategory[k]) })),
+    depositAccounts: _depositAccountSummary(savRows, nameOf, month),
     totalLoansOutstanding:r2(totalOutstanding), activeLoanCount:activeLoans.length,
     unpaidFinesTotal:r2(unpaidFines), pendingLoanRequests:pendingLoanReqs, pendingWithdrawalRequests:pendingWdReqs,
     overdueLoans:overdueLoans.map(l=>({loanId:l.loanId,memberNo:l.memberNo,

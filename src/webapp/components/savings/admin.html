@@ -1,19 +1,20 @@
 <div class="panel">
-  <h2>Withdrawal Requests</h2><p class="sub">Approve releases funds from savings. Reject requires a reason.</p>
-  <table><thead><tr><th>ID</th><th>Member</th><th class="r">Amount</th><th class="r">Balance</th><th>Reason</th><th>Status</th><th></th></tr></thead>
-  <tbody id="wdReqAdminTb"><tr class="empty"><td colspan="7">Loading&hellip;</td></tr></tbody></table>
+  <h2>Withdrawal Requests</h2><p class="sub">The second approval releases funds from the requested account. Reject requires a reason.</p>
+  <table><thead><tr><th>ID</th><th>Member</th><th>Account</th><th class="r">Amount</th><th class="r">Account balance</th><th>Reason</th><th>Status</th><th></th></tr></thead>
+  <tbody id="wdReqAdminTb"><tr class="empty"><td colspan="8">Loading&hellip;</td></tr></tbody></table>
 </div>
 
 <div class="panel">
-  <h2>Savings Transactions</h2><p class="sub">Filter deposits and withdrawals by member, type, payment category and date.</p>
+  <h2>Savings Transactions</h2><p class="sub">Filter by member, type, account, payment category and date. Use Adjust to correct or reverse an entry; the original is always kept.</p>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px;">
     <div class="field"><label>Member</label><select id="stf_mb"><option value="">All members</option></select></div>
-    <div class="field"><label>Type</label><select id="stf_ty"><option value="">All types</option><option>Deposit</option><option>Withdrawal</option></select></div>
-    <div class="field"><label>Payment category</label><select id="stf_cat"><option value="">All categories</option><option>Membership Fee</option><option>Monthly Premium Fee</option><option>Operations Fee</option><option>Welfare Fee</option><option>Surcharge Fee</option></select></div>
+    <div class="field"><label>Type</label><select id="stf_ty"><option value="">All types</option><option>Deposit</option><option>Withdrawal</option><option>Deposit Reversal</option><option>Withdrawal Reversal</option></select></div>
+    <div class="field"><label>Account</label><select id="stf_acc"><option value="">All accounts</option><option>Principal</option><option>Operations</option><option>Welfare</option></select></div>
+    <div class="field"><label>Payment category</label><select id="stf_cat"><option value="">All categories</option><option>Membership Fee</option><option>Annual Subscription Fee</option><option>Monthly Premium</option><option>Operations Fee</option><option>Welfare Fee</option><option>Surcharge</option></select></div>
     <div class="field"><label>From</label><input id="stf_from" type="date"></div>
     <div class="field"><label>To</label><input id="stf_to" type="date"></div>
   </div>
   <div class="btn-row"><button class="btn sm solid" onclick="loadSavingsTx()">Apply filters</button><button class="btn sm" onclick="clearSavingsFilter()">Clear</button><span class="note" id="stf_st"></span></div>
-  <table><thead><tr><th>Date</th><th>Member</th><th>Type</th><th>Category</th><th>Reference</th><th class="r">Amount (UGX)</th></tr></thead>
-  <tbody id="stfTb"><tr class="empty"><td colspan="6">Apply filters to load transactions.</td></tr></tbody></table>
+  <table><thead><tr><th>Date</th><th>Member</th><th>Type</th><th>Account</th><th>Category</th><th>Reference</th><th class="r">Amount (UGX)</th><th></th></tr></thead>
+  <tbody id="stfTb"><tr class="empty"><td colspan="8">Apply filters to load transactions.</td></tr></tbody></table>
 </div>

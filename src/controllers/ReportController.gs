@@ -8,7 +8,7 @@ function getMemberStatementData() {
   const loanReqs = getMyLoanRequests();
   const wdReqs   = getMyWithdrawalRequests();
   return { ok:true, generatedOn:today(), member:auth.member,
-    savingsBalance:savings.ok?savings.balance:0, savingsHistory:savings.ok?savings.history:[],
+    savingsBalance:savings.ok?savings.balance:0, savingsAccounts:savings.ok?savings.accounts:null, savingsHistory:savings.ok?savings.history:[],
     loans:loans.ok?loans.loans:[], fines:fines.ok?fines.fines:[], unpaidFinesTotal:fines.ok?fines.unpaidTotal:0,
     loanRequests:loanReqs.ok?loanReqs.requests:[], withdrawalRequests:wdReqs.ok?wdReqs.requests:[] };
 }
@@ -26,9 +26,14 @@ function _statementBody(body, data) {
   _section(body, 'Member details');
   _kv(body, [['Name', m.name], ['Member no.', m.memberNo], ['Email', m.email], ['Generated on', human_date(data.generatedOn)]]);
 
+  if (data.savingsAccounts) {
+    _section(body, 'Deposit accounts');
+    _kv(body, DEPOSIT_ACCOUNTS.map(a => [a, fmtUGX(data.savingsAccounts[a])]));
+  }
+
   _section(body, 'Savings transactions');
-  _table(body, ['Date','Type','Category','Reference','Amount (UGX)'],
-    data.savingsHistory.map(r => [human_date(r.date), String(r.type), r.category || '-', r.reference || '', fmtUGX(r.amount)]), [4]);
+  _table(body, ['Date','Type','Account','Category','Reference','Amount (UGX)'],
+    data.savingsHistory.map(r => [human_date(r.date), String(r.type), r.account || '-', r.category || '-', r.reference || '', fmtUGX(r.amount)]), [5]);
 
   if (data.loans.length) {
     _section(body, 'Loans');
@@ -130,9 +135,9 @@ function generateAdminReportPdf() {
       [3,4,5,7]);
 
     _section(body, 'Savings transactions');
-    _table(body, ['Date','Member no.','Type','Category','Amount (UGX)','Reference'],
-      savingRows.map(r => [human_date(r['Date']||''), String(r['MemberNo']||''), String(_pick(r,['Deposit Type','Type'])), String(r['Payment Category']||'-'), fmtUGX(num(r['Amount (UGX)'])), String(r['Reference']||'')]),
-      [4]);
+    _table(body, ['Date','Member no.','Type','Account','Category','Amount (UGX)','Reference'],
+      savingRows.map(r => [human_date(r['Date']||''), String(r['MemberNo']||''), _txType(r), _accountOf(r), String(r['Payment Category']||'-'), fmtUGX(num(r['Amount (UGX)'])), String(r['Reference']||'')]),
+      [5]);
 
     _section(body, 'Surcharges');
     _table(body, ['Surcharge ID','Member no.','Date','Amount (UGX)','Status'],
@@ -164,8 +169,8 @@ function exportAdminCSV() {
     lines.push([csvQ(m['MemberNo']),csvQ(m['Full Name']),csvQ(m['Email']),csvQ(m['Role']),csvQ(m['Status']),Math.round(bal),myLoans.length,Math.round(out),Math.round(unpaid)].join(','));
   });
   lines.push(''); lines.push('SAVINGS TRANSACTIONS');
-  lines.push(['Date','MemberNo','Type','Category','Amount (UGX)','Reference','Recorded By'].join(','));
-  savings.forEach(r=>lines.push([csvQ(r['Date']),csvQ(r['MemberNo']),csvQ(_pick(r,['Deposit Type','Type'])),csvQ(r['Payment Category']||''),Math.round(num(r['Amount (UGX)'])),csvQ(r['Reference']||''),csvQ(r['Recorded By']||'')].join(',')));
+  lines.push(['Date','MemberNo','Type','Account','Category','Amount (UGX)','Reference','Reverses','Recorded By'].join(','));
+  savings.filter(r=>String(r['MemberNo']||'').trim()!=='').forEach(r=>lines.push([csvQ(r['Date']),csvQ(r['MemberNo']),csvQ(_txType(r)),csvQ(_accountOf(r)),csvQ(r['Payment Category']||''),Math.round(num(r['Amount (UGX)'])),csvQ(r['Reference']||''),csvQ(r['Reverses']||''),csvQ(r['Recorded By']||'')].join(',')));
   lines.push(''); lines.push('LOANS');
   lines.push(['LoanID','MemberNo','Date Issued','Principal','Rate %','Term','Outstanding (UGX)','Status'].join(','));
   loans.filter(l=>String(l['LoanID']||'').trim()!=='').forEach(l=>{
@@ -212,7 +217,7 @@ function sendMonthlyAuditReport() {
   });
 
   const wdRows = wdReqs.filter(r => String(r["RequestID"]||"").trim() !== "" && inMonth(r)).map(r => [
-    String(r["RequestID"]), name(r["MemberNo"]), name(r["Initiated By"]||r["MemberNo"]), String(r["Timestamp"]||""),
+    String(r["RequestID"]), name(r["MemberNo"]), _requestAccount(r), fmtUGX(num(r["Amount (UGX)"])), name(r["Initiated By"]||r["MemberNo"]), String(r["Timestamp"]||""),
     r["Approver 1"] ? name(r["Approver 1"]) + " @ " + (r["Approver 1 At"]||"") : "-",
     r["Approver 2"] ? name(r["Approver 2"]) + " @ " + (r["Approver 2 At"]||"") : "-",
     r["Status"]||"", r["Decision Notes"]||""]);
@@ -226,7 +231,7 @@ function sendMonthlyAuditReport() {
     _section(body, "Loan Requests");
     _table(body, ["Request","Member","Initiated by","Created","Guarantor 1","Guarantor 2","Approver 1","Approver 2","Status","Notes"], loanRows, []);
     _section(body, "Withdrawal Requests");
-    _table(body, ["Request","Member","Initiated by","Created","Approver 1","Approver 2","Status","Notes"], wdRows, []);
+    _table(body, ["Request","Member","Account","Amount","Initiated by","Created","Approver 1","Approver 2","Status","Notes"], wdRows, []);
     _section(body, "Full Audit Log");
     _table(body, ["Timestamp","Action","Member","Performed by","Details","Reference"], auditRows, []);
   });
