@@ -90,12 +90,22 @@ function test_validateContribution() {
   assertTrue_(wd.ok && wd.tx.category === '', 'withdrawal needs an account but no category');
 }
 
-function test_ledgerRules_blockOverdraftPerAccount() {
+function test_ledgerRules_principalIsIndividual() {
   const rows = ledger_();
-  const wd = (account, amount) => [{ memberNo: 'M001', type: 'Withdrawal', amount, account }];
-  assertTrue_(_checkSavingsTxs(rows, wd('Welfare', 10000)) === '', 'withdrawing the whole Welfare balance is allowed');
-  assertTrue_(_checkSavingsTxs(rows, wd('Welfare', 10001)) !== '', 'Welfare withdrawal above the Welfare balance is blocked even though the total is enough');
-  assertTrue_(_checkSavingsTxs(rows, wd('Operations', 20000)) === '', 'Operations withdrawal within its own balance is allowed');
+  const wd = (memberNo, amount) => [{ memberNo, type: 'Withdrawal', amount, account: 'Principal' }];
+  assertTrue_(_checkSavingsTxs(rows, wd('M002', 50000)) === '', 'a member can withdraw their whole Principal balance');
+  assertTrue_(_checkSavingsTxs(rows, wd('M002', 50001)) !== '', 'Principal withdrawal above the member\'s own balance is blocked, though M001 has more');
+}
+
+function test_ledgerRules_poolsIgnoreIndividualContributions() {
+  // Club pools: Operations = 20,000 (all from M001); Welfare = 15,000 + 8,000 - 5,000 - 8,000 = 10,000
+  const rows = ledger_();
+  assertEqual_(_poolBalanceFromRows(rows, 'Operations'), 20000, 'club Operations balance');
+  assertEqual_(_poolBalanceFromRows(rows, 'Welfare'), 10000, 'club Welfare balance');
+  const wd = (memberNo, account, amount) => [{ memberNo, type: 'Withdrawal', amount, account }];
+  assertTrue_(_checkSavingsTxs(rows, wd('M002', 'Operations', 20000)) === '', 'M002 paid nothing into Operations but may withdraw from the pool');
+  assertTrue_(_checkSavingsTxs(rows, wd('M002', 'Welfare', 10000)) === '', 'M002 (net zero Welfare) may withdraw the whole Welfare pool');
+  assertTrue_(_checkSavingsTxs(rows, wd('M002', 'Welfare', 10001)) !== '', 'a pooled withdrawal cannot exceed the club balance');
 }
 
 function test_ledgerRules_reversals() {
@@ -120,33 +130,58 @@ function test_nextSavingsRef() {
 }
 
 function test_withdrawalEligibilityAndAvailability() {
-  assertTrue_(_canWithdraw('Founder Member'), 'Founder Members may request withdrawals');
+  assertTrue_(_canWithdraw('Founder Member') && _canWithdraw('Delegate Member'), 'Founder and Delegate Members may request withdrawals');
   assertTrue_(!_canWithdraw('Non-Member') && !_canWithdraw(''), 'Non-Members and unset types may not');
-  assertTrue_(_canWithdraw('Delegate Member') === (WITHDRAWAL_MEMBERSHIP_TYPES.indexOf('Delegate Member') > -1), 'Delegate eligibility follows WITHDRAWAL_MEMBERSHIP_TYPES');
-  const bal = { Principal: 100000, Operations: 20000, Welfare: 10000 };
+  const rows = ledger_(); // Principal: M001 100,000, M002 50,000. Pools: Operations 20,000, Welfare 10,000
   const reqs = [
     { MemberNo: 'M001', 'Deposit Account': 'Welfare', 'Amount (UGX)': 4000, Status: 'Pending' },
-    { MemberNo: 'M001', 'Deposit Account': 'Welfare', 'Amount (UGX)': 1000, Status: 'Partially Approved' },
+    { MemberNo: 'M002', 'Deposit Account': 'Welfare', 'Amount (UGX)': 1000, Status: 'Partially Approved' },
     { MemberNo: 'M001', 'Deposit Account': 'Welfare', 'Amount (UGX)': 9000, Status: 'Rejected' },
-    { MemberNo: 'M002', 'Deposit Account': 'Welfare', 'Amount (UGX)': 9000, Status: 'Pending' },
-    { MemberNo: 'M001', 'Amount (UGX)': 30000, Status: 'Pending' }
+    { MemberNo: 'M001', 'Amount (UGX)': 30000, Status: 'Pending' },
+    { MemberNo: 'M002', 'Deposit Account': 'Principal', 'Amount (UGX)': 5000, Status: 'Pending' }
   ];
-  assertEqual_(_withdrawalAvailable(bal, reqs, 'M001', 'Welfare'), 5000, 'open requests on the same account are set aside');
-  assertEqual_(_withdrawalAvailable(bal, reqs, 'M001', 'Operations'), 20000, 'requests on other accounts do not reduce Operations');
-  assertEqual_(_withdrawalAvailable(bal, reqs, 'M001', 'Principal'), 70000, 'requests made before accounts existed draw on Principal');
+  assertEqual_(_withdrawalAvailable(rows, reqs, 'M002', 'Welfare'), 5000, 'pool: club balance less every member\'s open requests on it');
+  assertEqual_(_withdrawalAvailable(rows, reqs, 'M001', 'Welfare'), 5000, 'pool: the same figure for every member');
+  assertEqual_(_withdrawalAvailable(rows, reqs, 'M002', 'Operations'), 20000, 'pool: a member with no Operations contributions still sees the club balance');
+  assertEqual_(_withdrawalAvailable(rows, reqs, 'M001', 'Principal'), 70000, 'Principal: own balance less own open requests (pre-account requests draw on Principal)');
+  assertEqual_(_withdrawalAvailable(rows, reqs, 'M002', 'Principal'), 45000, 'Principal: other members\' requests do not count');
 }
 
-function test_withdrawalApprovalRestrictions() {
+function test_contributionsFromRows() {
+  const c = _contributionsFromRows(ledger_(), 'M002');
+  assertEqual_(c.Principal, 50000, 'Principal contributions');
+  assertEqual_(c.Welfare, 0, 'a reversed contribution is netted out');
+  const c1 = _contributionsFromRows(ledger_(), 'M001');
+  assertEqual_(c1.Welfare, 15000, 'withdrawals do not reduce contributions');
+}
+
+function test_loanSpecs() {
+  const soft = _loanSpecFor('Non-Member', '2w');
+  assertTrue_(soft.ok && soft.spec.guarantorsRequired === true, 'Non-Member Soft Loans need guarantors');
+  assertTrue_(soft.spec.savingsLimit === false, 'Soft Loans have no savings cap (Non-Members have no savings)');
+  assertEqual_(soft.spec.rate, 0.10, '2-week Soft Loan rate is 10%');
+  assertEqual_(soft.spec.fee, 10000, 'Soft Loan processing fee is UGX 10,000');
+  assertEqual_(_loanSpecFor('Non-Member', '1w').spec.rate, 0.05, '1-week Soft Loan rate is 5%');
+  assertEqual_(_loanSpecFor('Non-Member', '3w').spec.rate, 0.15, '3-week Soft Loan rate is 15%');
+  assertEqual_(_loanSpecFor('Non-Member', '1m').spec.rate, 0.15, '4-week (1 month) Soft Loan rate is 15%');
+  const member = _loanSpecFor('Delegate Member', 3);
+  assertTrue_(member.ok && member.spec.guarantorsRequired && member.spec.savingsLimit, 'Delegate member loans keep guarantors and the savings cap');
+  assertTrue_(!_loanSpecFor('Non-Member', '').ok, 'a Soft Loan needs a valid term');
+}
+
+// Shared by loan and withdrawal approvals
+function test_approvalRestrictions() {
   const req = { MemberNo: 'M001', 'Initiated By': 'M001', Status: 'Pending', 'Approver 1': '' };
-  assertTrue_(_withdrawalApprovalError(req, 'M001') !== '', 'the initiator cannot approve their own request');
-  assertTrue_(_withdrawalApprovalError(req, 'M002') === '', 'a different admin can give the first approval');
+  assertTrue_(_approvalDutyError(req, 'M001') !== '', 'the initiator cannot approve their own request');
+  assertTrue_(_approvalDutyError(req, 'M002') === '', 'a different admin can give the first approval');
   const onBehalf = { MemberNo: 'M005', 'Initiated By': 'M003', Status: 'Pending' };
-  assertTrue_(_withdrawalApprovalError(onBehalf, 'M003') !== '', 'whoever initiated it cannot approve, even for another member');
-  assertTrue_(_withdrawalApprovalError(onBehalf, 'M005') !== '', 'the account holder cannot approve a withdrawal from their own account');
+  assertTrue_(_approvalDutyError(onBehalf, 'M003') !== '', 'whoever initiated it cannot approve, even for another member');
+  assertTrue_(_approvalDutyError(onBehalf, 'M005') !== '', 'the applicant / account holder cannot approve their own request');
   const partial = { MemberNo: 'M001', 'Initiated By': 'M001', Status: 'Partially Approved', 'Approver 1': 'M002' };
-  assertTrue_(_withdrawalApprovalError(partial, 'M002') !== '', 'the first approver cannot also give the second approval');
-  assertTrue_(_withdrawalApprovalError(partial, 'M003') === '', 'a second, different admin can give the final approval');
-  assertTrue_(_withdrawalApprovalError({ MemberNo: 'M001', Status: 'Approved' }, 'M003') !== '', 'a decided request cannot be approved again');
+  assertTrue_(_approvalDutyError(partial, 'M002') !== '', 'the first approver cannot also give the second approval');
+  assertTrue_(_approvalDutyError(partial, 'M003') === '', 'a second, different admin can give the final approval');
+  assertTrue_(_approvalDutyError({ MemberNo: 'M001', Status: 'Approved' }, 'M003') !== '', 'a decided request cannot be approved again');
+  assertTrue_(_approvalDutyError({ MemberNo: 'M001', Status: 'Rejected' }, 'M003') !== '', 'a rejected request cannot proceed');
 }
 
 function runDepositAccountTests() {
@@ -155,10 +190,13 @@ function runDepositAccountTests() {
   test_balances_legacyTotalUnchanged();
   test_dashboardTotals_matchLedger();
   test_validateContribution();
-  test_ledgerRules_blockOverdraftPerAccount();
+  test_ledgerRules_principalIsIndividual();
+  test_ledgerRules_poolsIgnoreIndividualContributions();
   test_ledgerRules_reversals();
   test_nextSavingsRef();
   test_withdrawalEligibilityAndAvailability();
-  test_withdrawalApprovalRestrictions();
+  test_contributionsFromRows();
+  test_loanSpecs();
+  test_approvalRestrictions();
   Logger.log('All DepositAccount tests passed.');
 }

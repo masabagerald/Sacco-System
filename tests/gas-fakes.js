@@ -1,5 +1,6 @@
 // Minimal in-memory stand-ins for the Apps Script services the server code uses.
 // Only the calls the code actually makes are implemented.
+const crypto = require('crypto');
 
 class FakeRange {
   constructor(sheet, row, col, numRows, numCols) { Object.assign(this, { sheet, row, col, numRows, numCols }); }
@@ -67,7 +68,9 @@ function createGasFakes() {
 
   const globals = {
     SpreadsheetApp: { getActiveSpreadsheet: () => spreadsheet },
-    Utilities: { formatDate },
+    Utilities: { formatDate, getUuid: () => crypto.randomUUID() },
+    ScriptApp: { getService: () => ({ getUrl: () => 'https://script.example/exec' }) },
+    HtmlService: { createHtmlOutput: html => ({ html, setTitle() { return this; }, addMetaTag() { return this; }, getContent() { return html; } }) },
     Session: { getActiveUser: () => ({ getEmail: () => currentUser }), getScriptTimeZone: () => 'Africa/Nairobi' },
     LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
     PropertiesService: {
@@ -83,6 +86,7 @@ function createGasFakes() {
     // Replace the email helpers so tests can see who was notified without building HTML.
     install(g) {
       g._sendEmail = (to, subject) => emails.push({ to, subject });
+      g._sendHtmlEmail = (to, subject, html) => emails.push({ to, subject, html });
       g._notifyAdmins = subject => emails.push({ to: 'admins', subject });
     },
     addSheet(name, rows) { sheets[name] = new FakeSheet(name, rows); return sheets[name]; },

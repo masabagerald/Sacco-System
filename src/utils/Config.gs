@@ -67,9 +67,12 @@ const ACCOUNT_CATEGORIES = {
   Operations: ['Operations Fee'],
   Welfare:    ['Welfare Fee']
 };
-// Membership types that may request a withdrawal from their deposit accounts.
-// Add 'Delegate Member' here if the committee extends the privilege to Delegates.
-const WITHDRAWAL_MEMBERSHIP_TYPES = ['Founder Member'];
+// Membership types that may request a withdrawal (from any of the three accounts).
+const WITHDRAWAL_MEMBERSHIP_TYPES = ['Founder Member', 'Delegate Member'];
+// Club pools: withdrawals from these are limited by the club-wide balance of the account
+// (all contributions less all withdrawals), not by what the member personally paid in.
+// Principal is individual savings: a member can withdraw only their own Principal balance.
+const POOLED_ACCOUNTS = ['Operations', 'Welfare'];
 
 // Savings ledger transaction types. Corrections never edit a row: they add a reversal row
 // (linked by the Reverses column) and, for a correction, a replacement row.

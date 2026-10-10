@@ -38,7 +38,8 @@ function _setGuaranteeCell(sh, headers, rowNum, name, value) {
 }
 
 // Handles a guarantor's link. Shows a confirmation page, then records the decision on confirm.
-function _guarantorHandle(token, decide, confirm) {
+// Declining needs a reason, which is stored with the response and in the audit log.
+function _guarantorHandle(token, decide, confirm, reason) {
   const found = _findGuaranteeByToken(token);
   if (!found) return _guarantorPage('Link not valid', 'This link is not valid. Please use the most recent email you received.');
   const { sh, headers, row } = found;
@@ -62,17 +63,28 @@ function _guarantorHandle(token, decide, confirm) {
   const amount = fmtUGX(num(req['Amount (UGX)']));
   const purpose = String(req['Purpose']||'').trim();
 
-  if (confirm !== '1') {
-    const yes = _webAppUrl() + '?g=' + token + '&decide=' + decide + '&confirm=1';
+  reason = String(reason||'').trim().slice(0, 500);
+  const needReason = decide === 'decline' && !reason;
+  if (confirm !== '1' || needReason) {
     const verb = decide === 'approve' ? 'approve' : 'decline';
-    return _guarantorPage('Confirm your response',
+    const color = decide === 'approve' ? '#2e7d4f' : '#b3412e';
+    const details =
       '<p style="margin:0 0 12px;">Hello ' + esc(guarantorName) + ', you are about to <strong>' + verb + '</strong> guarantor request <strong>' + esc(requestId) + '</strong>.</p>' +
       '<table style="width:100%;font-size:14px;margin:0 0 16px;">' +
         '<tr><td style="color:#6b7c75;padding:4px 0;">Member</td><td style="text-align:right;font-weight:700;">' + esc(applicantName) + '</td></tr>' +
         '<tr><td style="color:#6b7c75;padding:4px 0;">Loan</td><td style="text-align:right;font-weight:700;">' + esc(amount) + '</td></tr>' +
         (purpose ? '<tr><td style="color:#6b7c75;padding:4px 0;">Purpose</td><td style="text-align:right;">' + esc(purpose) + '</td></tr>' : '') +
-      '</table>' +
-      '<a href="' + yes + '" style="display:block;text-align:center;background:' + (decide === 'approve' ? '#2e7d4f' : '#b3412e') + ';color:#fff;text-decoration:none;font-weight:700;padding:12px;border-radius:8px;">Yes, ' + verb + '</a>' +
+      '</table>';
+    const action = decide === 'approve'
+      ? '<a href="' + _webAppUrl() + '?g=' + token + '&decide=approve&confirm=1" target="_top" style="display:block;text-align:center;background:' + color + ';color:#fff;text-decoration:none;font-weight:700;padding:12px;border-radius:8px;">Yes, approve</a>'
+      : '<form method="get" action="' + _webAppUrl() + '" target="_top" style="margin:0;">' +
+          '<input type="hidden" name="g" value="' + esc(token) + '"><input type="hidden" name="decide" value="decline"><input type="hidden" name="confirm" value="1">' +
+          '<label style="display:block;font-size:13px;color:#5b6b7d;margin:0 0 6px;">Reason for declining (required)</label>' +
+          (needReason && confirm === '1' ? '<p style="color:#b3412e;font-size:13px;margin:0 0 6px;">Please give a reason.</p>' : '') +
+          '<textarea name="reason" required maxlength="500" rows="3" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #d5e0ec;border-radius:8px;font:inherit;margin:0 0 12px;"></textarea>' +
+          '<button type="submit" style="display:block;width:100%;background:' + color + ';color:#fff;border:0;font-weight:700;padding:12px;border-radius:8px;font-size:14px;cursor:pointer;">Yes, decline</button>' +
+        '</form>';
+    return _guarantorPage('Confirm your response', details + action +
       '<p style="font-size:12px;color:#6b7c75;margin:14px 0 0;">Close this page to cancel. Nothing is recorded until you confirm.</p>');
   }
 
@@ -80,8 +92,12 @@ function _guarantorHandle(token, decide, confirm) {
   const decision = decide === 'approve' ? 'Accepted' : 'Declined';
   _setGuaranteeCell(sh, headers, row._row, 'response', decision);
   _setGuaranteeCell(sh, headers, row._row, 'responded at', now_ts());
+  if (decision === 'Declined') _setGuaranteeCell(sh, headers, row._row, 'decline reason', reason);
+  auditLog(decision === 'Accepted' ? 'Guarantor Consent Given' : 'Guarantor Declined', String(req['MemberNo']||''), String(row['GuarantorNo']||''),
+    guarantorName + (decision === 'Accepted' ? ' agreed to guarantee ' : ' declined to guarantee ') + applicantName + '\'s loan request of ' + amount
+    + (decision === 'Declined' ? '. Reason: ' + reason : '') + '.', requestId);
   const applicantEmail = (members.find(m => String(m['MemberNo']||'').trim() === String(req['MemberNo']).trim()) || {})['Email'];
-  const rowsOut = [['Request ID', requestId], ['Guarantor', guarantorName], ['Response', decision]];
+  const rowsOut = [['Request ID', requestId], ['Guarantor', guarantorName], ['Response', decision]].concat(decision === 'Declined' ? [['Reason', reason]] : []);
 
   _sendEmail(applicantEmail, 'Guarantor response: ' + requestId, rowsOut,
     decision === 'Accepted' ? guarantorName + ' has approved your guarantee request.' : guarantorName + ' has declined your guarantee request. Please choose another guarantor.');
@@ -121,7 +137,7 @@ function _guarantorEmailHtml(name, requestId, applicant, amount, purpose, termDe
     _emailRows([
       ['Request ID', requestId],
       ['Repayment term', termDef.label + ' at ' + r2(termDef.rate * 100) + '% interest'],
-      ['Processing fee', fmtUGX(PROCESSING_FEE)],
+      ['Processing fee', fmtUGX(termDef.fee)],
       ['Due', 'Full amount on the due date (counted from approval)']
     ]) +
     '<p style="margin:14px 0 16px;color:#5b6b7d;font-size:13px;">Guaranteeing means you agree to support repayment if the member cannot pay.</p>' +

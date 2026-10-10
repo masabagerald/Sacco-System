@@ -4,7 +4,8 @@
 //  - Member (Founder/Delegate loans): 10% interest, minimum 2 months, UGX 5,000 fee. One payment
 //    due at the end of the term, counted in months.
 //  - Term (Non-Member Soft Loans only): interest set by the repayment term (LOAN_TERMS) plus the
-//    UGX 10,000 processing fee. One payment, due on the due date, counted in days.
+//    UGX 10,000 processing fee. One payment, due on the due date, counted in days. Needs Founder
+//    Member guarantors; no savings cap (Non-Members have no savings).
 //  - Flat (Article 4, earlier loans): 10% flat + UGX 5,000 fee, two instalments at weeks 4 and 8.
 //    Still owed at week 8 -> 10% late penalty on the balance.
 //  - Reducing (oldest loans): monthly reducing balance at the rate entered at the time.
@@ -32,14 +33,15 @@ function _loanSpecFor(membershipType, termInput) {
   if (type === 'Non-Member') {
     const def = _termByKey(termInput);
     if (!def) return { ok: false, error: 'Choose a repayment term.' };
-    return { ok: true, spec: { model: TERM_LOAN_MODEL, days: def.days, rate: def.rate, fee: PROCESSING_FEE, label: def.label, guarantorsRequired: false } };
+    return { ok: true, spec: { model: TERM_LOAN_MODEL, days: def.days, rate: def.rate, fee: PROCESSING_FEE, label: def.label,
+      guarantorsRequired: true, savingsLimit: false } };
   }
   if (type === 'Founder Member' || type === 'Delegate Member') {
     const months = Math.round(num(termInput));
     if (!months || months < MEMBER_LOAN_MIN_MONTHS)
       return { ok: false, error: 'Minimum loan term is ' + MEMBER_LOAN_MIN_MONTHS + ' months.' };
     return { ok: true, spec: { model: MEMBER_LOAN_MODEL, months: months, rate: MEMBER_LOAN_RATE, fee: MEMBER_LOAN_FEE,
-      label: months + ' month' + (months > 1 ? 's' : ''), guarantorsRequired: true } };
+      label: months + ' month' + (months > 1 ? 's' : ''), guarantorsRequired: true, savingsLimit: true } };
   }
   return { ok: false, error: 'This member\'s membership type has not been set (Founder Member, Delegate Member or Non-Member). Ask an admin to set it before applying for a loan.' };
 }
@@ -207,8 +209,9 @@ function _schedule(principal, ratePct, termMonths) {
   return { monthlyPayment: payment, schedule: sched };
 }
 
+// Loan cap: LOAN_TO_SAVINGS_LIMIT x the member's Principal (individual savings)
 function _checkLimit(memberNo, principal) {
-  const savings = _savingsBalance(memberNo);
+  const savings = _principalBalance(memberNo);
   const maxLoan = r2(savings * LOAN_TO_SAVINGS_LIMIT);
   return { withinLimit: principal <= maxLoan, savings, maxLoan };
 }
@@ -222,16 +225,21 @@ function _runningLoanOf(memberNo) {
     .map(l => _computeLoan(l, reps)).find(l => l.status === LOAN_STATUS.ACTIVE) || null;
 }
 
-// Member-level eligibility for a new loan. Hard rules, no override.
+// Member-level eligibility for a new loan. Hard rules; the only override is guarantorOverride, an
+// admin's recorded reason for letting a member who is guaranteeing a running loan take one (Sec 8).
 // Non-Members have no savings, so the 12-month savings rule (Founder/Delegate loans only) is skipped for them.
-function _loanEligibility(memberNo, membershipType) {
+function _loanEligibility(memberNo, membershipType, guarantorOverride) {
   const mNo = String(memberNo).trim();
 
   if (String(membershipType||'').trim() !== 'Non-Member') {
-    // Sec 1: must have saved for at least 12 months (counted from first deposit)
+    // Sec 1: must have saved for at least 12 months, counted from the first Principal deposit
+    // that has not been reversed (Operations and Welfare are club pools, not savings)
     const { rows: savRows } = readSheet(SH_SAVINGS, 'memberno');
+    const reversed = {};
+    savRows.forEach(r => { const o = String(r['Reverses']||'').trim(); if (o) reversed[o] = true; });
     const deposits = savRows.filter(r => String(r['MemberNo']||'').trim() === mNo
-      && String(_pick(r,['Deposit Type','Type'])).trim().toLowerCase() === 'deposit' && r['Date']);
+      && _txType(r).toLowerCase() === 'deposit' && _accountOf(r) === 'Principal'
+      && !reversed[String(r['Reference']||'').trim()] && r['Date']);
     if (!deposits.length) return { ok: false, error: 'Member has no savings yet. Loans are only available after saving for a minimum of 12 months.' };
     const first = new Date(Math.min(...deposits.map(r => _ymd(r['Date']).getTime())));
     const eligibleFrom = new Date(first); eligibleFrom.setMonth(eligibleFrom.getMonth() + 12);
@@ -242,8 +250,10 @@ function _loanEligibility(memberNo, membershipType) {
   const running = _runningLoanOf(mNo);
   if (running) return { ok: false, error: 'Member already has a running loan (' + running.loanId + '). A new loan can only be accessed after it is fully cleared. (Art. 4, Sec. 7)' };
 
-  // Sec 8: a member who is guaranteeing another loan cannot access a loan until that one is fully serviced
-  if (_liveGuaranteesOf(mNo, '') > 0) return { ok: false, error: 'Member is currently guaranteeing another loan. A loan can only be accessed once that loan is fully serviced. (Art. 4, Sec. 8)' };
+  // Sec 8: a member who is guaranteeing another loan cannot access a loan until that one is fully
+  // serviced, unless an admin has recorded an override reason
+  if (!String(guarantorOverride||'').trim() && _liveGuaranteesOf(mNo, '') > 0)
+    return { ok: false, guarantorBlock: true, error: 'Member is currently guaranteeing another loan. A loan can only be accessed once that loan is fully serviced, unless an admin proposes it with an override reason. (Art. 4, Sec. 8)' };
 
   return { ok: true };
 }

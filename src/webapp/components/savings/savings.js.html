@@ -13,13 +13,15 @@ function signedCell(sign,amount){return '<td class="r '+(sign>0?'g':'b')+'">'+(s
 const txSign=t=>({'deposit':1,'withdrawal reversal':1,'withdrawal':-1,'deposit reversal':-1})[String(t).toLowerCase()]||0;
 
 // ── MY SAVINGS ────────────────────────────────────────────────────────────────
+const isPooledAcc=a=>!!(MY_SAV&&MY_SAV.pooled.indexOf(a)>-1);
 function renderSavings(res){
   if(!res.ok)return;
   MY_SAV=res;
   SAVINGS_BAL=res.balance;$('#c_savings').textContent=fmt(res.balance);
-  ACCOUNTS.forEach(a=>{$('#c_acc_'+a).textContent=fmt(res.accounts[a]);});
+  // Principal is the member's own balance; Operations and Welfare are club pools, so show what they paid in
+  ACCOUNTS.forEach(a=>{$('#c_acc_'+a).textContent=fmt(isPooledAcc(a)?res.contributions[a]:res.accounts[a]);});
   $('#wdReqBtn').classList.toggle('hidden',!res.canWithdraw);
-  if(!res.canWithdraw)$('#wdReqSub').textContent='Withdrawal requests are open to Founder Members.';
+  if(!res.canWithdraw)$('#wdReqSub').textContent='Withdrawal requests are open to Founder and Delegate Members.';
   const tb=$('#savingsTb');
   if(!res.history.length){tb.innerHTML='<tr class="empty"><td colspan="6">No transactions yet.</td></tr>';return;}
   tb.innerHTML=res.history.slice().reverse().map(r=>
@@ -85,7 +87,7 @@ function loadWdReqAdmin(){
       const approveLbl=r.approver1?'Approve (2nd &amp; final)':'Approve (1st)';
       const acts=canAct?'<button class="btn sm" onclick="approveWd(\''+r.requestId+'\')">'+approveLbl+'</button> <button class="btn sm danger" onclick="openRejectWd(\''+r.requestId+'\')">Reject</button>':(open?'<div class="note">'+why+'</div>':'');
       const approvals='<div class="note">Approvals: '+(r.approver1Name?esc(r.approver1Name):'none yet')+(r.approver2Name?', '+esc(r.approver2Name):'')+' (needs 2)</div>';
-      return '<tr><td>'+esc(r.requestId)+'</td><td>'+esc(r.memberName)+'<div class="note">Initiated by '+esc(r.initiatedByName)+'</div>'+approvals+'</td><td>'+esc(r.account)+'</td><td class="r">'+Math.round(r.amount).toLocaleString('en-US')+'</td><td class="r">'+Math.round(r.currentBalance).toLocaleString('en-US')+'</td><td>'+esc(r.reason)+'</td><td>'+badge(r.status,BMAP)+'</td><td>'+acts+'</td></tr>';
+      return '<tr><td>'+esc(r.requestId)+'</td><td>'+esc(r.memberName)+'<div class="note">Initiated by '+esc(r.initiatedByName)+'</div>'+approvals+'</td><td>'+esc(r.account)+'</td><td class="r">'+Math.round(r.amount).toLocaleString('en-US')+'</td><td class="r">'+Math.round(r.currentBalance).toLocaleString('en-US')+(r.pooled?'<div class="note">club pool</div>':'')+'</td><td>'+esc(r.reason)+'</td><td>'+badge(r.status,BMAP)+'</td><td>'+acts+'</td></tr>';
     }).join('');
   });
 }
@@ -93,16 +95,18 @@ function toggleWdOther(){$('#wd_otwrap').classList.toggle('hidden',$('#wd_rs').v
 function showWdAvail(){
   const a=$('#wd_acc').value;
   if(!MY_SAV){$('#wd_bal').textContent='';return;}
-  $('#wd_bal').textContent=a
-    ?a+' balance: '+fmt(MY_SAV.accounts[a])+(MY_SAV.available[a]<MY_SAV.accounts[a]?' · available after pending requests: '+fmt(MY_SAV.available[a]):'')
-    :'Balances — '+ACCOUNTS.map(x=>x+': '+fmt(MY_SAV.accounts[x])).join(' · ');
+  if(!a){$('#wd_bal').textContent='Principal is limited by your own savings; Operations and Welfare by what the club holds in that account.';return;}
+  const avail=Math.max(0,MY_SAV.available[a]);
+  $('#wd_bal').textContent=isPooledAcc(a)
+    ?'Available in the club '+a+' account: '+fmt(avail)+' (after requests awaiting approval).'
+    :'Your Principal balance: '+fmt(MY_SAV.accounts.Principal)+(avail<MY_SAV.accounts.Principal?' · available after pending requests: '+fmt(avail):'');
 }
 function openReqWd(){$('#wd_acc').value='';showWdAvail();$('#wd_am').value='';$('#wd_rs').value='';$('#wd_ot').value='';toggleWdOther();mst('wd_st','','');om('m_reqWd');}
 function submitReqWd(){
   const acc=$('#wd_acc').value,am=$('#wd_am').value,rs=$('#wd_rs').value.trim(),ot=$('#wd_ot').value.trim();
   if(!acc)return mst('wd_st','err','Choose the account to withdraw from.');
   if(!am||n(am)<=0)return mst('wd_st','err','Enter a valid amount.');
-  if(MY_SAV&&n(am)>MY_SAV.available[acc])return mst('wd_st','err','Amount exceeds the available '+acc+' balance ('+fmt(MY_SAV.available[acc])+').');
+  if(MY_SAV&&n(am)>MY_SAV.available[acc])return mst('wd_st','err','Amount exceeds the available '+(isPooledAcc(acc)?'club ':'')+acc+' balance ('+fmt(Math.max(0,MY_SAV.available[acc]))+').');
   if(!rs)return mst('wd_st','err','Choose a reason.');
   if(rs==='Others'&&!ot)return mst('wd_st','err','Enter a reason.');
   $('#wd_btn').disabled=true;mst('wd_st','','Submitting…');

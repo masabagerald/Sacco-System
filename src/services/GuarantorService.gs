@@ -1,5 +1,5 @@
 // ── GUARANTORS (Article 4, Sections 3, 4, 5, 6 and 8) ─────────────────────────
-const GUARANTOR_HEADERS = ['Timestamp','RequestID','LoanID','ApplicantNo','GuarantorNo','Token','Response','Responded At'];
+const GUARANTOR_HEADERS = ['Timestamp','RequestID','LoanID','ApplicantNo','GuarantorNo','Token','Response','Responded At','Decline Reason'];
 
 // A guarantor row is "live" while the loan it backs is still running. Before the loan exists
 // it backs a pending request. Live guarantors can't guarantee anyone else (Sec 5).
@@ -43,8 +43,8 @@ function _guarantorChecks(applicantNo, amount, guarantorNos, excludeRequestId) {
     const running = _runningLoanOf(g);
     if (running) return { ok: false, error: 'Guarantor ' + g + ' has a running loan (' + running.loanId + ') and cannot guarantee anyone. (Art. 4, Sec. 6)' };
     if (_liveGuaranteesOf(g, excludeRequestId) > 0) return { ok: false, error: 'Guarantor ' + g + ' is already guaranteeing another loan. A member can guarantee only one member at a time. (Art. 4, Sec. 5)' };
-    const sav = _savingsBalance(g);
-    if (sav < needed) return { ok: false, error: 'Guarantor ' + g + ' has savings of ' + fmtUGX(sav) + ' but needs at least ' + fmtUGX(needed) + ' (25% of the loan). (Art. 4, Sec. 3)' };
+    const sav = _principalBalance(g);
+    if (sav < needed) return { ok: false, error: 'Guarantor ' + g + ' has Principal savings of ' + fmtUGX(sav) + ' but needs at least ' + fmtUGX(needed) + ' (25% of the loan). (Art. 4, Sec. 3)' };
   }
   return { ok: true, guarantors: list };
 }
@@ -123,8 +123,8 @@ function setupGuaranteeSchema() {
       if (!hdr.some(h => h.startsWith(name.toLowerCase()))) sh.getRange(hRow + 1, lastCol + 1).setValue(name);
     });
   };
-  addColumns(SH_LOANS, 'loanid', ['Loan Model', 'Processing Fee (UGX)', 'Term (days)', 'Interest Rate (%)', 'Due Date', 'Overdue Surcharge (UGX)']);
-  addColumns(SH_LOAN_REQ, 'requestid', ['Repayment Term', 'Total Due', 'Initiated By', 'Approver 1', 'Approver 1 At', 'Approver 2', 'Approver 2 At']);
+  addColumns(SH_LOANS, 'loanid', ['Loan Model', 'Processing Fee (UGX)', 'Term (days)', 'Interest Rate (%)', 'Due Date', 'Overdue Surcharge (UGX)', 'Last Notice']);
+  addColumns(SH_LOAN_REQ, 'requestid', ['Repayment Term', 'Total Due', 'Initiated By', 'Approver 1', 'Approver 1 At', 'Approver 2', 'Approver 2 At', 'Guarantor Override']);
   addColumns(SH_SAVINGS, 'memberno', ['Payment Category', 'Surcharge Reason', 'Deposit Account', 'Reverses']);
   addColumns(SH_MEMBERS, 'memberno', ['Membership Type']);
   addColumns(SH_WD_REQ, 'requestid', ['Initiated By', 'Approver 1', 'Approver 1 At', 'Approver 2', 'Approver 2 At', 'Deposit Account']);

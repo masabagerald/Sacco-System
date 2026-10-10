@@ -18,9 +18,21 @@ function sendMonthlyStatements() {
   });
 }
 
+// Runs a scheduled job at most once per day, so a retried or doubly-registered trigger does not
+// send the same emails twice. The day is marked done only after the job finishes.
+function _oncePerDay(jobName, fn) {
+  const key = 'lastRun_' + jobName;
+  if (Config.getScriptProp(key) === today()) { Logger.log(jobName + ' already ran today; skipped.'); return; }
+  fn();
+  Config.setScriptProp(key, today());
+}
+
 // Generic monthly/overdue nudge for older loan models (reducing-balance, Article 4 flat) which
 // have no single due date. Member/Soft-Loan due-date logic lives in processLoanDueDates() below.
-function sendRepaymentReminders() {
+// Registered both monthly (25th) and daily, so it is guarded to run once per day.
+function sendRepaymentReminders() { _oncePerDay('sendRepaymentReminders', _sendRepaymentReminders); }
+
+function _sendRepaymentReminders() {
   const { rows: members } = readSheet(SH_MEMBERS,'memberno');
   const { rows: loans }   = readSheet(SH_LOANS,'loanid');
   const { rows: reps }    = readSheet(SH_REPAY,'loanid');
@@ -59,18 +71,25 @@ function sendRepaymentReminders() {
 //  - the day after: apply the one-time 10% overdue surcharge (on principal+interest) and notify
 //  - every day after that, up to 2 weeks: a plain overdue reminder
 // The surcharge is applied at most once per loan -- _computeSingleDue reads it back from the
-// sheet rather than recalculating it, so re-running this job is always safe.
+// sheet rather than recalculating it. Each loan's "Last Notice" cell records the day it was last
+// emailed, so re-running this job on the same day (a retry) sends nothing twice.
 function processLoanDueDates() {
   const { rows: loans } = readSheet(SH_LOANS,'loanid');
   const { rows: reps }  = readSheet(SH_REPAY,'loanid');
-  const { headers } = readSheet(SH_LOANS,'loanid');
+  const { sh: loanSh, headers } = readSheet(SH_LOANS,'loanid');
   if (ci(headers,'overdue surcharge') < 0) { Logger.log('Loans sheet has no "Overdue Surcharge (UGX)" column; run setupGuaranteeSchema().'); return; }
+  const cNotice = ci(headers,'last notice');
+  if (cNotice < 0) Logger.log('Loans sheet has no "Last Notice" column; run setupGuaranteeSchema() so retried runs cannot send duplicate notices.');
+  const todayStr = today();
+  const noticedToday = l => cNotice > -1 && String(l['Last Notice']||'').trim() === todayStr;
+  const markNoticed = l => { if (cNotice > -1) loanSh.getRange(l._row, cNotice + 1).setValue(todayStr); };
   const todayYmd = _ymd(today());
   const dueSoon=[], dueToday=[], surcharged=[], stillOverdue=[];
 
   loans.filter(l => String(l['LoanID']||'').trim()!=='' && (_isMemberLoan(l) || _isTerm(l))).forEach(l => {
     const c = _computeLoan(l, reps);
     if (c.status !== LOAN_STATUS.ACTIVE) return;
+    if (noticedToday(l)) return;
     const m = _memberByNo(c.memberNo);
     if (!m || !m['Email']) return;
     const due = _ymd(c.dueDate);
@@ -79,10 +98,12 @@ function processLoanDueDates() {
     if (daysUntilDue === OVERDUE_REMINDER_DAYS_BEFORE) {
       _sendEmail(m['Email'],'Loan Due Soon: '+c.loanId,[['Loan ID',c.loanId],['Due date',human_date(c.dueDate)],['Outstanding',fmtUGX(c.outstandingBalance)]],
         'Your loan is due in '+OVERDUE_REMINDER_DAYS_BEFORE+' days. Please arrange repayment to avoid the automatic overdue surcharge.');
+      markNoticed(l);
       dueSoon.push(m['Full Name']);
     } else if (daysUntilDue === 0) {
       _sendEmail(m['Email'],'Loan Due Today: '+c.loanId,[['Loan ID',c.loanId],['Outstanding',fmtUGX(c.outstandingBalance)]],
         'Your loan is due today. A 10% surcharge on the loan and interest applies automatically from tomorrow if it remains unpaid.');
+      markNoticed(l);
       dueToday.push(m['Full Name']);
     } else if (daysUntilDue < 0) {
       const daysPastDue = -daysUntilDue;
@@ -99,10 +120,12 @@ function processLoanDueDates() {
           ['Loan ID',c.loanId],['Overdue surcharge (10%)',fmtUGX(surcharge)],
           ['New total outstanding',fmtUGX(r2(c.outstandingBalance + surcharge))]
         ],'Your loan is now overdue. A 10% surcharge on the loan and interest has been applied automatically. Please contact the treasurer to arrange repayment.');
+        markNoticed(l);
         surcharged.push(m['Full Name']);
       } else if (daysPastDue <= OVERDUE_MAX_DAILY_NOTICE_DAYS) {
         _sendEmail(m['Email'],'Overdue Loan Reminder: '+c.loanId,[['Loan ID',c.loanId],['Days overdue',String(daysPastDue)],['Outstanding',fmtUGX(c.outstandingBalance)]],
           'Your loan remains overdue. Please contact the treasurer to arrange repayment.');
+        markNoticed(l);
         stillOverdue.push(m['Full Name']);
       }
       // Beyond OVERDUE_MAX_DAILY_NOTICE_DAYS: no more automatic daily notices (the debt and the

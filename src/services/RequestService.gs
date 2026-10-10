@@ -27,3 +27,22 @@ function _setApprover(sh, headers, hRow, requestId, slot, memberNo) {
     }
   }
 }
+
+function _isOpenRequest(req) {
+  const st = String(req['Status'] || '').trim();
+  return st === 'Pending' || st === 'Partially Approved';
+}
+
+// Segregation of duties for any request needing two admin approvals (loans and withdrawals).
+// An admin may not approve a request they initiated, one for their own account, or give both
+// approvals. Returns an error message, or '' when approverNo may approve.
+function _approvalDutyError(req, approverNo) {
+  if (!_isOpenRequest(req)) return 'Already decided.';
+  const me = String(approverNo || '').trim();
+  const member = String(req['MemberNo'] || '').trim();
+  const initiatedBy = String(req['Initiated By'] || member).trim();
+  if (me === initiatedBy) return 'You initiated this request; a different admin must approve it.';
+  if (me === member) return 'This request is for your own account; a different admin must approve it.';
+  if (me === String(req['Approver 1'] || '').trim()) return 'You already gave the first approval; a different admin must give the second.';
+  return '';
+}

@@ -10,6 +10,7 @@
       <div class="field full"><label>Purpose</label><input id="ln_pu" type="text" placeholder="optional"></div>
       <div class="field full"><div id="ln_q"></div></div>
       <div class="field full hidden" id="ln_gtwrap"><label>Guarantors (at least 2, must be Founder Members)</label><div class="chk-list" id="ln_gt"></div></div>
+      <div class="field full"><label>Guarantor restriction override (optional)</label><input id="ln_ov" type="text" placeholder="Only if the member is guaranteeing a running loan: reason, kept in the audit log"></div>
     </div>
     <div class="lim-warn hidden" id="ln_lim"></div>
     <div class="mact"><button class="btn" onclick="cm('m_loan')">Cancel</button><button class="btn solid" id="ln_btn" onclick="submitLoan()">Propose Loan</button></div>
@@ -35,7 +36,7 @@
 <div class="modal-bg" id="m_reqLoan" onclick="if(event.target===this)cm('m_reqLoan')">
   <div class="modal"><button class="x" onclick="cm('m_reqLoan')">&times;</button>
     <h3>Request a Loan</h3>
-    <p class="sub">Choose the amount and term. The total due is shown before you submit. You need at least two guarantors, each with savings of at least 25% of the loan.</p>
+    <p class="sub">Choose the amount and term. The total due is shown before you submit. You need at least two Founder Member guarantors, each with Principal savings of at least 25% of the loan. Each guarantor must agree by email before the admins can approve.</p>
     <div class="mgrid">
       <div class="field"><label>Amount (UGX)</label><input id="rl_am" type="number" min="0" oninput="updateQuote('rl_am','rl_tmwrap','rl_q')"></div>
       <div class="field"><label>Repayment term</label><div id="rl_tmwrap" onchange="updateQuote('rl_am','rl_tmwrap','rl_q')" oninput="updateQuote('rl_am','rl_tmwrap','rl_q')"><p class="note">Loading&hellip;</p></div></div>

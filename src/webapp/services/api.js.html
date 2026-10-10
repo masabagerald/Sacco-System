@@ -34,8 +34,8 @@ const Api = {
     callServer('reverseSavingsTransaction', [reference, reason], onSuccess, onFailure),
   correctContribution: (reference, amount, account, category, surchargeReason, txDate, reason, onSuccess, onFailure) =>
     callServer('correctContribution', [reference, amount, account, category, surchargeReason, txDate, reason], onSuccess, onFailure),
-  issueLoan: (memberNo, principal, purpose, guarantorNos, termKey, onSuccess, onFailure) =>
-    callServer('issueLoan', [memberNo, principal, purpose, guarantorNos, termKey], onSuccess, onFailure),
+  issueLoan: (memberNo, principal, purpose, guarantorNos, termKey, guarantorOverride, onSuccess, onFailure) =>
+    callServer('issueLoan', [memberNo, principal, purpose, guarantorNos, termKey, guarantorOverride], onSuccess, onFailure),
   getLoanTerms: (forMemberNo, onSuccess, onFailure) => callServer('getLoanTerms', [forMemberNo], onSuccess, onFailure),
   getGuarantorCandidates: (applicantNo, onSuccess, onFailure) =>
     callServer('getGuarantorCandidates', [applicantNo], onSuccess, onFailure),

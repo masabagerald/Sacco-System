@@ -3,7 +3,7 @@
 function doGet(e) {
   const p = (e && e.parameter) || {};
   // Guarantor response link from email (see GuarantorWeb.gs)
-  if (p.g) return _guarantorHandle(p.g, p.decide, p.confirm);
+  if (p.g) return _guarantorHandle(p.g, p.decide, p.confirm, p.reason);
   return HtmlService.createTemplateFromFile('src/webapp/index')
     .evaluate()
     .setTitle(SACCO_NAME)

@@ -1,5 +1,7 @@
 // ── WITHDRAWAL REQUESTS ───────────────────────────────────────────────────────
 // A member requests a withdrawal from one deposit account (Principal, Operations or Welfare).
+// Principal is limited by the member's own Principal balance; Operations and Welfare are club pools,
+// limited by the club-wide balance of the account (see _withdrawalAvailable).
 // Needs two different, non-initiating admins to approve before funds are released (segregation of duties).
 
 function requestWithdrawal(amount, reason, otherText, account) {
@@ -22,10 +24,12 @@ function requestWithdrawal(amount, reason, otherText, account) {
     const { sh, headers, hRow, rows: reqs } = readSheet(SH_WD_REQ,'requestid');
     if (ci(headers,'initiated by') < 0 || ci(headers,'deposit account') < 0)
       throw new Error('Withdrawal Requests sheet is missing the "Initiated By" or "Deposit Account" column. Run setupGuaranteeSchema() once from the script editor.');
-    const bal = _accountBalances(memberNo);
-    const avail = _withdrawalAvailable(bal, reqs, memberNo, account);
-    if (amount > avail) return {ok:false,error:'Amount exceeds the available '+account+' balance ('+fmtUGX(avail)
-      +(avail < bal[account] ? ', after requests still awaiting approval' : '')+').'};
+    const { rows: savRows } = readSheet(SH_SAVINGS,'memberno');
+    const pooled = _isPooled(account);
+    const bal = pooled ? _poolBalanceFromRows(savRows, account) : _accountBalancesFromRows(savRows, memberNo)[account];
+    const avail = _withdrawalAvailable(savRows, reqs, memberNo, account);
+    if (amount > avail) return {ok:false,error:'Amount exceeds the available '+(pooled?'club ':'')+account+' balance ('+fmtUGX(Math.max(avail,0))
+      +(avail < bal ? ', after requests still awaiting approval' : '')+').'};
     const newId=nextId(SH_WD_REQ,'requestid','W');
     const row=emptyRow(sh,hRow,ci(headers,'memberno'));
     const s=(c,v)=>{if(c>-1)sh.getRange(row,c+1).setValue(v);};
@@ -36,7 +40,7 @@ function requestWithdrawal(amount, reason, otherText, account) {
     s(ci(headers,'initiated by'),memberNo);
     _notifyAdmins('Withdrawal Request: '+newId,[
       ['Request ID',newId],['Member',auth.member.name+' ('+memberNo+')'],['Account',account],
-      ['Amount',fmtUGX(amount)],['Reason',reason],[account+' balance',fmtUGX(bal[account])]
+      ['Amount',fmtUGX(amount)],['Reason',reason],[(pooled?'Club ':'')+account+' balance',fmtUGX(bal)]
     ],'A withdrawal request is pending two different admin approvals.');
     auditLog('Withdrawal Request Submitted', memberNo, memberNo,
       'Requested withdrawal of '+fmtUGX(amount)+' from the '+account+' account. Reason: '+reason, newId);
@@ -68,9 +72,11 @@ function getWithdrawalRequests() {
       const initiatedBy = String(r['Initiated By']||r['MemberNo']||'').trim();
       const approver1 = String(r['Approver 1']||'').trim();
       const approver2 = String(r['Approver 2']||'').trim();
-      return {requestId:r['RequestID'],memberNo,memberName:nameOf[memberNo]||memberNo,account,
+      const pooled = _isPooled(account);
+      return {requestId:r['RequestID'],memberNo,memberName:nameOf[memberNo]||memberNo,account,pooled,
         amount:num(r['Amount (UGX)']),reason:r['Reason']||'',status:r['Status']||'',
-        decisionNotes:r['Decision Notes']||'',date:r['Timestamp'],currentBalance:_accountBalancesFromRows(savRows,memberNo)[account],
+        decisionNotes:r['Decision Notes']||'',date:r['Timestamp'],
+        currentBalance: pooled ? _poolBalanceFromRows(savRows,account) : _accountBalancesFromRows(savRows,memberNo)[account],
         initiatedBy, initiatedByName: nameOf[initiatedBy]||initiatedBy,
         approver1, approver1Name: approver1 ? (nameOf[approver1]||approver1) : '',
         approver2, approver2Name: approver2 ? (nameOf[approver2]||approver2) : ''};})
@@ -89,7 +95,7 @@ function _approveWithdrawalLocked(auth, requestId) {
   const { sh, headers, hRow, rows } = readSheet(SH_WD_REQ,'requestid');
   const req=rows.find(r=>String(r['RequestID']||'').trim()===String(requestId).trim());
   if (!req) return {ok:false,error:'Request not found.'};
-  const dutyErr = _withdrawalApprovalError(req, auth.member.memberNo);
+  const dutyErr = _approvalDutyError(req, auth.member.memberNo);
   if (dutyErr) return {ok:false,error:dutyErr};
   const memberNo = String(req['MemberNo']).trim();
   const m=_memberByNo(memberNo);
@@ -98,8 +104,10 @@ function _approveWithdrawalLocked(auth, requestId) {
 
   const account=_requestAccount(req);
   const amount=num(req['Amount (UGX)']);
-  const bal=_accountBalances(memberNo)[account];
-  if (amount>bal) return {ok:false,error:'Insufficient '+account+' balance at time of approval ('+fmtUGX(bal)+').'};
+  const tx = { memberNo, type: TX_WITHDRAWAL, amount, account, date: today(),
+    notes: 'Withdrawal request '+requestId+' approved', recordedBy: auth.member.memberNo };
+  const balErr = _checkSavingsTxs(readSheet(SH_SAVINGS,'memberno').rows, [tx]);
+  if (balErr) return {ok:false,error:balErr+' Checked at the time of approval.'};
 
   const approver1 = String(req['Approver 1']||'').trim();
   if (!approver1) {
@@ -107,12 +115,14 @@ function _approveWithdrawalLocked(auth, requestId) {
     _updateReqStatus(sh, headers, hRow, requestId, 'Partially Approved', 'First approval by '+auth.member.memberNo, auth.member.memberNo);
     _sendEmail(m['Email'],'Withdrawal Request Update: '+requestId,[['Request ID',requestId],['Account',account],['Status','First approval received']],
       'Your withdrawal request has received its first admin approval. A second, different admin must approve before funds are released.');
+    _notifyAdmins('Second approval needed: '+requestId,[['Request ID',requestId],['Member',(m['Full Name']||memberNo)+' ('+memberNo+')'],
+      ['Account',account],['Amount',fmtUGX(amount)],['First approval',auth.member.name+' ('+auth.member.memberNo+')']],
+      'This withdrawal has its first approval. A different admin, who did not initiate it, must give the final approval.');
     auditLog('Withdrawal First Approval', memberNo, auth.member.memberNo, 'First of two required approvals ('+fmtUGX(amount)+' from '+account+').', requestId);
     return { ok: true, stage: 'first', message: 'First approval recorded. A second, different admin must approve to release funds.' };
   }
 
-  const res=_appendSavingsTxsLocked([{ memberNo, type: TX_WITHDRAWAL, amount, account, date: today(),
-    notes: 'Withdrawal request '+requestId+' approved', recordedBy: auth.member.memberNo }]);
+  const res=_appendSavingsTxsLocked([tx]);
   if (!res.ok) return res;
   _setApprover(sh, headers, hRow, requestId, 2, auth.member.memberNo);
   _updateReqStatus(sh,headers,hRow,requestId,'Approved','Approved by '+approver1+' and '+auth.member.memberNo,auth.member.memberNo);

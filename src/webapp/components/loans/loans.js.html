@@ -37,7 +37,8 @@ function renderTermField(wrapId){
   }
 }
 function termFieldValue(wrapId){ const el=$('#'+wrapId+'_input'); return el?el.value:''; }
-function needsGuarantors(){ return !!(LOAN_PRODUCT && LOAN_PRODUCT.product==='member'); }
+// Every loan product needs Founder Member guarantors (Soft Loans included); the server enforces it
+function needsGuarantors(){ return !!(LOAN_PRODUCT && (LOAN_PRODUCT.product==='member'||LOAN_PRODUCT.product==='soft')); }
 
 function quoteRow(k,v){ return '<tr><td style="color:var(--dim)">'+k+'</td><td class="r">'+v+'</td></tr>'; }
 function quoteTable(p,rate,interest,fee,total,due){
@@ -124,17 +125,21 @@ function loadLoanReqAdmin(){
     if(!res.requests.length){tb.innerHTML='<tr class="empty"><td colspan="8">No requests.</td></tr>';return;}
     res.requests.forEach(r=>{LR_CACHE[r.requestId]=r;});
     tb.innerHTML=res.requests.map(r=>{
-      const lim=r.withinLimit?'<span class="badge approved">Within limit</span>':'<span class="badge overdue">Over limit</span>';
-      const gl=r.guarantorsRequired?(r.guarantors.length?r.guarantors.map(g=>esc(g.name)+' ('+esc(g.memberNo)+') - '+esc(g.response)).join(', '):'None'):'Not required (Soft Loan)';
+      const lim=!r.savingsLimit?'<span class="note">No savings cap (Soft Loan)</span>':(r.withinLimit?'<span class="badge approved">Within limit</span>':'<span class="badge overdue">Over limit</span>');
+      const gl=r.guarantors.length?r.guarantors.map(g=>esc(g.name)+' ('+esc(g.memberNo)+') - '+esc(g.response)).join(', '):'None on file';
+      const ov=r.guarantorOverride?'<div class="note" style="color:var(--warn)">Guarantor restriction override: '+esc(r.guarantorOverride)+'</div>':'';
       const due=r.decisionOverdue?'<div class="note" style="color:var(--bad)">Decision overdue ('+r.daysPending+' days, limit 3)</div>'
         :(r.daysPending!==null?'<div class="note">Pending '+r.daysPending+' day(s)</div>':'');
-      const already=ME.memberNo===r.initiatedBy?'<div class="note">You initiated this request — another admin must approve it.</div>'
-        :(ME.memberNo===r.approver1?'<div class="note">You gave the first approval — a different admin must give the second.</div>':'');
+      const open=r.status==='Pending'||r.status==='Partially Approved';
+      const why=ME.memberNo===r.initiatedBy?'You initiated this request — another admin must approve it.'
+        :ME.memberNo===String(r.memberNo)?'This is your own loan — another admin must approve it.'
+        :ME.memberNo===r.approver1?'You gave the first approval — a different admin must give the second.':'';
+      const already=open&&why?'<div class="note">'+why+'</div>':'';
       const approvals='<div class="note">Approvals: '+(r.approver1Name?esc(r.approver1Name):'none yet')+(r.approver2Name?', '+esc(r.approver2Name):'')+' (needs 2)</div>';
-      const canAct=(r.status==='Pending'||r.status==='Partially Approved')&&ME.memberNo!==r.initiatedBy&&ME.memberNo!==r.approver1;
+      const canAct=open&&!why;
       const approveLbl=r.approver1?'Approve (2nd &amp; final)':'Approve (1st)';
       const acts=canAct?'<button class="btn sm" onclick="openApproveLR(\''+r.requestId+'\')">'+approveLbl+'</button> <button class="btn sm danger" onclick="openRejectLR(\''+r.requestId+'\')">Reject</button>':already;
-      return '<tr><td>'+esc(r.requestId)+'</td><td>'+esc(r.memberName)+'<div class="note">'+esc(r.membershipType||'—')+' &middot; Guarantors: '+gl+'</div><div class="note">Initiated by '+esc(r.initiatedByName)+'</div>'+approvals+'</td><td class="r">'+money(r.amount)+'<div class="note">Total '+fmt(r.total)+'</div></td><td>'+esc(r.termLabel)+'</td><td>'+esc(r.purpose)+'</td><td>'+lim+'</td><td>'+badge(r.status,BMAP)+due+'</td><td>'+acts+'</td></tr>';
+      return '<tr><td>'+esc(r.requestId)+'</td><td>'+esc(r.memberName)+'<div class="note">'+esc(r.membershipType||'—')+' &middot; Guarantors: '+gl+'</div><div class="note">Initiated by '+esc(r.initiatedByName)+'</div>'+ov+approvals+'</td><td class="r">'+money(r.amount)+'<div class="note">Total '+fmt(r.total)+'</div></td><td>'+esc(r.termLabel)+'</td><td>'+esc(r.purpose)+'</td><td>'+lim+'</td><td>'+badge(r.status,BMAP)+due+'</td><td>'+acts+'</td></tr>';
     }).join('');
   });
 }
@@ -169,7 +174,7 @@ function submitReqLoan(){
 
 // ── issue loan ────────────────────────────────────────────────────────────────
 function openIssueLoan(){
-  $('#ln_mb').innerHTML=mbOpts();$('#ln_pr').value='';$('#ln_pu').value='';
+  $('#ln_mb').innerHTML=mbOpts();$('#ln_pr').value='';$('#ln_pu').value='';$('#ln_ov').value='';
   $('#ln_lim').classList.add('hidden');
   $('#ln_gt').innerHTML='';$('#ln_gtwrap').classList.add('hidden');
   $('#ln_q').innerHTML='';$('#ln_tmwrap').innerHTML='<p class="note">Select a member first.</p>';
@@ -193,9 +198,9 @@ function updateLimitInfo(){
   const mb=$('#ln_mb').value,pr=n($('#ln_pr').value);
   const box=$('#ln_lim');
   const m=MEMBERS.find(x=>x.memberNo===mb);
-  if(!mb||!pr||!m){box.classList.add('hidden');return;}
-  const max=n(m.savingsBalance)*0.5;
-  if(pr>max){box.classList.remove('hidden');box.textContent='Exceeds the 50% savings guideline (savings '+fmt(m.savingsBalance)+', max '+fmt(max)+'). The approving admins can override this with a reason.';}
+  if(!mb||!pr||!m||m.membershipType==='Non-Member'){box.classList.add('hidden');return;}
+  const max=n(m.principalBalance)*0.5;
+  if(pr>max){box.classList.remove('hidden');box.textContent='Exceeds the 50% savings guideline (Principal savings '+fmt(m.principalBalance)+', max '+fmt(max)+'). The approving admins can override this with a reason.';}
   else box.classList.add('hidden');
 }
 function submitLoan(){
@@ -207,7 +212,7 @@ function submitLoan(){
   const gs=needsGuarantors()?pickedGuarantors('ln_gt'):[];
   if(needsGuarantors()&&gs.length<2)return mst('ln_st','err','Select at least two guarantors.');
   $('#ln_btn').disabled=true;mst('ln_st','','Saving…');
-  Api.issueLoan(mb,pr,$('#ln_pu').value.trim(),gs,tm, res=>{
+  Api.issueLoan(mb,pr,$('#ln_pu').value.trim(),gs,tm,$('#ln_ov').value.trim(), res=>{
     $('#ln_btn').disabled=false;
     if(!res.ok)return mst('ln_st','err',res.error);
     mst('ln_st','ok','Proposed as request '+res.requestId+'. It needs two different admin approvals before the loan is issued.');
@@ -233,8 +238,10 @@ function submitRepay(){
 function openApproveLR(id){
   const r=LR_CACHE[id]; if(!r)return;
   APPROV_REQ=r;
-  const gl=r.guarantorsRequired?(r.guarantors.map(g=>g.name+' ('+g.memberNo+')').join(', ')||'none'):'not required (Soft Loan)';
-  $('#alr_info').textContent=r.memberName+' ('+(r.membershipType||'membership type not set')+') requests '+fmt(r.amount)+' over '+r.termLabel+' (total due '+fmt(r.total)+'). Guarantors: '+gl+'. Savings: '+fmt(r.savings)+', max: '+fmt(r.maxLoan)+'.';
+  const gl=r.guarantors.map(g=>g.name+' ('+g.memberNo+') - '+g.response).join(', ')||'none';
+  $('#alr_info').textContent=r.memberName+' ('+(r.membershipType||'membership type not set')+') requests '+fmt(r.amount)+' over '+r.termLabel+' (total due '+fmt(r.total)+'). Guarantors: '+gl+'.'
+    +(r.savingsLimit?' Principal savings: '+fmt(r.savings)+', max: '+fmt(r.maxLoan)+'.':' Soft Loan: no savings cap.')
+    +(r.guarantorOverride?' Guarantor restriction override: '+r.guarantorOverride+'.':'');
   $('#alr_ov').value='';mst('alr_st','','');
   if(!r.withinLimit){$('#alr_lim').classList.remove('hidden');$('#alr_lim').textContent='Exceeds the 50% savings limit. Override reason required.';$('#alr_ovwrap').classList.remove('hidden');}
   else{$('#alr_lim').classList.add('hidden');$('#alr_ovwrap').classList.add('hidden');}

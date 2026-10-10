@@ -46,8 +46,39 @@ function _accountBalances(memberNo) {
   return _accountBalancesFromRows(readSheet(SH_SAVINGS, 'memberno').rows, memberNo);
 }
 
-// Total across all three accounts (used by loan limits, guarantor checks, statements)
+// Total across all three accounts (statements and member lists)
 function _savingsBalance(memberNo) { return _accountBalances(memberNo).total; }
+
+// A member's individual savings: their Principal balance. Used for loan limits, the guarantor
+// savings rule and the 12-month saving rule. Operations and Welfare are club pools, not savings.
+function _principalBalance(memberNo) { return _accountBalances(memberNo).Principal; }
+
+function _isPooled(account) { return POOLED_ACCOUNTS.indexOf(account) > -1; }
+
+// Club-wide balance of an account: every member's deposits less every withdrawal (with reversals)
+function _poolBalanceFromRows(rows, account) {
+  let bal = 0;
+  rows.forEach(r => {
+    if (!String(r['MemberNo'] || '').trim() || _accountOf(r) !== account) return;
+    bal += _txSign(_txType(r)) * num(r['Amount (UGX)']);
+  });
+  return r2(bal);
+}
+
+// What a member has paid into each account: deposits less reversed deposits
+function _contributionsFromRows(rows, memberNo) {
+  const no = String(memberNo).trim();
+  const c = {};
+  DEPOSIT_ACCOUNTS.forEach(a => { c[a] = 0; });
+  rows.forEach(r => {
+    if (String(r['MemberNo'] || '').trim() !== no) return;
+    const t = _txType(r).toLowerCase();
+    if (t === 'deposit') c[_accountOf(r)] += num(r['Amount (UGX)']);
+    else if (t === 'deposit reversal') c[_accountOf(r)] -= num(r['Amount (UGX)']);
+  });
+  DEPOSIT_ACCOUNTS.forEach(a => { c[a] = r2(c[a]); });
+  return c;
+}
 
 // Dashboard figures per account. contributions = deposits less reversed deposits;
 // withdrawals = withdrawals less reversed withdrawals; balance = contributions - withdrawals.
@@ -73,7 +104,7 @@ function _depositAccountSummary(rows, nameOf, month) {
       const m = a.members[k];
       return { memberNo: m.memberNo, name: m.name, contributions: r2(m.contributions), withdrawals: r2(m.withdrawals), balance: r2(m.contributions - m.withdrawals) };
     });
-    return { account: name, contributions: r2(a.contributions), withdrawals: r2(a.withdrawals),
+    return { account: name, pooled: _isPooled(name), contributions: r2(a.contributions), withdrawals: r2(a.withdrawals),
       balance: r2(a.contributions - a.withdrawals), contributionsThisMonth: r2(a.contributionsThisMonth), members };
   });
 }
@@ -102,7 +133,8 @@ function _validateContribution(input) {
 
 // Ledger rules for a batch of new rows, checked against the current rows: a deposit or withdrawal
 // can be reversed once, a reversal cannot be reversed, and no account the batch takes money from
-// may go below zero. Returns an error message, or '' when the batch is allowed.
+// may go below zero -- the member's own balance for Principal, the club-wide balance for the
+// pooled accounts. Returns an error message, or '' when the batch is allowed.
 function _checkSavingsTxs(rows, txs) {
   for (const tx of txs) {
     if (!tx.reverses) continue;
@@ -113,12 +145,17 @@ function _checkSavingsTxs(rows, txs) {
     if (rows.some(r => String(r['Reverses'] || '').trim() === tx.reverses)) return 'Transaction ' + tx.reverses + ' has already been reversed.';
   }
   const delta = {};
-  txs.forEach(tx => { const k = tx.memberNo + '|' + tx.account; delta[k] = (delta[k] || 0) + _txSign(tx.type) * num(tx.amount); });
+  txs.forEach(tx => {
+    const k = (_isPooled(tx.account) ? '' : tx.memberNo) + '|' + tx.account;
+    delta[k] = (delta[k] || 0) + _txSign(tx.type) * num(tx.amount);
+  });
   for (const k of Object.keys(delta)) {
     if (delta[k] >= 0) continue;
     const parts = k.split('|');
-    const bal = _accountBalancesFromRows(rows, parts[0])[parts[1]];
-    if (bal + delta[k] < -0.005) return 'Insufficient balance in the ' + parts[1] + ' account (' + fmtUGX(bal) + ').';
+    const pooled = !parts[0];
+    const bal = pooled ? _poolBalanceFromRows(rows, parts[1]) : _accountBalancesFromRows(rows, parts[0])[parts[1]];
+    if (bal + delta[k] < -0.005)
+      return 'Insufficient balance in the ' + (pooled ? 'club ' : '') + parts[1] + ' account (' + fmtUGX(bal) + ').';
   }
   return '';
 }
@@ -178,29 +215,16 @@ function _requestAccount(req) {
   return DEPOSIT_ACCOUNTS.indexOf(a) > -1 ? a : 'Principal';
 }
 
-function _isOpenRequest(req) {
-  const st = String(req['Status'] || '').trim();
-  return st === 'Pending' || st === 'Partially Approved';
-}
-
-// What a member can still request from an account: its balance less requests awaiting approval.
-function _withdrawalAvailable(balances, requests, memberNo, account) {
+// What a member can still request from an account, less requests already awaiting approval.
+// Principal: the member's own balance less their open Principal requests.
+// Pooled accounts: the club-wide balance less every member's open requests on that account --
+// what the member personally contributed plays no part.
+function _withdrawalAvailable(savRows, requests, memberNo, account) {
   const no = String(memberNo).trim();
+  const pooled = _isPooled(account);
+  const bal = pooled ? _poolBalanceFromRows(savRows, account) : _accountBalancesFromRows(savRows, no)[account];
   const pending = requests
-    .filter(r => String(r['MemberNo'] || '').trim() === no && _requestAccount(r) === account && _isOpenRequest(r))
+    .filter(r => _requestAccount(r) === account && _isOpenRequest(r) && (pooled || String(r['MemberNo'] || '').trim() === no))
     .reduce((s, r) => s + num(r['Amount (UGX)']), 0);
-  return r2(balances[account] - pending);
-}
-
-// Segregation of duties: an admin may not approve a withdrawal they initiated, one paid from their
-// own account, or give both approvals. Returns an error message, or '' when approverNo may approve.
-function _withdrawalApprovalError(req, approverNo) {
-  if (!_isOpenRequest(req)) return 'Already decided.';
-  const me = String(approverNo || '').trim();
-  const member = String(req['MemberNo'] || '').trim();
-  const initiatedBy = String(req['Initiated By'] || member).trim();
-  if (me === initiatedBy) return 'You initiated this request; a different admin must approve it.';
-  if (me === member) return 'This withdrawal is from your own account; a different admin must approve it.';
-  if (me === String(req['Approver 1'] || '').trim()) return 'You already gave the first approval; a different admin must give the second.';
-  return '';
+  return r2(bal - pending);
 }

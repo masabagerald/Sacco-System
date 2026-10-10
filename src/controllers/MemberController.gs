@@ -5,7 +5,7 @@ function getAllMembersSummary() {
   const { rows } = readSheet(SH_MEMBERS,'memberno');
   return { ok:true, members: rows
     .filter(m=>String(m['MemberNo']||'').trim()!=='')
-    .map(m=>({...makeMemberRecord(m), savingsBalance:_savingsBalance(m['MemberNo'])})) };
+    .map(m=>{ const b=_accountBalances(m['MemberNo']); return {...makeMemberRecord(m), savingsBalance:b.total, principalBalance:b.Principal}; }) };
 }
 
 function addMember(name, email, phone, role, membershipType) {

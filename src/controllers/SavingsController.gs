@@ -2,6 +2,7 @@
 
 function getMySavings() {
   const auth = _caller(); if (!auth.ok) return auth;
+  if (auth.member.membershipType === 'Non-Member') return { ok: false, nonMember: true, error: 'Non-Members do not use the savings/deposit function.' };
   const no = String(auth.member.memberNo).trim();
   const { rows } = readSheet(SH_SAVINGS, 'memberno');
   const history = rows
@@ -11,8 +12,9 @@ function getMySavings() {
   const accounts = _accountBalancesFromRows(rows, no);
   const { rows: reqs } = readSheet(SH_WD_REQ, 'requestid');
   const available = {};
-  DEPOSIT_ACCOUNTS.forEach(a => { available[a] = _withdrawalAvailable(accounts, reqs, no, a); });
-  return { ok: true, balance: accounts.total, accounts, available, canWithdraw: _canWithdraw(auth.member.membershipType), history };
+  DEPOSIT_ACCOUNTS.forEach(a => { available[a] = _withdrawalAvailable(rows, reqs, no, a); });
+  return { ok: true, balance: accounts.total, accounts, contributions: _contributionsFromRows(rows, no), pooled: POOLED_ACCOUNTS,
+    available, canWithdraw: _canWithdraw(auth.member.membershipType), history };
 }
 
 // Admin records a deposit into, or a withdrawal from, one of a member's deposit accounts.

@@ -1,37 +1,9 @@
 // End-to-end tests for deposit accounts: real controllers against an in-memory spreadsheet.
 const assert = require('assert');
+const { EMAIL, seed, ok, fails } = require('./fixtures');
 
-const ALICE = 'alice@x.org', BOB = 'bob@x.org', CAROL = 'carol@x.org', DAN = 'dan@x.org', EVE = 'eve@x.org', NAN = 'nan@x.org';
+const { ALICE, BOB, CAROL, DAN, EVE, NAN } = EMAIL;
 
-function seed({ g, fakes, val }) {
-  fakes.addSheet(val('SH_MEMBERS'), [
-    ['MemberNo', 'Full Name', 'Email', 'Phone', 'Role', 'Membership Type', 'Date Joined', 'Status'],
-    ['M001', 'Alice', ALICE, '', 'Admin', 'Founder Member', '2024-01-01', 'Active'],
-    ['M002', 'Bob', BOB, '', 'Admin', 'Founder Member', '2024-01-01', 'Active'],
-    ['M003', 'Carol', CAROL, '', 'Admin', 'Delegate Member', '2024-01-01', 'Active'],
-    ['M004', 'Dan', DAN, '', 'Member', 'Founder Member', '2024-01-01', 'Active'],
-    ['M005', 'Eve', EVE, '', 'Member', 'Delegate Member', '2024-01-01', 'Active'],
-    ['M006', 'Nan', NAN, '', 'Member', 'Non-Member', '2024-01-01', 'Active']
-  ]);
-  // Title rows above the header, as on the real tabs
-  fakes.addSheet(val('SH_SAVINGS'), [['Savings Ledger'], [],
-    ['Date', 'Timestamp', 'MemberNo', 'Deposit Type', 'Amount (UGX)', 'Recorded By', 'Reference', 'Notes', 'Payment Category', 'Surcharge Reason', 'Deposit Account', 'Reverses']]);
-  fakes.addSheet(val('SH_WD_REQ'), [['RequestID', 'Timestamp', 'MemberNo', 'Amount (UGX)', 'Reason', 'Status', 'Decision Notes', 'Decided By',
-    'Initiated By', 'Approver 1', 'Approver 1 At', 'Approver 2', 'Approver 2 At', 'Deposit Account']]);
-  fakes.addSheet(val('SH_AUDIT'), [['Timestamp', 'Action', 'Member (Affected)', 'Performed By', 'Details', 'Reference ID']]);
-  fakes.addSheet(val('SH_LOANS'), [['LoanID', 'MemberNo', 'Date Issued', 'Principal (UGX)', 'Status']]);
-  fakes.addSheet(val('SH_REPAY'), [['LoanID', 'Date', 'Amount (UGX)']]);
-  fakes.addSheet(val('SH_FINES'), [['FineID', 'MemberNo', 'Amount (UGX)', 'Status']]);
-  fakes.addSheet(val('SH_LOAN_REQ'), [['RequestID', 'MemberNo', 'Status']]);
-  return { g, fakes, val, ledger: () => fakes.sheet(val('SH_SAVINGS')).records('memberno'),
-    audit: () => fakes.sheet(val('SH_AUDIT')).records('timestamp'), wdReqs: () => fakes.sheet(val('SH_WD_REQ')).records('requestid') };
-}
-
-function ok(res, label) { assert.ok(res && res.ok, label + ': ' + JSON.stringify(res)); return res; }
-function fails(res, pattern, label) {
-  assert.ok(res && !res.ok, label + ' should fail but returned ' + JSON.stringify(res));
-  if (pattern) assert.match(res.error, pattern, label);
-}
 const accountsOf = g => { const d = g.getAdminDashboard(); const o = {}; d.depositAccounts.forEach(a => { o[a.account] = a; }); return o; };
 
 // Gives Dan (Founder) 100,000 Principal and 10,000 Welfare, recorded by Alice.
@@ -71,7 +43,8 @@ module.exports = {
     fails(g.recordSavings('M999', 'Deposit', 1000, 'Principal', 'Monthly Premium', '', '', ''), /Member not found/, 'unknown member');
     fails(g.recordSavings('M006', 'Deposit', 1000, 'Principal', 'Monthly Premium', '', '', ''), /Non-Members/, 'non-member');
     fundDan(g, fakes);
-    fails(g.recordSavings('M004', 'Withdrawal', 20000, 'Welfare', '', '', '', ''), /Insufficient balance in the Welfare/, 'withdrawal over the Welfare balance though the total is enough');
+    fails(g.recordSavings('M004', 'Withdrawal', 20000, 'Welfare', '', '', '', ''), /Insufficient balance in the club Welfare/, 'withdrawal over the club Welfare balance');
+    fails(g.recordSavings('M004', 'Withdrawal', 100001, 'Principal', '', '', '', ''), /Insufficient balance in the Principal/, 'withdrawal over the member\'s own Principal');
     assert.strictEqual(ledger().length, 2, 'rejected entries write nothing');
   },
 
@@ -119,7 +92,7 @@ module.exports = {
     fakes.signInAs(DAN);
     const mine = ok(g.getMySavings(), 'my savings');
     assert.deepStrictEqual([mine.accounts.Principal, mine.accounts.Operations, mine.accounts.Welfare, mine.canWithdraw], [100000, 0, 10000, true]);
-    fails(g.requestWithdrawal(20000, 'Welfare', '', 'Welfare'), /exceeds the available Welfare balance/, 'more than the Welfare balance');
+    fails(g.requestWithdrawal(20000, 'Welfare', '', 'Welfare'), /exceeds the available club Welfare balance/, 'more than the club Welfare balance');
     fails(g.requestWithdrawal(5000, 'Welfare', ''), /account to withdraw from/, 'no account chosen');
     const req = ok(g.requestWithdrawal(8000, 'Welfare', '', 'Welfare'), 'request');
     fails(g.requestWithdrawal(3000, 'Welfare', '', 'Welfare'), /after requests still awaiting approval/, 'pending request is set aside');
@@ -186,6 +159,6 @@ module.exports = {
     ok(g.approveWithdrawal(req.requestId), 'first');
     ok(g.recordSavings('M004', 'Withdrawal', 5000, 'Welfare', '', '', 'cash paid at meeting', ''), 'direct Welfare withdrawal meanwhile');
     fakes.signInAs(BOB);
-    fails(g.approveWithdrawal(req.requestId), /Insufficient Welfare balance/, 'final approval after the balance dropped');
+    fails(g.approveWithdrawal(req.requestId), /Insufficient balance in the club Welfare account.*time of approval/, 'final approval after the balance dropped');
   }
 };

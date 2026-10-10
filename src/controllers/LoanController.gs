@@ -13,11 +13,13 @@ function getMyLoans() {
 // An admin proposing a loan on a member's behalf. This does NOT create the loan -- it creates a
 // Pending request, exactly like a member's own request, that still needs two different admins
 // (neither of them the proposer) to approve before the loan exists. Segregation of duties.
-function issueLoan(memberNo, principal, purpose, guarantorNos, termInput) {
+// guarantorOverride: reason for letting a member who is guaranteeing a running loan take one (Sec 8).
+function issueLoan(memberNo, principal, purpose, guarantorNos, termInput, guarantorOverride) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
   principal=num(principal);
   const lv = validateLoanIssue(principal); if (!lv.ok) return lv;
-  return _submitLoanRequest(memberNo, auth.member.memberNo, auth.member.name + ' (admin)', principal, termInput, purpose, guarantorNos);
+  return _submitLoanRequest(String(memberNo||'').trim(), auth.member.memberNo, auth.member.name + ' (admin)', principal, termInput, purpose, guarantorNos,
+    String(guarantorOverride||'').trim());
 }
 
 function recordRepayment(loanId, amount, notes, txDate) {

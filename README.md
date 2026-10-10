@@ -6,7 +6,8 @@ A Google Apps Script web app for running a small SACCO (savings and credit coope
 
 - **Sign-in without passwords** — auto-detects the signed-in Google account, or falls back to a 6-digit one-time code emailed to the member.
 - **Savings / deposit accounts** — each member's deposits are held in three accounts with separate balances: **Principal**, **Operations** and **Welfare**. Admins record contributions against an account (the payment category must belong to it) and can correct or reverse an entry; the original row is never edited — a reversal row (and, for a correction, a replacement row) is appended and the change is written to the audit log.
-- **Withdrawal requests** — Founder Members request a withdrawal from a chosen account (eligible membership types are set by `WITHDRAWAL_MEMBERSHIP_TYPES` in `Config.gs`). The amount must be within that account's balance, less requests still awaiting approval. Two different admins must approve, and neither may be the initiator or the account holder.
+- **Withdrawal requests** — Founder and Delegate Members request a withdrawal from a chosen account. **Principal** is individual savings, so the limit is the member's own Principal balance. **Operations** and **Welfare** are club pools (`POOLED_ACCOUNTS` in `Config.gs`): the limit is the club-wide balance of the account, whatever the member contributed. Both limits subtract requests still awaiting approval. Non-Members have no savings or withdrawals. Two different admins must approve, and neither may be the initiator or the account holder.
+- **Loans** — Founder/Delegate member loans (10%, minimum 2 months, UGX 5,000 fee, capped at 50% of Principal savings) and Non-Member Soft Loans (5% / 10% / 15% by term, UGX 10,000 fee, no savings cap). Both need at least 2 Founder Member guarantors, each with Principal of at least 25% of the loan, and every guarantor must accept by email before an admin can approve (a decline needs a reason). A member who is guaranteeing a running loan can borrow only if an admin proposes the loan with an override reason, which is recorded in the audit log. Neither approver may be the initiator or the applicant.
 - **Loans** — reducing-balance interest calculation, projected amortization schedule, loan-to-savings limit with admin override, repayment tracking.
 - **Loan & withdrawal requests** — members submit requests; admins approve (with limit checks) or reject with a reason.
 - **Fines** — issue, track, and mark as paid.
@@ -153,7 +154,7 @@ Edit the constants at the top of `src/utils/Config.gs`:
 
 ## Upgrading to deposit accounts
 
-After deploying, run `setupGuaranteeSchema()` once from the Apps Script editor. It adds the `Deposit Account` and `Reverses` columns to the **Savings** tab and `Deposit Account` to **Withdrawal Requests**. It is safe to run again.
+After deploying, run `setupGuaranteeSchema()` once from the Apps Script editor. It adds any missing columns: `Deposit Account` and `Reverses` (**Savings**), `Deposit Account` (**Withdrawal Requests**), `Guarantor Override` (**Loan Requests**), `Last Notice` (**Loans**, which stops a retried daily job emailing twice) and `Decline Reason` (**Guarantors**). It is safe to run again.
 
 Existing rows are not changed. Rows without an account are placed by their payment category: Operations Fee → Operations, Welfare Fee → Welfare, everything else (including older withdrawals) → Principal. Each member's total savings therefore stays the same. Withdrawal requests made before this change draw on Principal.
 

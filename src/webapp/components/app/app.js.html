@@ -30,6 +30,8 @@ function enterApp(){
   $('#loginView').classList.add('hidden');$('#appView').classList.remove('hidden');
   $('#whoName').textContent=ME.name+' ('+ME.memberNo+')';
   $('#whoRole').innerHTML=badge(ME.role,BMAP);
+  $('#sec-my-savings').classList.toggle('hidden',!!isNonMember());
+  $('#card_savings').classList.toggle('hidden',!!isNonMember());
   renderRail();restoreRail();
   showTab('my');setActive('my');loadMyAccount();
 }
@@ -68,7 +70,7 @@ const NAV=[
   {group:'Me', items:[
     {id:'my',       label:'My account',     icon:'⌂', pane:'my',    anchor:null},
     {id:'m-loans',  label:'My loans',       icon:'◎', pane:'my',    anchor:'sec-my-loans'},
-    {id:'m-savings',label:'My savings',     icon:'▤', pane:'my',    anchor:'sec-my-savings'},
+    {id:'m-savings',label:'My savings',     icon:'▤', pane:'my',    anchor:'sec-my-savings', savers:true},
     {id:'m-fines',  label:'My surcharges',  icon:'⚑', pane:'my',    anchor:'sec-my-fines'},
     {id:'m-reports',label:'My statement',   icon:'▣', pane:'my',    anchor:'sec-my-reports'}]},
   {group:'Admin', admin:true, items:[
@@ -84,8 +86,10 @@ const BOTTOM_MEMBER=['my','m-loans','m-savings'];
 const BOTTOM_ADMIN=['dash','loans','members'];
 
 function isAdminUser(){return ME && ME.role==='Admin';}
+// Non-Members have no savings or withdrawals (the server refuses them too)
+function isNonMember(){return ME && ME.membershipType==='Non-Member';}
 function navItems(){
-  return NAV.filter(g=>!g.admin||isAdminUser()).reduce((all,g)=>all.concat(g.items.map(i=>Object.assign({group:g.group},i))),[]);
+  return NAV.filter(g=>!g.admin||isAdminUser()).reduce((all,g)=>all.concat(g.items.filter(i=>!(i.savers&&isNonMember())).map(i=>Object.assign({group:g.group},i))),[]);
 }
 
 // Builds the rail, the bottom bar and the "Go to" list for the signed-in user
@@ -94,7 +98,7 @@ function renderRail(){
   let rail='';
   NAV.filter(g=>!g.admin||isAdminUser()).forEach(g=>{
     rail+='<div class="grp">'+esc(g.group)+'</div>';
-    g.items.forEach(i=>{
+    g.items.filter(i=>!(i.savers&&isNonMember())).forEach(i=>{
       rail+='<button class="rail-item" data-s="'+i.id+'" onclick="goSec(\''+i.id+'\')" title="'+esc(i.label)+'">'
         +'<span class="ico">'+i.icon+'</span><span class="lbl">'+esc(i.label)+'</span>'
         +(i.badge?'<span class="rail-badge hidden" id="'+i.badge+'">0</span>':'')+'</button>';
@@ -103,7 +107,7 @@ function renderRail(){
   rail+='<button class="rail-item rail-toggle" onclick="toggleRail()" title="Collapse or expand the menu"><span class="ico">⟨</span><span class="lbl">Collapse menu</span></button>';
   $('#rail').innerHTML=rail;
 
-  const pick=isAdminUser()?BOTTOM_ADMIN:BOTTOM_MEMBER;
+  const pick=(isAdminUser()?BOTTOM_ADMIN:BOTTOM_MEMBER).filter(id=>items.some(x=>x.id===id));
   $('#bottombar').innerHTML=pick.map(id=>{
     const i=items.find(x=>x.id===id);
     return '<button class="bb-item" data-s="'+id+'" onclick="goSec(\''+id+'\')"><span class="ico">'+i.icon+'</span><span>'+esc(i.label)+'</span></button>';
