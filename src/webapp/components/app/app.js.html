@@ -72,7 +72,8 @@ const NAV=[
     {id:'m-loans',  label:'My loans',       icon:'◎', pane:'my',    anchor:'sec-my-loans'},
     {id:'m-savings',label:'My savings',     icon:'▤', pane:'my',    anchor:'sec-my-savings', savers:true},
     {id:'m-fines',  label:'My surcharges',  icon:'⚑', pane:'my',    anchor:'sec-my-fines'},
-    {id:'m-reports',label:'My statement',   icon:'▣', pane:'my',    anchor:'sec-my-reports'}]},
+    {id:'m-reports',label:'My statement',   icon:'▣', pane:'my',    anchor:'sec-my-reports'},
+    {id:'guide',    label:'User guide',     icon:'?', href:true}]},
   {group:'Admin', admin:true, items:[
     {id:'dash',     label:'Dashboard',      icon:'▦', pane:'admin', anchor:'sec-dash'},
     {id:'members',  label:'Members',        icon:'☷', pane:'admin', anchor:'sec-members'},
@@ -117,9 +118,13 @@ function renderRail(){
     '<button class="btn" style="text-align:left" onclick="cm(\'m_more\');goSec(\''+i.id+'\')">'+i.icon+'  '+esc(i.label)+'</button>').join('');
 }
 
+// The user guide opens in a new tab (served by doGet at ?page=guide)
+function openGuide(){window.open(GUIDE_URL,'_blank');}
+
 // Opens the right area and scrolls to the section
 function goSec(id){
   const it=navItems().find(x=>x.id===id); if(!it)return;
+  if(it.href)return openGuide();
   showTab(it.pane);
   setActive(id);
   if(it.anchor){const el=document.getElementById(it.anchor);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}

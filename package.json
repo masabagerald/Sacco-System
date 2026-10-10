@@ -4,7 +4,8 @@
   "private": true,
   "description": "Google Apps Script project (managed by Google Apps Script Sync)",
   "scripts": {
-    "test": "node tests/run-tests.js"
+    "test": "node tests/run-tests.js",
+    "screenshots": "node tools/screenshots/build.js"
   },
   "devDependencies": {
     "@types/google-apps-script": "^2.0.11"
