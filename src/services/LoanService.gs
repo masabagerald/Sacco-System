@@ -171,12 +171,14 @@ function _computeReducing(loan, reps) {
   const issued = _ymd(loan['Date Issued']);
   const now = new Date();
   let balance = principal, totalInterest = 0, totalRepaid = 0, cursor = new Date(issued), ri = 0;
+  const interestEvents = [];  // when each month's interest was added (used by Loan Insights)
   while (true) {
     const next = new Date(cursor); next.setMonth(next.getMonth()+1);
     if (next > now) break;
     while (ri < reps.length && reps[ri].date <= next) { balance -= reps[ri].amount; totalRepaid += reps[ri].amount; ri++; }
     if (balance < 0) balance = 0;
     const interest = balance * rate; balance += interest; totalInterest += interest;
+    if (interest > 0) interestEvents.push({ date: fmt_date(next), amount: r2(interest) });
     cursor = next;
   }
   while (ri < reps.length) { balance -= reps[ri].amount; totalRepaid += reps[ri].amount; ri++; }
@@ -192,7 +194,7 @@ function _computeReducing(loan, reps) {
     overrideReason: loan['Override Reason']||'', monthsElapsed, totalInterestAccrued: r2(totalInterest),
     totalRepaid: r2(totalRepaid), outstandingBalance: r2(balance), status, overdue,
     progressLabel: _progressLabel(overdue, status),
-    monthlyPayment: sch.monthlyPayment, scheduleHead: null, schedule: sch.schedule };
+    monthlyPayment: sch.monthlyPayment, scheduleHead: null, schedule: sch.schedule, interestEvents };
 }
 
 // Projected amortization schedule for reducing-balance loans (guidance only)

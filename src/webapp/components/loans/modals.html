@@ -19,6 +19,16 @@
 </div>
 
 <!-- Repayment -->
+<div class="modal-bg" id="m_revRepay" onclick="if(event.target===this)cm('m_revRepay')">
+  <div class="modal"><button class="x" onclick="cm('m_revRepay')">&times;</button>
+    <h3>Reverse Repayment</h3><p class="sub" id="rr_info"></p>
+    <div class="mgrid"><div class="field full"><label>Reason (required, kept in the audit log and emailed to the member)</label><input id="rr_rs" type="text"></div></div>
+    <p class="note">The original repayment stays in the record. A reversal entry for the same amount cancels it, so the loan balance goes back up. A loan this repayment had cleared becomes Active again.</p>
+    <div class="mact"><button class="btn" onclick="cm('m_revRepay')">Cancel</button><button class="btn danger" id="rr_btn" onclick="submitRevRepay()">Reverse</button></div>
+    <div class="mst" id="rr_st"></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m_repay" onclick="if(event.target===this)cm('m_repay')">
   <div class="modal"><button class="x" onclick="cm('m_repay')">&times;</button>
     <h3>Record Repayment</h3><p class="sub" id="rp_info"></p>

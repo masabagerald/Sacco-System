@@ -18,6 +18,7 @@ This guide explains how to use the club's web app: signing in, checking your sav
   - [Being a guarantor](#being-a-guarantor)
   - [Surcharges](#surcharges)
   - [Your statement](#your-statement)
+  - [Loan Insights (Founder Members)](#loan-insights-founder-members)
   - [Emails you will receive](#emails-you-will-receive)
 - [Part 2: For administrators](#part-2-for-administrators)
   - [The two-approval rule](#the-two-approval-rule)
@@ -30,6 +31,9 @@ This guide explains how to use the club's web app: signing in, checking your sav
   - [Recording loan repayments](#recording-loan-repayments)
   - [Surcharges (admin)](#surcharges-admin)
   - [Reports and the audit log](#reports-and-the-audit-log)
+  - [Loan Insights (admin)](#loan-insights-admin)
+  - [Loan fund entries](#loan-fund-entries)
+  - [Investments](#investments)
 - [Frequently asked questions](#frequently-asked-questions)
 
 ---
@@ -65,6 +69,7 @@ Every member has one membership type. It decides what you can do in the app:
 | Member loan (10%, minimum 2 months) | ✓ | ✓ | – |
 | Soft Loan (1–4 weeks) | – | – | ✓ |
 | Act as a guarantor | ✓ | – | – |
+| See Loan Insights (club totals, read-only) | ✓ | – | – |
 
 Your membership type is separate from your **role**. Admin is a role, held by some members.
 
@@ -75,7 +80,7 @@ If your membership type has not been set, ask an admin to set it before you requ
 - **On a computer**, the menu runs down the left side. Click **Collapse menu** to make it narrow.
 - **On a phone**, the menu is the bar along the bottom. Tap **More** to see every section.
 
-Your sections are **My account**, **My loans**, **My savings**, **My surcharges** and **My statement**. Admins also see an **Admin** group (see [Part 2](#part-2-for-administrators)).
+Your sections are **My account**, **My loans**, **My savings**, **My surcharges** and **My statement**. Founder Members and admins also see a **Club** group with **Loan insights**. Admins also see an **Admin** group (see [Part 2](#part-2-for-administrators)).
 
 The cards at the top of **My account** show your savings balance, any loan outstanding and any unpaid surcharges. Further down are your loans, your three deposit accounts, your withdrawal requests and your savings history.
 
@@ -209,6 +214,33 @@ The applicant is told your answer. If you decline, the admins are told too, and 
 
 Under **My statement**, click **Open PDF** to view your statement, or **Download PDF** to save it. It shows your balances in each account, all savings transactions, loans, surcharges and requests. You also receive a short summary by email on the 1st of every month.
 
+### Loan Insights (Founder Members)
+
+Founder Members can see how the club's loan fund is doing. Click **Loan insights** under **Club** in the menu.
+
+This view is **read-only** and shows **club totals only**. No member's name, loan or balance appears in it, so other members can't see your loan here. Delegate Members and Non-Members don't have this section.
+
+![Loan Insights for a Founder Member: available loan cash, outstanding principal, interest and fees outstanding, overdue loans and the fund position](images/14-loan-insights-founder.png)
+
+Choose a period at the top: **This month**, **Previous month**, **Year to date**, **All time** or **Custom** (pick the dates and click **Apply**). Everything on the page updates to that period.
+
+| Section | What it shows |
+|---|---|
+| **Loan fund position** | Balances on the **last day** of the period. **Available loan cash** is the money the club actually has for new loans. The other cards show what borrowers still owe. |
+| **Fund position** | Cash plus everything still owed to the fund. It is **not** cash: it is what the fund would hold if every loan were paid in full. |
+| **Period totals** | Money in and out **during** the period: loans paid out, and principal, interest, processing fees and penalties received. |
+| **Loan fund cash movements** | How the cash moved from the start of the period to the end. |
+| **Borrowers** | How many people borrowed in the period, and how many were borrowing for the first time. |
+| **Trends by month** | Charts for each month. Point at a bar or line to see its value, or open **Show the monthly figures as a table**. |
+
+**Good to know**
+
+- **Where the loan fund's money comes from.** Its capital is the members' **Principal** savings. Principal deposits add to it and Principal withdrawals take from it. Operations and Welfare are not part of the loan fund.
+- **"Charged" vs "collected".** *Charged* is what borrowers owe; *collected* is cash actually received. Unpaid interest and fees are never shown as collected.
+- **How a repayment is counted.** Each repayment pays off the processing fee first, then interest, then any penalty, and then the amount borrowed.
+- **Penalties** are the 10% overdue surcharge and the older late penalty. They are shown on their own line, separate from interest.
+- **Clients served.** A member who took two loans in the period counts as one client; the number of loans is shown separately.
+
 ### Emails you will receive
 
 | When | Email |
@@ -225,11 +257,11 @@ Under **My statement**, click **Open PDF** to view your statement, or **Download
 
 ## Part 2: For administrators
 
-Admins see an **Admin** group in the menu: **Dashboard**, **Members**, **Loans**, **Savings**, **Surcharges**, **Reports** and **Audit log**. A number on **Loans** or **Savings** shows how many requests are waiting.
+Admins see an **Admin** group in the menu: **Dashboard**, **Members**, **Loans**, **Savings**, **Surcharges**, **Reports**, **Investments** and **Audit log**, plus **Loan insights** under **Club**. A number on **Loans**, **Savings**, **Loan insights** or **Investments** shows how many items are waiting for approval.
 
 ### The two-approval rule
 
-Every loan and every withdrawal request needs **two approvals from two different admins**. The app enforces this:
+Every loan, every withdrawal request, every [loan fund entry](#loan-fund-entries) and every [investment transaction](#investments) needs **two approvals from two different admins**. The app enforces this:
 
 - You **can't approve a request you started**, including a loan you proposed for a member.
 - You **can't approve a request for your own account**, such as your own loan or withdrawal.
@@ -337,7 +369,30 @@ For **Operations** and **Welfare**, the balance shown is the **club pool** balan
 
 ### Recording loan repayments
 
-Open the member's loan and click **Record Repayment**. Enter the amount, the date of payment and any notes. The member is emailed the new outstanding balance. When the balance reaches zero, the loan is marked **Cleared**.
+When a member pays towards a loan:
+
+1. Go to **Loans**. The **Active Loans** panel at the top lists every member's running loan, with overdue loans first. Type a name or loan ID in the filter box to find one quickly.
+2. Click **Record Repayment** on the loan.
+3. Enter the **Amount** paid and the **Date of payment** (it can't be in the future). Add any **Notes**, such as the receipt or mobile money reference.
+4. Click **Save**.
+
+![Active Loans panel with the Record Repayment form open for a Soft Loan, showing the amount, date of payment and a mobile money reference](images/20-record-repayment.png)
+
+The member is emailed the new outstanding balance, and the repayment is recorded in the audit log with your name. When nothing is left to pay, the loan is marked **Cleared** and drops off the list. A repayment takes effect straight away; it doesn't need a second approval.
+
+**If a repayment was entered wrongly** (wrong amount, wrong loan, or entered twice), reverse it and then record the correct one:
+
+1. On the **Loans** page, find the repayment in the **Repayments** panel. Each repayment has a reference such as **RPY-000046**. Type a name, loan ID or reference in the filter box to find it.
+2. Click **Reverse**, enter the **reason** (required) and click **Reverse**.
+3. If needed, record the correct repayment as usual.
+
+![Repayments list with the Reverse Repayment form open, asking for the reason](images/21-reverse-repayment.png)
+
+- The original repayment is **never edited or deleted**. A reversal entry for the same amount is added beside it, marked with the reference it reverses, and the original shows **Reversed by RPY-…**.
+- The loan's outstanding balance goes back up. If the reversed repayment had cleared the loan, the loan becomes **Active** again and reappears under **Active Loans**.
+- The member is emailed, and the reversal is recorded in the audit log with your name and the reason.
+- A repayment can be reversed only once, and a reversal can't itself be reversed.
+- The reversal is dated the day you make it. Reports for earlier months still show the original payment, and the reversal appears in the month it was made.
 
 ### Surcharges (admin)
 
@@ -352,6 +407,88 @@ The 10% overdue surcharge on single-due-date loans is applied **automatically** 
 - **Audit log**: every action is listed with the time, the action, the member affected, who did it and the details. This covers contributions, corrections, reversals, withdrawal and loan requests, approvals, rejections, guarantor answers (with decline reasons) and overrides. Entries can't be edited in the app.
 
 ![Audit log listing guarantor consent, loan requests, an override, approvals, a deposit and a correction](images/13-audit-log.png)
+
+### Loan Insights (admin)
+
+Admins see the same Loan Insights page as Founder Members (see [Loan Insights (Founder Members)](#loan-insights-founder-members)), with three more panels at the bottom:
+
+- **Loan Fund Ledger entries**: cash that comes into or leaves the loan fund outside the normal savings and loans process. See [Loan fund entries](#loan-fund-entries).
+- **Loans in this period**: each loan with its member, dates, and how much principal, interest, fee and penalty has been charged and collected.
+- **Trace: loan fund cash ledger**: click **Load ledger** to list every movement behind "available loan cash" in date order, with a running balance. It covers Principal deposits and withdrawals, loans paid out, repayments (with how each was split) and approved loan fund entries. The last balance always equals **Available loan cash** at the top of the page. Use it to check any figure.
+
+![Monthly trend charts: loans disbursed, principal repaid, interest and fees collected, savings, injections, available cash, clients served, outstanding principal and overdue balance](images/15-loan-insights-trends.png)
+
+![Trace of the loan fund cash ledger: savings deposits, loan disbursements and repayments with their split, each with a running balance](images/17-loan-fund-trace.png)
+
+Every figure is worked out from the records each time the page loads. Nothing is typed in as a total, so the page can't fall out of step with the ledgers.
+
+> Before Loan Insights or Investments can be used for the first time, the system administrator must run `setupFinanceSchema()` once in the Apps Script editor. This creates the three tabs these pages use.
+
+### Loan fund entries
+
+Savings, loans and repayments already reach the loan fund through their own pages, so **don't enter them here**. Use a loan fund entry only for other cash:
+
+| Type | Use it for |
+|---|---|
+| **Cash Injection** | Money added to the loan fund from outside, such as a grant or donation |
+| **Other Outflow** | An authorised payment out of the loan fund, such as bank charges |
+
+Transfers between the loan fund and an investment are recorded from the **Investments** page instead (see [Investments](#investments)).
+
+**To propose an entry:**
+
+1. Go to **Loan insights** and click **+ Propose entry** in the **Loan Fund Ledger entries** panel.
+2. Choose the **Type** and enter the **Amount** and **Date**.
+3. Enter the **Reference**, such as the bank slip or receipt number. A reference can be used only once.
+4. Describe the **source or purpose**. This is required.
+5. Click **Propose**.
+
+![Propose Loan Fund Entry form for a cash injection with a bank reference and a description](images/16-loan-fund-entry.png)
+
+The entry is **Pending** and doesn't count yet. Two other admins must approve it: **Approve**, then **Final approve**. You can't approve an entry you proposed. Any admin can **Reject** a waiting entry with a reason.
+
+- An outflow can't take available loan cash below zero. Outflows still waiting for approval are counted too.
+- **To correct an approved entry**, click **Reverse** and give a reason. This proposes a reversal entry, which needs two approvals like any other entry. The original entry is never edited or deleted.
+- Every step is recorded in the audit log.
+
+### Investments
+
+**Investments** (admins only) tracks the club's unit trusts, fixed deposits, treasury bills and bonds, and other investments.
+
+![Investments page: portfolio value, net invested, income received and accrued, gain, fees and taxes, net return, the holdings table and the transactions awaiting approval](images/18-investments.png)
+
+**Adding an investment.** Click **+ New investment** and enter the name, type, provider, start date, maturity date (if any), and the account or reference number. You can also add a link to the certificate or statement. If you enter an **Initial amount**, it is proposed as the first transaction. Tick **Paid out of the loan fund** if the money came from the loan fund. Use **Edit** to change the details later; a reason is required and is kept in the audit log. Account numbers are masked in lists.
+
+**Recording a transaction.** Click **Record** on the investment and choose the type:
+
+| Type | Use it for |
+|---|---|
+| **Additional Contribution** | More money paid into the investment |
+| **Redemption** | Money taken out and paid to the club. This is not income |
+| **Income Earned** | A return credited or due, but not yet paid to the club |
+| **Income Received** | Income actually paid to the club |
+| **Income Reinvested** | Income kept inside the investment instead of being paid out |
+| **Fee** / **Tax** | A cost. Say whether it was taken from the investment's balance or paid separately |
+| **Valuation** | The value on a given date, copied from the provider's statement |
+
+Like loan fund entries, each transaction needs **two other admins** to approve it before it counts, and a mistake is put right with **Reverse**.
+
+**How the figures work**
+
+- **Income is counted once.** If you record a return as *earned* and later as *received*, the received amount settles the earned amount. It is not added twice.
+- **Values are entered by hand.** There is no live market data. Each holding shows the date of its last valuation. If money has moved in or out since then, the value is adjusted for it. An investment with no valuation is shown at what was paid in (**at cost**).
+- **Unrealized gain / loss** is the current value less the net amount invested. **Net return** is income, less fees and taxes, plus that gain.
+- Fees and taxes are shown separately from income.
+- **Maturing in the next 90 days** lists the active investments due to mature soon.
+
+**Moving money between an investment and the loan fund.** Click **Transfer** on the investment and choose the direction:
+
+- **Investment → loan fund**: a redemption from the investment and a matching cash injection into the loan fund.
+- **Loan fund → investment**: a matching contribution and outflow. It can't take more than the loan fund's available cash.
+
+Both entries are created together and linked. Approving one approves the other, and reversing one reverses both. A transfer only moves the club's own money, so it is **never counted as income** in either place.
+
+![Transfer with the Loan Fund form: moving money from the Money Market Fund into the loan fund](images/19-investment-transfer.png)
 
 ---
 
@@ -377,6 +514,18 @@ That request can't go ahead. Once an admin has rejected it, submit a new request
 
 **An entry in my history says "Deposit Reversal".**
 An admin cancelled or corrected one of your transactions. The note shows which reference it reverses, and you were emailed the reason.
+
+**Why can't I see Loan insights?**
+It is open to Founder Members and admins. Ask an admin to check your membership type.
+
+**Can other members see my loan in Loan Insights?**
+No. Founder Members see club totals only. Only admins can see individual loans.
+
+**Why is "Available loan cash" different from the loans outstanding?**
+Available loan cash is the money the club holds now. Loans outstanding is money borrowers still owe. The **Fund position** table adds the two together.
+
+**A repayment was recorded wrongly. Can it be fixed?**
+Yes. An admin reverses it under **Loans → Repayments** and records the correct one. The member is emailed both times.
 
 **Who do I contact about a mistake?**
 The treasurer or any committee admin.

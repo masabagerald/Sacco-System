@@ -24,10 +24,11 @@ function gsFiles(dir) {
 function loadProject() {
   const fakes = createGasFakes();
   const context = vm.createContext(Object.assign({ console }, fakes.globals));
-  // Config first: other files' top-level constants may refer to it.
+  // Same order as Apps Script (alphabetical by path, as clasp pushes them), so a file's top-level
+  // code that reads another file's constant before that file has run fails here too.
   const files = gsFiles(path.join(ROOT, 'src'))
     .filter(f => !f.endsWith(path.join('models', 'test.gs')))
-    .sort((a, b) => (b.includes('Config.gs') - a.includes('Config.gs')) || a.localeCompare(b));
+    .sort((a, b) => path.relative(ROOT, a).split(path.sep).join('/').localeCompare(path.relative(ROOT, b).split(path.sep).join('/')));
   files.forEach(f => vm.runInContext(fs.readFileSync(f, 'utf8'), context, { filename: path.relative(ROOT, f) }));
   fakes.install(context);
   // Script-level consts are not properties of the global object; val() reads them by name.

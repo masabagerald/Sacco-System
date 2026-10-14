@@ -12,6 +12,8 @@ A Google Apps Script web app for running a small SACCO (savings and credit coope
 - **Loan & withdrawal requests** — members submit requests; admins approve (with limit checks) or reject with a reason.
 - **Fines** — issue, track, and mark as paid.
 - **Admin dashboard** — member/savings/loan/fine totals, pending requests, overdue loans, and Principal / Operations / Welfare tabs with cumulative contributions, withdrawals and balance per account (calculated from the ledger each time it loads).
+- **Loan Insights** — loan-fund cash, disbursements, repayments, interest, processing fees, penalties, outstanding and overdue balances, and borrower counts, by month or for any date range. Admins see everything, including per-loan rows and a cash-ledger trace. Founder Members (without the Admin role) get a read-only, aggregate-only view. Delegate Members and Non-Members are refused on the server.
+- **Investment Tracker** (admins) — unit trusts, fixed deposits, treasury bills/bonds and others: contributions, redemptions, income earned vs received, reinvested income, fees and taxes, manual valuations, and transfers to and from the loan fund.
 - **Audit log** — every state-changing action is recorded automatically.
 - **Reports** — per-member PDF statement (saved to Drive) and a full ledger CSV export.
 - **Scheduled jobs** — monthly statements, repayment reminders, and weekly spreadsheet backups via time-driven triggers.
@@ -32,6 +34,8 @@ A Google Apps Script web app for running a small SACCO (savings and credit coope
 ├── .clasp.json                  clasp project config (script ID, file extensions)
 └── src/
     ├── controllers/             Public functions called from the frontend via google.script.run
+    │   ├── LoanInsightsController.gs  Loan Insights, loan fund ledger trace, fund entries, approve/reject/reverse
+    │   ├── InvestmentController.gs    investment records, transactions, transfers, portfolio dashboard
     │   ├── AuthController.gs        sign-in, OTP, session, logout
     │   ├── SavingsController.gs     get/record savings
     │   ├── LoanController.gs        get loans, issue loan, record repayment
@@ -103,6 +107,9 @@ The spreadsheet must have these tabs (exact names, set in `src/utils/Config.gs`)
 | `Loan Requests` | RequestID, Timestamp, MemberNo, Amount (UGX), Term (months), Purpose, Status, Decision Notes, Decided By |
 | `Withdrawal Requests` | RequestID, Timestamp, MemberNo, Amount (UGX), Reason, Status, Decision Notes, Decided By |
 | `Audit Log` | Timestamp, Action, Member (Affected), Performed By, Details, Reference ID |
+| `Loan Fund Ledger` | EntryID, Date, Entry Type (`Cash Injection` / `Other Outflow` / `Transfer from Investment` / `Transfer to Investment` / `Reversal`), Amount (UGX), Reference, Description, Investment ID, Linked Entry, Reverses, Status, Initiated By, Approver 1/2 (+ At), Decision Notes, Decided By |
+| `Investments` | InvestmentID, Name, Type, Provider, Currency (UGX), Start Date, Maturity Date, Account Reference, Status (`Active`/`Matured`/`Closed`), Notes, Document Link, Created By, Updated At/By |
+| `Investment Transactions` | TxID, InvestmentID, Date, Tx Type, Amount (UGX), Cost Source, Reference, Notes, Linked Entry, Reverses, Status, Initiated By, Approver 1/2 (+ At), Decision Notes, Decided By |
 
 The header row can sit below a title and description (row 4 in the current sheet). Run `setupGuaranteeSchema()` once from the Apps Script editor to create the `Guarantors` tab and add the new `Loans` columns. Loan rules (Article 4 of the SACCO by-laws) live in `src/utils/Config.gs`.
 
@@ -162,3 +169,31 @@ Existing rows are not changed. Rows without an account are placed by their payme
 
 - `npm test` runs every suite locally under Node, with in-memory stand-ins for the Apps Script services (`tests/gas-fakes.js`). It covers the `.gs` suites in `src/tests/` and the controller-level tests in `tests/*.integration.js`.
 - The `.gs` suites can also be run from the Apps Script editor: `runDepositAccountTests()`, `runLoanServiceTests()`.
+
+## Loan Insights and the Investment Tracker
+
+Run `setupFinanceSchema()` once from the Apps Script editor (`setupGuaranteeSchema()` also runs it). It creates the `Loan Fund Ledger`, `Investments` and `Investment Transactions` tabs, or adds any missing columns. It is safe to run again and never changes existing rows.
+
+**How the figures are worked out.** Nothing is stored as a dashboard total. Every figure is calculated from the source sheets each time (`src/services/LoanInsightsService.gs`):
+
+- **Loan-fund capital** is the club-wide **Principal** savings balance: deposits come in, withdrawals go out, and reversals are netted. Operations and Welfare are not loan capital.
+- **Available loan cash** = Principal savings net + approved cash injections + transfers from investments + repayments received − loans disbursed − approved other outflows − transfers to investments. Disbursements are already in this figure, so outstanding loans are not subtracted again.
+- **Repayment split.** Each repayment row stores a single total. For reporting it is split **fee → interest → penalty → principal** (`REPAYMENT_ALLOCATION_ORDER`). A charge can only take money paid on or after the day it was charged. An overpayment is held as a credit and applied to the next charge, such as an overdue surcharge.
+- **Charged vs collected.** Interest and fees are charged when the loan is issued; overdue surcharges and late penalties the day after they apply. "Charged" (owed) is reported separately from "collected" (cash). Penalties have their own line.
+- **Fund position** = cash + outstanding principal + interest + fees + penalties (less borrower credits). This is a receivables view, not cash.
+- **Overdue** at any date uses the same rules as the loan screens.
+- **Borrowers.** A client counts once per period. *New* means their first loan ever falls in the period.
+- **Trace.** The admin cash-ledger trace (`getLoanFundLedger`) lists every movement with a running balance. Its closing balance always equals available cash, and the tests check this.
+
+**Approval and corrections.** Loan Fund Ledger entries and investment transactions start **Pending**. They count only after two different admins approve them, and neither may be the admin who proposed the entry; this uses the same `_approvalDutyError` rules as loans. An entry is never edited or deleted. A correction is a **Reversal** entry, which is approved the same way. Duplicates are refused: a reference can be reused only by a reversal, and an identical entry can't be proposed while one is still pending. An outflow cannot take available loan cash below zero (entries still awaiting approval are counted). A redemption cannot exceed the investment's recorded value. Every step goes to the audit log.
+
+**Investments** (`src/services/InvestmentService.gs`):
+- **Net invested** = contributions + reinvested income − redemptions − fees/taxes taken from the investment's balance.
+- **Value** = the latest manual valuation, carried forward by later flows. With no valuation, the investment is shown at cost.
+- **Income** = received + reinvested + accrued (earned not yet received). Earned and received settle against each other, so a return is counted once.
+- **Capital gain** = value − net invested. **Net return** = income − fees − taxes + capital gain.
+- **Transfers.** A transfer to or from the loan fund creates two linked entries, an investment redemption or contribution plus a loan-fund transfer. They are approved and reversed together and are never counted as income.
+
+**Repayment reversals.** Each Loan Repayments row has a reference (`RPY-000001`). An admin reverses a wrong repayment from Loans → Repayments, with a reason. This appends a row with the negative amount and `Reverses` set; the original row is never changed. Every total nets the pair off, a loan the repayment had cleared becomes Active again, and Loan Insights undoes exactly that payment's fee/interest/penalty/principal split from the reversal date. `setupFinanceSchema()` adds the Reference and Reverses columns and gives existing repayments references (only blank Reference cells are filled).
+
+**Not supported yet** (shown as gaps rather than guessed at): loan write-offs or cancellations, currencies other than UGX, and uploading supporting documents (an https link can be stored instead).

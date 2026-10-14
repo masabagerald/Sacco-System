@@ -1,13 +1,15 @@
 // Regenerates the user-guide screenshots in docs/images: `npm run screenshots`.
+// `npm run screenshots -- 14 15` regenerates only the files whose names start with those prefixes.
 // Builds the real web app page from src/webapp (resolving the include() tags), replaces the
 // Apps Script server with the fictional data in mock-data.js, and captures each scene in
-// headless Chrome. The guarantor page is rendered by the real server code (GuarantorWeb.gs)
-// against the in-memory test spreadsheet.
+// headless Chrome. The guarantor page, and the data behind the Loan Insights and Investments
+// screens (finance-data.js), come from the real server code run against the in-memory test spreadsheet.
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const vm = require('vm');
 const { spawnSync } = require('child_process');
+const { buildFinanceData } = require('./finance-data');
 
 const ROOT = path.join(__dirname, '..', '..');
 const OUT = path.join(ROOT, 'docs', 'images');
@@ -33,8 +35,30 @@ const SHOTS = [
   ['10-withdrawal-approvals.png', 'withdrawal-approvals', 1280, 560],
   ['11-loan-approvals.png', 'loan-approvals', 1280, 560],
   ['12-propose-loan.png', 'propose-loan', 1280, 1080],
-  ['13-audit-log.png', 'audit-log', 1280, 760]
+  ['13-audit-log.png', 'audit-log', 1280, 760],
+  ['20-record-repayment.png', 'record-repayment', 1280, 760],
+  ['21-reverse-repayment.png', 'reverse-repayment', 1280, 720],
+  ['14-loan-insights-founder.png', 'loan-insights-founder', 1280, 980],
+  ['15-loan-insights-trends.png', 'loan-insights-trends', 1280, 1000],
+  ['16-loan-fund-entry.png', 'loan-fund-entry', 1280, 900],
+  ['17-loan-fund-trace.png', 'loan-fund-trace', 1280, 900],
+  ['18-investments.png', 'investments', 1280, 1240],
+  ['19-investment-transfer.png', 'investment-transfer', 1280, 900]
 ];
+
+// The server code loaded into a fresh context with in-memory Apps Script services
+function loadServer() {
+  const { createGasFakes } = require('../../tests/gas-fakes');
+  const fakes = createGasFakes();
+  const g = vm.createContext(Object.assign({ console }, fakes.globals));
+  const gsFiles = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(e =>
+    e.isDirectory() ? gsFiles(path.join(dir, e.name)) : (e.name.endsWith('.gs') ? [path.join(dir, e.name)] : []));
+  gsFiles(path.join(ROOT, 'src')).filter(f => !f.endsWith('test.gs'))
+    .sort((a, b) => (b.includes('Config.gs') - a.includes('Config.gs')) || a.localeCompare(b))
+    .forEach(f => vm.runInContext(fs.readFileSync(f, 'utf8'), g, { filename: f }));
+  fakes.install(g);
+  return { g, fakes, val: n => vm.runInContext(n, g) };
+}
 
 // The page doGet() serves, with include() tags resolved and the server swapped for mock data
 function buildAppPage() {
@@ -45,23 +69,14 @@ function buildAppPage() {
   const read = f => fs.readFileSync(path.join(__dirname, f), 'utf8');
   return include('src/webapp/index')
     .replace(/<\?!=\s*JSON\.stringify\(guideUrl\)\s*\?>/, JSON.stringify('#guide'))
-    .replace('<head>', '<head>\n<script>' + read('mock-data.js') + '</script>')
+    .replace('<head>', '<head>\n<script>window.FINANCE_MOCK = ' + JSON.stringify(buildFinanceData(loadServer)).replace(/<\//g, '<\\/') + ';</script>\n<script>' + read('mock-data.js') + '</script>')
     .replace('</body>', '<script>' + read('scenes.js') + '</script>\n</body>');
 }
 
 // Guarantor "decline" confirmation page, rendered by GuarantorWeb.gs for a sample Soft Loan request
 function buildGuarantorPage() {
-  const { createGasFakes } = require('../../tests/gas-fakes');
   const { seed } = require('../../tests/fixtures');
-  const fakes = createGasFakes();
-  const g = vm.createContext(Object.assign({ console }, fakes.globals));
-  const gsFiles = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(e =>
-    e.isDirectory() ? gsFiles(path.join(dir, e.name)) : (e.name.endsWith('.gs') ? [path.join(dir, e.name)] : []));
-  gsFiles(path.join(ROOT, 'src')).filter(f => !f.endsWith('test.gs'))
-    .sort((a, b) => (b.includes('Config.gs') - a.includes('Config.gs')) || a.localeCompare(b))
-    .forEach(f => vm.runInContext(fs.readFileSync(f, 'utf8'), g, { filename: f }));
-  fakes.install(g);
-  const val = n => vm.runInContext(n, g);
+  const { g, fakes, val } = loadServer();
   const ctx = seed({ g, fakes, val });
   const names = { M004: 'Peter Wanyama', M006: 'Nancy Achieng', M007: 'Ruth Atim' };
   fakes.sheet(val('SH_MEMBERS')).data.forEach(r => { if (names[r[0]]) r[1] = names[r[0]]; });
@@ -88,7 +103,9 @@ fs.writeFileSync(app, buildAppPage());
 fs.writeFileSync(guar, buildGuarantorPage());
 const fileUrl = p => 'file:///' + p.replace(/\\/g, '/');
 let failed = 0;
-SHOTS.forEach(([file, scene, w, h]) => { if (!shoot(file, fileUrl(app) + '?scene=' + scene, w, h)) failed++; });
-if (!shoot('05-guarantor-decline.png', fileUrl(guar), 640, 760)) failed++;
+const only = process.argv.slice(2);
+const wanted = file => !only.length || only.some(p => file.startsWith(p));
+SHOTS.filter(([file]) => wanted(file)).forEach(([file, scene, w, h]) => { if (!shoot(file, fileUrl(app) + '?scene=' + scene, w, h)) failed++; });
+if (wanted('05-guarantor-decline.png') && !shoot('05-guarantor-decline.png', fileUrl(guar), 640, 760)) failed++;
 fs.rmSync(TMP, { recursive: true, force: true });
 process.exit(failed ? 1 : 0);

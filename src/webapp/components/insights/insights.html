@@ -1,0 +1,112 @@
+<!-- Loan Insights: admins (full) and Founder Members (aggregate figures only). The server enforces this. -->
+<div class="panel">
+  <div class="ph">
+    <div><h2>Loan Insights</h2><p class="sub" id="li_sub">Loan-fund cash, loans, repayments and borrowers, calculated from the ledgers each time this page loads.</p></div>
+    <button class="btn sm" onclick="loadInsights()">Refresh</button>
+  </div>
+  <div class="tabs" id="li_presets">
+    <button class="tab" data-p="month">This month</button><button class="tab" data-p="prev">Previous month</button>
+    <button class="tab" data-p="ytd">Year to date</button><button class="tab on" data-p="all">All time</button><button class="tab" data-p="custom">Custom</button>
+  </div>
+  <div class="bar hidden" id="li_custom">
+    <div class="field"><label>From</label><input id="li_from" type="date"></div>
+    <div class="field"><label>To</label><input id="li_to" type="date"></div>
+    <button class="btn sm solid" id="li_apply">Apply</button>
+  </div>
+  <p class="note" id="li_range"></p>
+  <div class="err" id="li_err"></div>
+</div>
+
+<div id="li_body" class="loadable">
+<h3 class="sec-h">Loan fund position <span id="li_asof"></span></h3>
+<p class="note sec-n">Balances on the last day of the range.</p>
+<div class="cards">
+  <div class="card hero"><div class="lbl">Available loan cash</div><div class="val mono" id="li_cash">–</div><div class="meta">Cash actually available for new loans</div></div>
+  <div class="card"><div class="lbl">Outstanding principal</div><div class="val mono" id="li_outp">–</div><div class="meta" id="li_active"></div></div>
+  <div class="card"><div class="lbl">Interest outstanding</div><div class="val mono warn" id="li_into">–</div><div class="meta">Charged, not yet received</div></div>
+  <div class="card"><div class="lbl">Fees outstanding</div><div class="val mono warn" id="li_feeo">–</div><div class="meta">Assessed, not yet received</div></div>
+  <div class="card"><div class="lbl">Penalties outstanding</div><div class="val mono warn" id="li_peno">–</div><div class="meta">Overdue surcharges &amp; late penalties</div></div>
+  <div class="card"><div class="lbl">Overdue loans</div><div class="val mono bad" id="li_od">–</div><div class="meta" id="li_oda"></div></div>
+</div>
+<div class="panel">
+  <h2>Fund position (cash + receivables)</h2><p class="sub">Not cash: what the fund would hold if every outstanding amount were paid. No loan has been written off, so every outstanding amount is counted as collectible.</p>
+  <table><tbody id="li_posTb"></tbody></table>
+</div>
+
+<h3 class="sec-h">Period totals <span id="li_per"></span></h3>
+<p class="note sec-n">Money in and out during the range. "Charged" is what borrowers owe; "collected" is cash actually received.</p>
+<div class="cards">
+  <div class="card"><div class="lbl">Loans disbursed</div><div class="val mono" id="li_dis">–</div><div class="meta" id="li_disn"></div></div>
+  <div class="card"><div class="lbl">Principal repaid</div><div class="val mono g" id="li_prr">–</div></div>
+  <div class="card"><div class="lbl">Interest collected</div><div class="val mono g" id="li_intc">–</div><div class="meta" id="li_intch"></div></div>
+  <div class="card"><div class="lbl">Processing fees collected</div><div class="val mono g" id="li_feec">–</div><div class="meta" id="li_feea"></div></div>
+  <div class="card"><div class="lbl">Penalties collected</div><div class="val mono g" id="li_penc">–</div><div class="meta" id="li_pench"></div></div>
+  <div class="card"><div class="lbl">Total cash received</div><div class="val mono" id="li_rec">–</div><div class="meta" id="li_over"></div></div>
+</div>
+<div class="panel">
+  <h2>Loan fund cash movements</h2><p class="sub">Capital comes from club-wide Principal savings. Other injections and outflows count only after two admin approvals.</p>
+  <table><tbody id="li_cashTb"></tbody></table>
+</div>
+
+<div class="panel">
+  <h2>Borrowers</h2><p class="sub">A client counts once in a period however many loans they took. New = first loan ever in this period; repeat = had borrowed before it.</p>
+  <div class="cards">
+    <div class="card"><div class="lbl">Clients served</div><div class="val mono" id="li_uq">–</div><div class="meta" id="li_ever"></div></div>
+    <div class="card"><div class="lbl">Loans issued</div><div class="val mono" id="li_ln">–</div></div>
+    <div class="card"><div class="lbl">New borrowers</div><div class="val mono" id="li_new">–</div></div>
+    <div class="card"><div class="lbl">Repeat borrowers</div><div class="val mono" id="li_rep">–</div></div>
+  </div>
+  <table><thead><tr><th>Membership type</th><th class="r">Clients</th><th class="r">Loans</th><th class="r">Disbursed</th><th class="r">Fees assessed</th></tr></thead>
+  <tbody id="li_typeTb"></tbody></table>
+  <p class="note">Processing fee per loan: Founder and Delegate Members UGX 5,000; Non-Members UGX 10,000.</p>
+</div>
+
+<div class="panel">
+  <h2>Trends by month</h2><p class="sub">Columns are totals within each month. Lines are balances at each month's end.</p>
+  <div class="chart-grid">
+    <div><h4>Loans disbursed</h4><div id="lc_dis"></div></div>
+    <div><h4>Principal repaid</h4><div id="lc_prr"></div></div>
+    <div><h4>Interest collected</h4><div id="lc_int"></div></div>
+    <div><h4>Processing fees collected</h4><div id="lc_fee"></div></div>
+    <div><h4>Principal savings, net (capital in)</h4><div id="lc_sav"></div></div>
+    <div><h4>Other cash injections</h4><div id="lc_inj"></div></div>
+    <div><h4>Available loan cash (month end)</h4><div id="lc_cash"></div></div>
+    <div><h4>Clients served</h4><div id="lc_bor"></div></div>
+    <div><h4>Outstanding principal (month end)</h4><div id="lc_outp"></div></div>
+    <div><h4>Overdue balance (month end)</h4><div id="lc_od"></div></div>
+  </div>
+  <details class="tview"><summary>Show the monthly figures as a table</summary>
+    <div class="tscroll"><table><thead><tr><th>Month</th><th class="r">Disbursed</th><th class="r">Principal repaid</th><th class="r">Interest</th><th class="r">Fees</th><th class="r">Penalties</th><th class="r">Savings net</th><th class="r">Injections</th><th class="r">Outflows</th><th class="r">Cash (end)</th><th class="r">Outstanding (end)</th><th class="r">Overdue (end)</th><th class="r">Clients</th><th class="r">Loans</th></tr></thead>
+    <tbody id="li_monTb"></tbody></table></div>
+  </details>
+</div>
+
+<div class="panel">
+  <h2>All time to <span id="li_cumto"></span></h2>
+  <table><tbody id="li_cumTb"></tbody></table>
+</div>
+
+<!-- ── ADMIN ONLY ── -->
+<div id="li_admin" class="hidden">
+  <div class="panel">
+    <div class="ph"><div><h2>Loan Fund Ledger entries</h2><p class="sub">Cash injections and other outflows that no other sheet records. Each needs two different admins (not the proposer) to approve before it counts. Corrections are reversals; nothing is edited or deleted.</p></div>
+      <button class="btn sm solid" onclick="openFundEntry()">+ Propose entry</button></div>
+    <table><thead><tr><th>ID</th><th>Date</th><th>Type</th><th class="r">Amount</th><th>Description</th><th>Status</th><th></th></tr></thead>
+    <tbody id="li_entTb"><tr class="empty"><td colspan="7">Loading&hellip;</td></tr></tbody></table>
+  </div>
+
+  <div class="panel">
+    <div class="ph"><div><h2>Loans in this period</h2><p class="sub">Loans issued in the range, still outstanding at its end, or repaid during it. Collected amounts are to the end of the range.</p></div></div>
+    <div class="tscroll"><table><thead><tr><th>Loan</th><th>Member</th><th>Issued</th><th>Due</th><th class="r">Principal</th><th class="r">Principal repaid</th><th class="r">Interest charged / collected</th><th class="r">Fee assessed / collected</th><th class="r">Penalty / collected</th><th class="r">Outstanding</th></tr></thead>
+    <tbody id="li_loanTb"></tbody></table></div>
+  </div>
+
+  <div class="panel">
+    <div class="ph"><div><h2>Trace: loan fund cash ledger</h2><p class="sub">Every movement behind "available loan cash" for the range, with a running balance. The last balance matches the figure above.</p></div>
+      <button class="btn sm" onclick="loadFundLedger()">Load ledger</button></div>
+    <p class="note" id="li_ledSum"></p>
+    <div class="tscroll"><table><thead><tr><th>Date</th><th>Source</th><th>Reference</th><th>What</th><th>Details</th><th class="r">In / out</th><th class="r">Balance</th></tr></thead>
+    <tbody id="li_ledTb"><tr class="empty"><td colspan="7">Load the ledger to trace the figures.</td></tr></tbody></table></div>
+  </div>
+</div>
+</div>

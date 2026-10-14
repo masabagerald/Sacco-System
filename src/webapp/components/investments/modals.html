@@ -1,0 +1,87 @@
+<!-- Propose a loan fund entry -->
+<div class="modal-bg" id="m_fundEntry" onclick="if(event.target===this)cm('m_fundEntry')">
+  <div class="modal"><button class="x" onclick="cm('m_fundEntry')">&times;</button>
+    <h3>Propose Loan Fund Entry</h3><p class="sub">Counts only after two other admins approve it. Savings, loans and repayments are recorded in their own pages, not here.</p>
+    <div class="mgrid">
+      <div class="field"><label>Type</label><select id="fe_ty"><option>Cash Injection</option><option>Other Outflow</option></select></div>
+      <div class="field"><label>Amount (UGX)</label><input id="fe_am" type="number" min="0"></div>
+      <div class="field"><label>Date</label><input id="fe_dt" type="date"></div>
+      <div class="field"><label>Reference</label><input id="fe_ref" type="text" placeholder="bank slip / receipt no."></div>
+      <div class="field full"><label>Source or purpose (required)</label><input id="fe_ds" type="text" placeholder="e.g. grant from district / bank charges"></div>
+    </div>
+    <div class="mact"><button class="btn" onclick="cm('m_fundEntry')">Cancel</button><button class="btn solid" id="fe_btn" onclick="submitFundEntry()">Propose</button></div>
+    <div class="mst" id="fe_st"></div>
+  </div>
+</div>
+
+<!-- Reject or reverse a finance entry -->
+<div class="modal-bg" id="m_finAct" onclick="if(event.target===this)cm('m_finAct')">
+  <div class="modal"><button class="x" onclick="cm('m_finAct')">&times;</button>
+    <h3 id="fa_t"></h3><p class="sub" id="fa_info"></p>
+    <div class="mgrid"><div class="field full"><label>Reason (kept in the audit log)</label><input id="fa_rs" type="text"></div></div>
+    <div class="mact"><button class="btn" onclick="cm('m_finAct')">Cancel</button><button class="btn danger" id="fa_btn" onclick="submitFinAct()">Save</button></div>
+    <div class="mst" id="fa_st"></div>
+  </div>
+</div>
+
+<!-- Create / edit an investment -->
+<div class="modal-bg" id="m_inv" onclick="if(event.target===this)cm('m_inv')">
+  <div class="modal"><button class="x" onclick="cm('m_inv')">&times;</button>
+    <h3 id="in_t">New Investment</h3>
+    <div class="mgrid">
+      <div class="field full"><label>Name</label><input id="in_nm" type="text"></div>
+      <div class="field"><label>Type</label><select id="in_ty"><option>Unit Trust</option><option>Fixed Deposit</option><option>Treasury Bill</option><option>Treasury Bond</option><option>Other</option></select></div>
+      <div class="field"><label>Provider / institution</label><input id="in_pv" type="text"></div>
+      <div class="field"><label>Start date</label><input id="in_sd" type="date"></div>
+      <div class="field"><label>Maturity date (if any)</label><input id="in_md" type="date"></div>
+      <div class="field"><label>Account / reference no.</label><input id="in_ar" type="text" autocomplete="off"></div>
+      <div class="field"><label>Status</label><select id="in_st"><option>Active</option><option>Matured</option><option>Closed</option></select></div>
+      <div class="field full"><label>Document link (https://, optional)</label><input id="in_dl" type="url" placeholder="Drive link to the certificate or statement"></div>
+      <div class="field full"><label>Notes</label><input id="in_nt" type="text"></div>
+      <div class="field in-new"><label>Initial amount (UGX)</label><input id="in_am" type="number" min="0" placeholder="optional"></div>
+      <div class="field in-new"><label>Payment reference</label><input id="in_rf" type="text"></div>
+      <label class="field full in-new chk"><input id="in_lf" type="checkbox"> Paid out of the loan fund (records a linked transfer)</label>
+      <div class="field full hidden" id="in_rswrap"><label>Reason for the change (kept in the audit log)</label><input id="in_rs" type="text"></div>
+    </div>
+    <p class="note">Currency: UGX only. The initial amount is proposed as a transaction that two other admins must approve.</p>
+    <div class="mact"><button class="btn" onclick="cm('m_inv')">Cancel</button><button class="btn solid" id="in_btn" onclick="submitInv()">Save</button></div>
+    <div class="mst" id="in_sts"></div>
+  </div>
+</div>
+
+<!-- Record an investment transaction -->
+<div class="modal-bg" id="m_invTx" onclick="if(event.target===this)cm('m_invTx')">
+  <div class="modal"><button class="x" onclick="cm('m_invTx')">&times;</button>
+    <h3>Record Investment Transaction</h3><p class="sub" id="it_info"></p>
+    <div class="mgrid">
+      <div class="field full"><label>Type</label><select id="it_ty" onchange="toggleInvTx()">
+        <option>Additional Contribution</option><option>Redemption</option><option>Income Earned</option><option>Income Received</option>
+        <option>Income Reinvested</option><option>Fee</option><option>Tax</option><option>Valuation</option><option>Initial Investment</option></select></div>
+      <div class="field"><label id="it_aml">Amount (UGX)</label><input id="it_am" type="number" min="0"></div>
+      <div class="field"><label id="it_dtl">Date</label><input id="it_dt" type="date"></div>
+      <div class="field full hidden" id="it_cswrap"><label>Paid from</label><select id="it_cs"><option value="">— select —</option><option>Investment balance</option><option>Paid separately</option></select></div>
+      <div class="field"><label>Reference</label><input id="it_rf" type="text"></div>
+      <div class="field"><label>Notes</label><input id="it_nt" type="text"></div>
+    </div>
+    <p class="note" id="it_help"></p>
+    <div class="mact"><button class="btn" onclick="cm('m_invTx')">Cancel</button><button class="btn solid" id="it_btn" onclick="submitInvTx()">Propose</button></div>
+    <div class="mst" id="it_st"></div>
+  </div>
+</div>
+
+<!-- Transfer between an investment and the loan fund -->
+<div class="modal-bg" id="m_invTr" onclick="if(event.target===this)cm('m_invTr')">
+  <div class="modal"><button class="x" onclick="cm('m_invTr')">&times;</button>
+    <h3>Transfer with the Loan Fund</h3><p class="sub" id="tr_info"></p>
+    <div class="mgrid">
+      <div class="field full"><label>Direction</label><select id="tr_dir"><option value="toLoanFund">Investment → loan fund (redemption)</option><option value="fromLoanFund">Loan fund → investment (contribution)</option></select></div>
+      <div class="field"><label>Amount (UGX)</label><input id="tr_am" type="number" min="0"></div>
+      <div class="field"><label>Date</label><input id="tr_dt" type="date"></div>
+      <div class="field"><label>Reference</label><input id="tr_rf" type="text"></div>
+      <div class="field"><label>Notes</label><input id="tr_nt" type="text"></div>
+    </div>
+    <p class="note">Two linked entries are created, one on each side, and approved together. A transfer moves the club's own money: it is never counted as income.</p>
+    <div class="mact"><button class="btn" onclick="cm('m_invTr')">Cancel</button><button class="btn solid" id="tr_btn" onclick="submitInvTr()">Propose</button></div>
+    <div class="mst" id="tr_st"></div>
+  </div>
+</div>

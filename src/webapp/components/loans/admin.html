@@ -1,4 +1,21 @@
 <div class="panel">
+  <div class="ph"><div><h2>Active Loans</h2><p class="sub">Every member's running loan. Click Record Repayment when a member pays; they are emailed the new balance, and the loan is marked Cleared when nothing is left to pay.</p></div>
+    <button class="btn sm" onclick="loadActiveLoansAdmin()">Refresh</button></div>
+  <input id="al_q" type="search" placeholder="Filter by member or loan ID" oninput="renderActiveLoansAdmin()" style="padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:var(--field);color:var(--text);font:inherit;font-size:13px;margin-bottom:10px;width:100%;max-width:320px">
+  <div class="tscroll"><table><thead><tr><th>Loan</th><th>Member</th><th>Issued</th><th>Due</th><th class="r">Total due</th><th class="r">Repaid</th><th class="r">Outstanding</th><th></th></tr></thead>
+  <tbody id="activeLoansTb"><tr class="empty"><td colspan="8">Loading&hellip;</td></tr></tbody></table></div>
+</div>
+
+<div class="panel">
+  <div class="ph"><div><h2>Repayments</h2><p class="sub">Every repayment recorded, newest first. If one was entered wrongly, click Reverse: a reversal entry cancels it, the original stays in the record, the member is emailed and the loan balance updates.</p></div>
+    <button class="btn sm" onclick="loadRepaymentsAdmin()">Refresh</button></div>
+  <input id="rpl_q" type="search" placeholder="Filter by member, loan ID or reference" oninput="renderRepaymentsAdmin()" style="padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:var(--field);color:var(--text);font:inherit;font-size:13px;margin-bottom:10px;width:100%;max-width:320px">
+  <div class="tscroll"><table><thead><tr><th>Date</th><th>Reference</th><th>Loan</th><th>Member</th><th class="r">Amount</th><th>Notes</th><th></th></tr></thead>
+  <tbody id="repaymentsTb"><tr class="empty"><td colspan="7">Loading&hellip;</td></tr></tbody></table></div>
+  <p class="note" id="rpl_note"></p>
+</div>
+
+<div class="panel">
   <h2>Loan Requests</h2><p class="sub">The second approval creates the loan. Every guarantor must have agreed first. Member loans are capped at 50% of Principal savings (approving admins can override with a reason). Neither approver may be the initiator or the applicant. Reject requires a reason.</p>
   <table><thead><tr><th>ID</th><th>Member</th><th class="r">Amount</th><th>Term</th><th>Purpose</th><th>Limit</th><th>Status</th><th></th></tr></thead>
   <tbody id="loanReqAdminTb"><tr class="empty"><td colspan="8">Loading&hellip;</td></tr></tbody></table>

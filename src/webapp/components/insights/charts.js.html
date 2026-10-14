@@ -1,0 +1,101 @@
+<script>
+// ── SMALL MONTHLY CHARTS (inline SVG, no library) ─────────────────────────────
+// One measure per chart (small multiples): no legend needed, never two y-axes. Columns for amounts
+// within a month, a line for balances at month end. Hover/arrow keys show a tooltip; every value is
+// also in the monthly table, so the tooltip never gates anything.
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function monLabel(m){const p=String(m).split('-');return MON[+p[1]-1]+' '+String(p[0]).slice(2);}
+// 0 / 950 / 1.2K / 3.4M
+function compact(v){const a=Math.abs(v),s=v<0?'−':'';
+  if(a>=1e9)return s+(+(a/1e9).toFixed(1))+'B';if(a>=1e6)return s+(+(a/1e6).toFixed(1))+'M';
+  if(a>=1e3)return s+(+(a/1e3).toFixed(1))+'K';return s+Math.round(a);}
+function niceStep(raw){const p=Math.pow(10,Math.floor(Math.log10(raw||1)));const f=raw/p;return (f<=1?1:f<=2?2:f<=5?5:10)*p;}
+
+// el: container. rows: [{month,...}]. key: field to plot. kind: 'col' | 'line'. money: format as UGX in the tooltip.
+function miniChart(el,rows,key,kind,money){
+  el.innerHTML='';
+  if(!rows.length){el.innerHTML='<p class="note">No data in this range.</p>';return;}
+  const W=520,H=190,pl=46,pr=14,pt=14,pb=26;
+  const vals=rows.map(r=>n(r[key]));
+  let hi=Math.max(0,...vals),lo=Math.min(0,...vals);
+  const step=money?niceStep((hi-lo||1)/4):Math.max(1,niceStep((hi-lo||1)/4));  // counts: whole-number ticks
+  hi=Math.ceil(hi/step)*step||step;lo=Math.floor(lo/step)*step;
+  const y=v=>pt+(hi-v)/(hi-lo)*(H-pt-pb);
+  const band=(W-pl-pr)/rows.length, cx=i=>pl+band*i+band/2;
+  const bw=Math.max(2,Math.min(24,band-4));
+  let g='';
+  for(let t=lo;t<=hi+step/2;t+=step)
+    g+='<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y(t)+'" y2="'+y(t)+'" class="cg"/>'
+      +'<text x="'+(pl-6)+'" y="'+(y(t)+3.5)+'" class="ct" text-anchor="end">'+compact(t)+'</text>';
+  const every=Math.ceil(rows.length/8);
+  rows.forEach((r,i)=>{ if(i%every===0||i===rows.length-1&&rows.length<=8)
+    g+='<text x="'+cx(i)+'" y="'+(H-8)+'" class="ct" text-anchor="middle">'+esc(monLabel(r.month))+'</text>'; });
+  let marks='';
+  if(kind==='col'){
+    rows.forEach((r,i)=>{
+      const v=vals[i]; if(!v)return;
+      const x0=cx(i)-bw/2, yb=y(0), yv=y(v), h=Math.abs(yb-yv), rr=Math.min(4,h,bw/2);
+      // 4px rounded data end, square at the baseline
+      const d=v>0
+        ?'M'+x0+','+yb+'V'+(yv+rr)+'Q'+x0+','+yv+' '+(x0+rr)+','+yv+'H'+(x0+bw-rr)+'Q'+(x0+bw)+','+yv+' '+(x0+bw)+','+(yv+rr)+'V'+yb+'Z'
+        :'M'+x0+','+yb+'V'+(yv-rr)+'Q'+x0+','+yv+' '+(x0+rr)+','+yv+'H'+(x0+bw-rr)+'Q'+(x0+bw)+','+yv+' '+(x0+bw)+','+(yv-rr)+'V'+yb+'Z';
+      marks+='<path d="'+d+'" class="cb" data-i="'+i+'"/>';
+    });
+    marks+='<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y(0)+'" y2="'+y(0)+'" class="c0"/>';
+  }else{
+    const pts=rows.map((r,i)=>cx(i)+','+y(vals[i])).join(' ');
+    marks+='<polygon points="'+cx(0)+','+y(0)+' '+pts+' '+cx(rows.length-1)+','+y(0)+'" class="ca"/>'
+      +'<polyline points="'+pts+'" class="cl"/>';
+    const li=rows.length-1;
+    marks+='<circle cx="'+cx(li)+'" cy="'+y(vals[li])+'" r="4" class="cd"/>'
+      +'<text x="'+Math.min(cx(li),W-pr-2)+'" y="'+(y(vals[li])-9)+'" class="ct cv" text-anchor="end">'+compact(vals[li])+'</text>';
+  }
+  el.innerHTML='<div class="chart"><svg viewBox="0 0 '+W+' '+H+'" tabindex="0" role="img" aria-label="Monthly chart; use arrow keys to read values">'
+    +g+marks+'<line class="cx hidden" y1="'+pt+'" y2="'+(H-pb)+'"/><circle class="cxd hidden" r="4"/></svg><div class="ctip hidden"></div></div>';
+  const svg=el.querySelector('svg'), tip=el.querySelector('.ctip'), xl=el.querySelector('.cx'), xd=el.querySelector('.cxd');
+  let cur=-1;
+  const show=i=>{
+    cur=i; const r=rows[i];
+    tip.textContent='';
+    const b=document.createElement('b');b.textContent=money?fmt(vals[i]):Math.round(vals[i]).toLocaleString('en-US');
+    const s=document.createElement('span');s.textContent=monLabel(r.month)+(kind==='line'?' (month end)':'');
+    tip.appendChild(b);tip.appendChild(s);tip.classList.remove('hidden');
+    const px=cx(i)/W*svg.clientWidth;
+    tip.style.left=Math.max(0,Math.min(px-50,svg.clientWidth-110))+'px';
+    el.querySelectorAll('.cb').forEach(p=>p.classList.toggle('on',+p.dataset.i===i));
+    if(kind==='line'){xl.setAttribute('x1',cx(i));xl.setAttribute('x2',cx(i));xl.classList.remove('hidden');
+      xd.setAttribute('cx',cx(i));xd.setAttribute('cy',y(vals[i]));xd.classList.remove('hidden');}
+  };
+  const hide=()=>{cur=-1;tip.classList.add('hidden');xl.classList.add('hidden');xd.classList.add('hidden');el.querySelectorAll('.cb').forEach(p=>p.classList.remove('on'));};
+  svg.addEventListener('pointermove',e=>{
+    const rc=svg.getBoundingClientRect(), x=(e.clientX-rc.left)/rc.width*W;
+    show(Math.max(0,Math.min(rows.length-1,Math.floor((x-pl)/band))));
+  });
+  svg.addEventListener('pointerleave',hide);svg.addEventListener('blur',hide);
+  svg.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();show(cur<0?rows.length-1:Math.max(0,Math.min(rows.length-1,cur+(e.key==='ArrowRight'?1:-1))));}
+  });
+}
+
+// ── DATE FILTER (shared by Loan Insights and Investments) ─────────────────────
+// Returns {from,to} for a preset; '' from = all time.
+function rangeFor(preset){
+  const d=new Date(),p=x=>String(x).padStart(2,'0'),iso=t=>t.getFullYear()+'-'+p(t.getMonth()+1)+'-'+p(t.getDate());
+  if(preset==='month')return {from:iso(new Date(d.getFullYear(),d.getMonth(),1)),to:iso(d)};
+  if(preset==='prev')return {from:iso(new Date(d.getFullYear(),d.getMonth()-1,1)),to:iso(new Date(d.getFullYear(),d.getMonth(),0))};
+  if(preset==='ytd')return {from:d.getFullYear()+'-01-01',to:iso(d)};
+  return {from:'',to:iso(d)};
+}
+// px: element id prefix. Wires the preset buttons; onApply(filters) runs for presets and for Apply.
+function initRangeBar(px,onApply){
+  const set=pr=>{
+    document.querySelectorAll('#'+px+'_presets .tab').forEach(b=>b.classList.toggle('on',b.dataset.p===pr));
+    $('#'+px+'_custom').classList.toggle('hidden',pr!=='custom');
+    if(pr!=='custom'){const r=rangeFor(pr);$('#'+px+'_from').value=r.from;$('#'+px+'_to').value=r.to;onApply(r);}
+  };
+  document.querySelectorAll('#'+px+'_presets .tab').forEach(b=>b.onclick=()=>set(b.dataset.p));
+  $('#'+px+'_apply').onclick=()=>onApply({from:$('#'+px+'_from').value,to:$('#'+px+'_to').value});
+  return set;
+}
+function rangeText(r){return (r.allTime?'All time ('+hd(r.from)+')':hd(r.from))+' – '+hd(r.to);}
+</script>

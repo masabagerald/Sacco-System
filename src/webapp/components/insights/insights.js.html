@@ -1,0 +1,147 @@
+<script>
+// ── LOAN INSIGHTS ─────────────────────────────────────────────────────────────
+let LI_FILTER={from:'',to:''}, LI_SET_PRESET=null, LI_LOADED=false;
+const num0=v=>Math.round(n(v)).toLocaleString('en-US');
+const kv=rows=>rows.map(r=>'<tr'+(r[2]?' class="tot"':'')+'><td>'+esc(r[0])+'</td><td class="r">'+r[1]+'</td></tr>').join('');
+
+function canSeeInsights(){return ME&&(ME.role==='Admin'||ME.membershipType==='Founder Member');}
+
+function openInsights(){
+  if(!LI_SET_PRESET)LI_SET_PRESET=initRangeBar('li',f=>{LI_FILTER=f;loadInsights();});
+  if(!LI_LOADED){LI_LOADED=true;LI_SET_PRESET('all');}else loadInsights();
+}
+
+function loadInsights(){
+  $('#li_body').classList.add('loading');$('#li_err').textContent='';
+  Api.getLoanInsights(LI_FILTER,res=>{
+    $('#li_body').classList.remove('loading');
+    if(!res.ok){$('#li_err').textContent=res.error;return;}
+    renderInsights(res);
+    if(res.access==='admin'){loadFundEntries();$('#li_ledTb').innerHTML='<tr class="empty"><td colspan="7">Load the ledger to trace the figures.</td></tr>';$('#li_ledSum').textContent='';}
+  },e=>{$('#li_body').classList.remove('loading');$('#li_err').textContent='Error: '+e.message;});
+}
+
+function renderInsights(r){
+  const admin=r.access==='admin', p=r.period, k=r.closing, c=r.cumulative, b=r.borrowers;
+  $('#li_admin').classList.toggle('hidden',!admin);
+  $('#li_sub').textContent=admin
+    ?'Full view for administrators. Calculated from the ledgers each time this page loads.'
+    :'Read-only club totals for Founder Members. No individual member or loan is shown.';
+  $('#li_range').textContent=rangeText(r.range)+' · repayments are split '+r.allocationOrder.join(' → ')+' for reporting · generated '+hd(r.generatedAt);
+  $('#li_asof').textContent='as of '+hd(r.range.to);$('#li_per').textContent=rangeText(r.range);$('#li_cumto').textContent=hd(r.range.to);
+  $('#li_cash').textContent=fmt(k.availableCash);$('#li_cash').classList.toggle('bad',k.availableCash<0);
+  $('#li_outp').textContent=fmt(k.outstandingPrincipal);$('#li_active').textContent=k.activeLoans+' loan'+(k.activeLoans===1?'':'s')+' with money owed';
+  $('#li_into').textContent=fmt(k.interestOutstanding);$('#li_feeo').textContent=fmt(k.feesOutstanding);$('#li_peno').textContent=fmt(k.penaltiesOutstanding);
+  $('#li_od').textContent=k.overdueCount;$('#li_oda').textContent=fmt(k.overdueAmount)+' owed on overdue loans';
+  $('#li_posTb').innerHTML=kv([['Available loan cash',num0(k.availableCash)],['+ Outstanding principal',num0(k.outstandingPrincipal)],
+    ['+ Interest outstanding',num0(k.interestOutstanding)],['+ Fees outstanding',num0(k.feesOutstanding)],['+ Penalties outstanding',num0(k.penaltiesOutstanding)]]
+    .concat(k.borrowerCredit?[['− Overpayments held for borrowers',num0(k.borrowerCredit)]]:[]).concat([['Fund position (UGX)',num0(k.fundPosition),1]]));
+
+  $('#li_dis').textContent=fmt(p.disbursed);$('#li_disn').textContent=p.loansIssued+' loan'+(p.loansIssued===1?'':'s');
+  $('#li_prr').textContent=fmt(p.principalRepaid);
+  $('#li_intc').textContent=fmt(p.interestCollected);$('#li_intch').textContent='Charged in period: '+fmt(p.interestCharged);
+  $('#li_feec').textContent=fmt(p.feesCollected);$('#li_feea').textContent='Assessed in period: '+fmt(p.feesCharged);
+  $('#li_penc').textContent=fmt(p.penaltiesCollected);$('#li_pench').textContent='Charged in period: '+fmt(p.penaltiesCharged);
+  $('#li_rec').textContent=fmt(p.cashReceived);$('#li_over').textContent=p.overpaid?'incl. '+fmt(p.overpaid)+' overpaid, held as credit':'All repayments in the period';
+  $('#li_cashTb').innerHTML=kv([['Opening loan cash ('+hd(r.range.from)+')',num0(r.opening.availableCash)],
+    ['+ Principal savings deposits',num0(p.savingsIn)],['− Principal savings withdrawals',num0(p.savingsOut)],
+    ['+ Other cash injections',num0(p.injections)],['+ Transfers from investments',num0(p.transfersIn)],
+    ['+ Repayments received',num0(p.cashReceived)],['− Loans disbursed',num0(p.disbursed)],
+    ['− Other authorized outflows',num0(p.outflows)],['− Transfers to investments',num0(p.transfersOut)],
+    ['Closing loan cash ('+hd(r.range.to)+')',num0(k.availableCash),1]]);
+
+  $('#li_uq').textContent=b.unique;$('#li_ever').textContent=b.everServed+' served since records began';
+  $('#li_ln').textContent=b.loans;$('#li_new').textContent=b.newBorrowers;$('#li_rep').textContent=b.repeatBorrowers;
+  $('#li_typeTb').innerHTML=b.byMembershipType.map(t=>'<tr><td>'+esc(t.type)+'</td><td class="r">'+t.borrowers+'</td><td class="r">'+t.loans+'</td><td class="r">'+num0(t.disbursed)+'</td><td class="r">'+num0(t.feesCharged)+'</td></tr>').join('');
+
+  const m=r.months;
+  miniChart($('#lc_dis'),m,'disbursed','col',1);miniChart($('#lc_prr'),m,'principalRepaid','col',1);
+  miniChart($('#lc_int'),m,'interestCollected','col',1);miniChart($('#lc_fee'),m,'feesCollected','col',1);
+  miniChart($('#lc_sav'),m,'savingsNet','col',1);miniChart($('#lc_inj'),m,'injections','col',1);
+  miniChart($('#lc_cash'),m,'availableCash','line',1);miniChart($('#lc_bor'),m,'borrowers','col',0);
+  miniChart($('#lc_outp'),m,'outstandingPrincipal','line',1);miniChart($('#lc_od'),m,'overdueAmount','line',1);
+  $('#li_monTb').innerHTML=m.length?m.map(x=>'<tr><td>'+esc(monLabel(x.month))+'</td>'+['disbursed','principalRepaid','interestCollected','feesCollected','penaltiesCollected','savingsNet','injections','outflows','availableCash','outstandingPrincipal','overdueAmount']
+    .map(f=>'<td class="r">'+num0(x[f])+'</td>').join('')+'<td class="r">'+x.borrowers+'</td><td class="r">'+x.loans+'</td></tr>').join(''):'<tr class="empty"><td colspan="14">No data.</td></tr>';
+
+  $('#li_cumTb').innerHTML=kv([['Loans disbursed',num0(c.disbursed)],['Principal repaid',num0(c.principalRepaid)],
+    ['Interest charged / collected',num0(c.interestCharged)+' / '+num0(c.interestCollected)],
+    ['Processing fees assessed / collected',num0(c.feesCharged)+' / '+num0(c.feesCollected)],
+    ['Penalties charged / collected',num0(c.penaltiesCharged)+' / '+num0(c.penaltiesCollected)],
+    ['Principal savings, net (capital)',num0(c.savingsNet)],['Other injections less outflows',num0(c.injections-c.outflows)],
+    ['Transfers from / to investments',num0(c.transfersIn)+' / '+num0(c.transfersOut)]]);
+
+  if(admin){
+    $('#li_loanTb').innerHTML=r.loans.length?r.loans.map(l=>'<tr><td>'+esc(l.loanId)+(l.overdue?' '+badge('Overdue',BMAP):'')+'</td><td>'+esc(l.memberNo)+' — '+esc(l.name)+'<div class="note">'+esc(l.membershipType||'type not set')+'</div></td><td>'+esc(hd(l.issued))+'</td><td>'+esc(hd(l.dueDate))+'</td>'
+      +'<td class="r">'+num0(l.principal)+'</td><td class="r">'+num0(l.principalRepaid)+'</td><td class="r">'+num0(l.interestCharged)+' / '+num0(l.interestCollected)+'</td><td class="r">'+num0(l.feeCharged)+' / '+num0(l.feesCollected)+'</td><td class="r">'+num0(l.penaltyCharged)+' / '+num0(l.penaltiesCollected)+'</td><td class="r">'+num0(l.outstanding)+'</td></tr>').join('')
+      :'<tr class="empty"><td colspan="10">No loans in this period.</td></tr>';
+  }
+}
+
+function loadFundLedger(){
+  $('#li_ledTb').innerHTML='<tr class="empty"><td colspan="7">Loading&hellip;</td></tr>';
+  Api.getLoanFundLedger(LI_FILTER,res=>{
+    if(!res.ok){$('#li_ledTb').innerHTML='<tr class="empty"><td colspan="7">'+esc(res.error)+'</td></tr>';return;}
+    $('#li_ledSum').textContent='Opening '+fmt(res.opening)+' · closing '+fmt(res.closing)+' · '+res.rows.length+' movements';
+    $('#li_ledTb').innerHTML=res.rows.length?res.rows.map(x=>'<tr><td>'+esc(hd(x.date))+'</td><td>'+esc(x.source)+'</td><td>'+esc(x.ref)+'</td><td>'+esc(x.kind)+'</td><td>'+esc(x.description)+'</td>'+signedCell(x.amount<0?-1:1,Math.abs(x.amount))+'<td class="r">'+num0(x.balance)+'</td></tr>').join('')
+      :'<tr class="empty"><td colspan="7">No movements in this range.</td></tr>';
+  },e=>{$('#li_ledTb').innerHTML='<tr class="empty"><td colspan="7">Error: '+esc(e.message)+'</td></tr>';});
+}
+
+// ── APPROVAL LEDGER ENTRIES (shared with Investments) ─────────────────────────
+// Action buttons for one entry: approve (if this admin may), reject (while open), reverse (once approved)
+function entryActions(e){
+  const open=e.status==='Pending'||e.status==='Partially Approved', me=ME.memberNo;
+  let h='';
+  if(open&&e.initiatedBy!==me&&e.approver1!==me)h+='<button class="btn sm solid" onclick="finApprove(\''+esc(e.id)+'\')">'+(e.approver1?'Final approve':'Approve')+'</button>';
+  if(open)h+='<button class="btn sm danger" onclick="finReject(\''+esc(e.id)+'\')">Reject</button>';
+  if(e.status==='Approved'&&e.type!=='Reversal'&&!e.reversedBy)h+='<button class="btn sm" onclick="finReverse(\''+esc(e.id)+'\')">Reverse</button>';
+  return '<div class="btn-row">'+h+'</div>';
+}
+function entryStatus(e){
+  return badge(e.status,BMAP)+'<div class="note">by '+esc(e.initiatedBy)+(e.approver1?'; ✓ '+esc(e.approver1):'')+(e.approver2?', '+esc(e.approver2):'')+'</div>'
+    +(e.reversedBy?'<div class="note">reversed by '+esc(e.reversedBy)+'</div>':'')+(e.status==='Rejected'?'<div class="note">'+esc(e.decisionNotes)+'</div>':'');
+}
+function refreshFinance(){
+  if(!$('#tab-insights').classList.contains('hidden'))loadInsights();
+  if(!$('#tab-investments').classList.contains('hidden'))loadInvestments();
+}
+function finApprove(id){
+  if(!confirm('Approve '+id+'? The second approval makes it count in the figures.'))return;
+  Api.approveFinanceEntry(id,res=>{if(!res.ok)return alert(res.error);refreshFinance();},e=>alert('Error: '+e.message));
+}
+let FIN_ACT=null;
+function finReject(id){FIN_ACT={id,mode:'reject'};$('#fa_t').textContent='Reject '+id;$('#fa_info').textContent='The entry will never count. A reason is required.';$('#fa_rs').value='';$('#fa_btn').textContent='Reject';mst('fa_st','','');om('m_finAct');}
+function finReverse(id){FIN_ACT={id,mode:'reverse'};$('#fa_t').textContent='Reverse '+id;$('#fa_info').textContent='A reversal entry is proposed (a linked transfer is reversed on both sides). It needs two admin approvals; the original is kept.';$('#fa_rs').value='';$('#fa_btn').textContent='Propose reversal';mst('fa_st','','');om('m_finAct');}
+function submitFinAct(){
+  const rs=$('#fa_rs').value.trim(); if(!rs)return mst('fa_st','err','Enter a reason.');
+  $('#fa_btn').disabled=true;mst('fa_st','','Saving…');
+  const done=res=>{$('#fa_btn').disabled=false;if(!res.ok)return mst('fa_st','err',res.error);mst('fa_st','ok','Done.');refreshFinance();setTimeout(()=>cm('m_finAct'),700);};
+  const fail=e=>{$('#fa_btn').disabled=false;mst('fa_st','err','Error: '+e.message);};
+  if(FIN_ACT.mode==='reject')Api.rejectFinanceEntry(FIN_ACT.id,rs,done,fail);else Api.reverseFinanceEntry(FIN_ACT.id,rs,done,fail);
+}
+
+function loadFundEntries(){
+  Api.getLoanFundEntries(res=>{
+    const tb=$('#li_entTb');
+    if(!res.ok){tb.innerHTML='<tr class="empty"><td colspan="7">'+esc(res.error)+'</td></tr>';return;}
+    if(!res.ready){tb.innerHTML='<tr class="empty"><td colspan="7">The Loan Fund Ledger tab does not exist yet. Run setupFinanceSchema() once from the Apps Script editor.</td></tr>';return;}
+    setBadge('rb-ins',res.entries.filter(e=>e.status==='Pending'||e.status==='Partially Approved').length);
+    tb.innerHTML=res.entries.length?res.entries.map(e=>'<tr><td>'+esc(e.id)+(e.linked?'<div class="note">linked '+esc(e.linked)+'</div>':'')+'</td><td>'+esc(hd(e.date))+'</td><td>'+esc(e.type)+(e.reverses?'<div class="note">of '+esc(e.reverses)+'</div>':'')+'</td>'
+      +'<td class="r">'+num0(e.amount)+'</td><td>'+esc(e.notes)+(e.reference?'<div class="note">ref '+esc(e.reference)+'</div>':'')+'</td><td>'+entryStatus(e)+'</td><td>'+entryActions(e)+'</td></tr>').join('')
+      :'<tr class="empty"><td colspan="7">No entries yet.</td></tr>';
+  });
+}
+function openFundEntry(){$('#fe_ty').value='Cash Injection';$('#fe_am').value='';$('#fe_dt').value=todayISO();$('#fe_ref').value='';$('#fe_ds').value='';mst('fe_st','','');om('m_fundEntry');}
+function submitFundEntry(){
+  const ty=$('#fe_ty').value,am=$('#fe_am').value,ds=$('#fe_ds').value.trim();
+  if(!am||n(am)<=0)return mst('fe_st','err','Enter a valid amount.');
+  if(!ds)return mst('fe_st','err','Enter a description.');
+  $('#fe_btn').disabled=true;mst('fe_st','','Saving…');
+  Api.proposeLoanFundEntry(ty,am,$('#fe_dt').value,$('#fe_ref').value.trim(),ds,res=>{
+    $('#fe_btn').disabled=false;
+    if(!res.ok)return mst('fe_st','err',res.error);
+    mst('fe_st','ok','Proposed as '+res.entryId+'. Two other admins must approve it.');
+    loadFundEntries();setTimeout(()=>cm('m_fundEntry'),1100);
+  },e=>{$('#fe_btn').disabled=false;mst('fe_st','err','Error: '+e.message);});
+}
+</script>

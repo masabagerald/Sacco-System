@@ -118,6 +118,65 @@ function renderLoanReqs(res){
 }
 
 // ── ADMIN: LOAN REQUESTS ──────────────────────────────────────────────────────
+// ── ACTIVE LOANS (admin): every member's running loan, with Record Repayment ──
+let ACTIVE_LOANS=[];
+function loadActiveLoansAdmin(){
+  Api.getActiveLoans(res=>{
+    if(!res.ok){$('#activeLoansTb').innerHTML='<tr class="empty"><td colspan="8">'+esc(res.error)+'</td></tr>';return;}
+    ACTIVE_LOANS=res.loans;renderActiveLoansAdmin();
+  });
+}
+function renderActiveLoansAdmin(){
+  const q=($('#al_q').value||'').trim().toLowerCase();
+  const rows=ACTIVE_LOANS.filter(l=>!q||(l.loanId+' '+l.memberNo+' '+l.name).toLowerCase().indexOf(q)>-1);
+  $('#activeLoansTb').innerHTML=rows.length?rows.map(l=>'<tr><td>'+esc(l.loanId)+(l.overdue?' '+badge('Overdue',BMAP):'')+'</td>'
+    +'<td>'+esc(l.memberNo)+' — '+esc(l.name)+'<div class="note">'+esc(l.membershipType||'type not set')+'</div></td>'
+    +'<td>'+esc(hd(l.dateIssued))+'</td><td>'+esc(l.dueDate?hd(l.dueDate):'—')+'</td>'
+    +'<td class="r">'+money(l.totalDue)+'</td><td class="r">'+money(l.totalRepaid)+'</td><td class="r"><b>'+money(l.outstandingBalance)+'</b></td>'
+    +'<td><button class="btn sm solid" onclick="openRepay(\''+esc(l.loanId)+'\','+l.outstandingBalance+')">Record Repayment</button></td></tr>').join('')
+    :'<tr class="empty"><td colspan="8">'+(ACTIVE_LOANS.length?'No loan matches the filter.':'No active loans.')+'</td></tr>';
+}
+
+// ── REPAYMENTS (admin): list, with Reverse for a repayment entered wrongly ────
+let REPAYMENTS=[], REV_REPAY=null;
+function loadRepaymentsAdmin(){
+  Api.getRepayments(res=>{
+    if(!res.ok){$('#repaymentsTb').innerHTML='<tr class="empty"><td colspan="7">'+esc(res.error)+'</td></tr>';return;}
+    REPAYMENTS=res.repayments;
+    $('#rpl_note').textContent=res.ready?'':'Repayments can be reversed once the system administrator has run setupFinanceSchema() in the Apps Script editor.';
+    renderRepaymentsAdmin();
+  });
+}
+function renderRepaymentsAdmin(){
+  const q=($('#rpl_q').value||'').trim().toLowerCase();
+  const rows=REPAYMENTS.filter(r=>!q||(r.reference+' '+r.loanId+' '+r.memberNo+' '+r.name).toLowerCase().indexOf(q)>-1);
+  const shown=rows.slice(0,100);
+  $('#repaymentsTb').innerHTML=shown.length?shown.map(r=>{
+    const rev=r.amount<0;
+    const act=r.reversedBy?'<span class="note">Reversed by '+esc(r.reversedBy)+'</span>'
+      :(!rev&&r.reference?'<button class="btn sm danger" onclick="openRevRepay(\''+esc(r.reference)+'\')">Reverse</button>':'');
+    return '<tr><td>'+esc(hd(r.date))+'</td><td>'+esc(r.reference||'—')+(rev?'<div class="note">reverses '+esc(r.reverses)+'</div>':'')+'</td><td>'+esc(r.loanId)+'</td>'
+      +'<td>'+esc(r.memberNo)+' — '+esc(r.name)+'</td>'+signedCell(rev?-1:1,Math.abs(r.amount))+'<td>'+esc(r.notes)+'<div class="note">by '+esc(r.recordedBy)+'</div></td><td>'+act+'</td></tr>';
+  }).join('')+(rows.length>100?'<tr class="empty"><td colspan="7">Showing the newest 100. Filter to find older repayments.</td></tr>':'')
+    :'<tr class="empty"><td colspan="7">'+(REPAYMENTS.length?'No repayment matches the filter.':'No repayments yet.')+'</td></tr>';
+}
+function openRevRepay(ref){
+  const r=REPAYMENTS.find(x=>x.reference===ref); if(!r)return;
+  REV_REPAY=ref;
+  $('#rr_info').textContent=ref+': '+fmt(r.amount)+' on loan '+r.loanId+' ('+r.name+'), dated '+hd(r.date);
+  $('#rr_rs').value='';mst('rr_st','','');om('m_revRepay');
+}
+function submitRevRepay(){
+  const rs=$('#rr_rs').value.trim(); if(!rs)return mst('rr_st','err','Enter the reason.');
+  $('#rr_btn').disabled=true;mst('rr_st','','Saving…');
+  Api.reverseRepayment(REV_REPAY,rs,res=>{
+    $('#rr_btn').disabled=false;
+    if(!res.ok)return mst('rr_st','err',res.error);
+    mst('rr_st','ok','Reversed as '+res.reference+'. Outstanding on the loan: '+fmt(res.outstandingBalance));
+    loadAdmin();setTimeout(()=>cm('m_revRepay'),1200);
+  },e=>{$('#rr_btn').disabled=false;mst('rr_st','err','Error: '+e.message);});
+}
+
 function loadLoanReqAdmin(){
   Api.getLoanRequests(res=>{
     if(!res.ok)return;
@@ -221,7 +280,7 @@ function submitLoan(){
 }
 
 // ── repayment ─────────────────────────────────────────────────────────────────
-function openRepay(lid,bal){REPAY_LOAN=lid;$('#rp_info').textContent='Loan '+lid+' — outstanding: '+fmt(bal);$('#rp_am').value='';$('#rp_dt').value=todayISO();$('#rp_nt').value='';mst('rp_st','','');om('m_repay');}
+function openRepay(lid,bal){REPAY_LOAN=lid;const al=ACTIVE_LOANS.find(l=>l.loanId===lid);$('#rp_info').textContent='Loan '+lid+(al?' — '+al.name+' ('+al.memberNo+')':'')+' — outstanding: '+fmt(bal);$('#rp_am').value='';$('#rp_dt').value=todayISO();$('#rp_nt').value='';mst('rp_st','','');om('m_repay');}
 function submitRepay(){
   const am=$('#rp_am').value;
   if(!am||n(am)<=0)return mst('rp_st','err','Enter a valid amount.');

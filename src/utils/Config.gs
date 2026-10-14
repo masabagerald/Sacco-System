@@ -90,3 +90,33 @@ const MEMBER_LOAN_FEE = 5000;
 const OVERDUE_SURCHARGE_RATE = 0.10;       // 10% on principal+interest once the due date is missed
 const OVERDUE_REMINDER_DAYS_BEFORE = 3;    // reminder 3 days before the due date
 const OVERDUE_MAX_DAILY_NOTICE_DAYS = 14;  // daily overdue notices stop after 2 weeks
+
+// ── LOAN INSIGHTS & INVESTMENT TRACKER ────────────────────────────────────────
+const SH_LOAN_FUND   = 'Loan Fund Ledger';
+const SH_INVESTMENTS = 'Investments';
+const SH_INV_TX      = 'Investment Transactions';
+
+// Loan Insights: admins see everything; these membership types (without the Admin role) get a
+// read-only, aggregate-only view. Everyone else is refused.
+const INSIGHTS_MEMBERSHIP_TYPES = ['Founder Member'];
+
+// Repayments are stored as one total per payment. For reporting, each payment is applied to the
+// loan's charges in this order. A charge only takes money paid on or after the date it was charged.
+const REPAYMENT_ALLOCATION_ORDER = ['fee', 'interest', 'penalty', 'principal'];
+
+// The loan fund's capital is the club-wide Principal savings balance (deposits in, withdrawals out).
+// The Loan Fund Ledger holds only the cash movements no other sheet records. Each entry needs two
+// admin approvals and counts only once Approved. +1 adds to available loan cash, -1 takes from it.
+const FUND_ENTRY_SIGNS = { 'Cash Injection': 1, 'Other Outflow': -1, 'Transfer from Investment': 1, 'Transfer to Investment': -1 };
+const FUND_MANUAL_TYPES = ['Cash Injection', 'Other Outflow'];  // the transfer types are created with an investment transaction
+const ENTRY_REVERSAL = 'Reversal';
+
+const INVESTMENT_TYPES = ['Unit Trust', 'Fixed Deposit', 'Treasury Bill', 'Treasury Bond', 'Other'];
+const INVESTMENT_STATUSES = ['Active', 'Matured', 'Closed'];
+const INVESTMENT_CURRENCY = 'UGX';  // only UGX is supported: totals have no exchange-rate rule
+// Investment transactions (each needs two admin approvals, like loan fund entries)
+const INV_TX_TYPES = ['Initial Investment', 'Additional Contribution', 'Redemption', 'Income Earned', 'Income Received',
+  'Income Reinvested', 'Fee', 'Tax', 'Valuation'];
+// Where a fee or tax was paid from: deducted from the investment's balance (lowers its value), or paid separately
+const INV_COST_SOURCES = ['Investment balance', 'Paid separately'];
+const MATURITY_WINDOW_DAYS = 90;  // "upcoming maturities" on the investment dashboard

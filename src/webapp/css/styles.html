@@ -146,6 +146,37 @@ tr:hover td{background:var(--hover)}
 .hidden{display:none!important}
 @media(max-width:580px){.mgrid{grid-template-columns:1fr}}
 
+/* ── loan insights & investments ── */
+.sec-h{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin:6px 0 2px;font-weight:700}
+.sec-h span{text-transform:none;letter-spacing:0;font-weight:500}
+.sec-n{margin:0 0 10px}
+tr.tot td{font-weight:700;border-top:2px solid var(--line)}
+.loadable{transition:opacity .15s}.loadable.loading{opacity:.5;pointer-events:none}
+.chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px 22px}
+.chart-grid h4,.split h4{font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px}
+.split{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+.chart{position:relative}
+.chart svg{width:100%;height:auto;display:block;overflow:visible}
+.chart svg:focus-visible{outline:2px solid var(--accent-soft);outline-offset:2px;border-radius:4px}
+.chart .cg{stroke:var(--line);stroke-width:1}
+.chart .c0{stroke:var(--dim);stroke-width:1;opacity:.6}
+.chart .ct{fill:var(--dim);font-size:10.5px;font-family:inherit;font-variant-numeric:tabular-nums}
+.chart .cv{fill:var(--text);font-weight:600}
+.chart .cb{fill:var(--accent)}
+.chart .cb.on{fill:var(--accent-soft)}
+.chart .cl{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .ca{fill:var(--accent);opacity:.1}
+.chart .cd,.chart .cxd{fill:var(--accent);stroke:var(--panel);stroke-width:2}
+.chart .cx{stroke:var(--dim);stroke-width:1}
+.ctip{position:absolute;top:-6px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 9px;
+  box-shadow:var(--shad);font-size:11.5px;pointer-events:none;white-space:nowrap;display:flex;flex-direction:column}
+.ctip b{font-family:"IBM Plex Mono",monospace;font-size:12.5px}
+.ctip span{color:var(--dim)}
+.tview{margin-top:14px}.tview summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:600}
+.tscroll{overflow-x:auto}
+td.r .note{white-space:normal;min-width:120px}
+.chk{flex-direction:row!important;align-items:center;gap:8px;font-size:13px;cursor:pointer}
+
 /* ── app shell: rail on desktop, bottom bar on phones ── */
 .shell{display:block}
 .rail{display:none}

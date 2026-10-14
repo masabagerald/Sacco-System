@@ -23,6 +23,9 @@ const Api = {
   getAdminDashboard: (onSuccess) => callServer('getAdminDashboard', [], onSuccess),
   getAllMembersSummary: (onSuccess) => callServer('getAllMembersSummary', [], onSuccess),
   getLoanRequests: (onSuccess) => callServer('getLoanRequests', [], onSuccess),
+  getActiveLoans: (onSuccess) => callServer('getActiveLoans', [], onSuccess),
+  getRepayments: (onSuccess) => callServer('getRepayments', [], onSuccess),
+  reverseRepayment: (reference, reason, onSuccess, onFailure) => callServer('reverseRepayment', [reference, reason], onSuccess, onFailure),
   getWithdrawalRequests: (onSuccess) => callServer('getWithdrawalRequests', [], onSuccess),
   getAllFinesForAdmin: (onSuccess) => callServer('getAllFinesForAdmin', [], onSuccess),
   getSavingsTransactions: (filters, onSuccess, onFailure) => callServer('getSavingsTransactions', [filters], onSuccess, onFailure),
@@ -59,6 +62,24 @@ const Api = {
   approveWithdrawal: (requestId, onSuccess) => callServer('approveWithdrawal', [requestId], onSuccess),
   rejectWithdrawal: (requestId, reason, onSuccess, onFailure) =>
     callServer('rejectWithdrawal', [requestId, reason], onSuccess, onFailure),
+
+  getLoanInsights: (filters, onSuccess, onFailure) => callServer('getLoanInsights', [filters], onSuccess, onFailure),
+  getLoanFundLedger: (filters, onSuccess, onFailure) => callServer('getLoanFundLedger', [filters], onSuccess, onFailure),
+  getLoanFundEntries: (onSuccess, onFailure) => callServer('getLoanFundEntries', [], onSuccess, onFailure),
+  proposeLoanFundEntry: (type, amount, txDate, reference, description, onSuccess, onFailure) =>
+    callServer('proposeLoanFundEntry', [type, amount, txDate, reference, description], onSuccess, onFailure),
+  approveFinanceEntry: (id, onSuccess, onFailure) => callServer('approveFinanceEntry', [id], onSuccess, onFailure),
+  rejectFinanceEntry: (id, reason, onSuccess, onFailure) => callServer('rejectFinanceEntry', [id, reason], onSuccess, onFailure),
+  reverseFinanceEntry: (id, reason, onSuccess, onFailure) => callServer('reverseFinanceEntry', [id, reason], onSuccess, onFailure),
+  getInvestmentDashboard: (filters, onSuccess, onFailure) => callServer('getInvestmentDashboard', [filters], onSuccess, onFailure),
+  getInvestmentTransactions: (investmentId, onSuccess, onFailure) => callServer('getInvestmentTransactions', [investmentId], onSuccess, onFailure),
+  getInvestment: (investmentId, onSuccess, onFailure) => callServer('getInvestment', [investmentId], onSuccess, onFailure),
+  createInvestment: (data, onSuccess, onFailure) => callServer('createInvestment', [data], onSuccess, onFailure),
+  updateInvestment: (investmentId, data, reason, onSuccess, onFailure) => callServer('updateInvestment', [investmentId, data, reason], onSuccess, onFailure),
+  proposeInvestmentTx: (investmentId, type, amount, txDate, reference, notes, costSource, onSuccess, onFailure) =>
+    callServer('proposeInvestmentTx', [investmentId, type, amount, txDate, reference, notes, costSource], onSuccess, onFailure),
+  proposeInvestmentTransfer: (direction, investmentId, amount, txDate, reference, notes, onSuccess, onFailure) =>
+    callServer('proposeInvestmentTransfer', [direction, investmentId, amount, txDate, reference, notes], onSuccess, onFailure),
 
   generateMemberStatementDoc: (onSuccess, onFailure) => callServer('generateMemberStatementDoc', [], onSuccess, onFailure),
   exportAdminCSV: (onSuccess, onFailure) => callServer('exportAdminCSV', [], onSuccess, onFailure),

@@ -50,9 +50,11 @@ function doLogout(){
 }
 function showTab(t){
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  ['my','admin','audit'].forEach(n=>$('#tab-'+n).classList.toggle('hidden',n!==t));
+  ['my','admin','audit','insights','investments'].forEach(n=>$('#tab-'+n).classList.toggle('hidden',n!==t));
   if(t==='admin')loadAdmin();
   if(t==='audit')loadAudit();
+  if(t==='insights')openInsights();
+  if(t==='investments')openInvestments();
 }
 function loadMyAccount(){
   STMT=null;
@@ -74,6 +76,8 @@ const NAV=[
     {id:'m-fines',  label:'My surcharges',  icon:'⚑', pane:'my',    anchor:'sec-my-fines'},
     {id:'m-reports',label:'My statement',   icon:'▣', pane:'my',    anchor:'sec-my-reports'},
     {id:'guide',    label:'User guide',     icon:'?', href:true}]},
+  {group:'Club', insights:true, items:[
+    {id:'insights', label:'Loan insights',  icon:'◔', pane:'insights', anchor:null, badge:'rb-ins'}]},
   {group:'Admin', admin:true, items:[
     {id:'dash',     label:'Dashboard',      icon:'▦', pane:'admin', anchor:'sec-dash'},
     {id:'members',  label:'Members',        icon:'☷', pane:'admin', anchor:'sec-members'},
@@ -81,6 +85,7 @@ const NAV=[
     {id:'savings',  label:'Savings',        icon:'▤', pane:'admin', anchor:'sec-savings', badge:'rb-wd'},
     {id:'fines',    label:'Surcharges',     icon:'⚑', pane:'admin', anchor:'sec-fines'},
     {id:'reports',  label:'Reports',        icon:'▣', pane:'admin', anchor:'sec-reports'},
+    {id:'investments',label:'Investments',  icon:'◆', pane:'investments', anchor:null, badge:'rb-inv'},
     {id:'audit',    label:'Audit log',      icon:'≡', pane:'audit', anchor:null}]}
 ];
 const BOTTOM_MEMBER=['my','m-loans','m-savings'];
@@ -89,15 +94,17 @@ const BOTTOM_ADMIN=['dash','loans','members'];
 function isAdminUser(){return ME && ME.role==='Admin';}
 // Non-Members have no savings or withdrawals (the server refuses them too)
 function isNonMember(){return ME && ME.membershipType==='Non-Member';}
+// Admin group: admins only. Club group (Loan insights): admins and Founder Members (canSeeInsights).
+function groupVisible(g){return (!g.admin||isAdminUser())&&(!g.insights||canSeeInsights());}
 function navItems(){
-  return NAV.filter(g=>!g.admin||isAdminUser()).reduce((all,g)=>all.concat(g.items.filter(i=>!(i.savers&&isNonMember())).map(i=>Object.assign({group:g.group},i))),[]);
+  return NAV.filter(groupVisible).reduce((all,g)=>all.concat(g.items.filter(i=>!(i.savers&&isNonMember())).map(i=>Object.assign({group:g.group},i))),[]);
 }
 
 // Builds the rail, the bottom bar and the "Go to" list for the signed-in user
 function renderRail(){
   const items=navItems();
   let rail='';
-  NAV.filter(g=>!g.admin||isAdminUser()).forEach(g=>{
+  NAV.filter(groupVisible).forEach(g=>{
     rail+='<div class="grp">'+esc(g.group)+'</div>';
     g.items.filter(i=>!(i.savers&&isNonMember())).forEach(i=>{
       rail+='<button class="rail-item" data-s="'+i.id+'" onclick="goSec(\''+i.id+'\')" title="'+esc(i.label)+'">'

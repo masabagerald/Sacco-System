@@ -1,0 +1,130 @@
+<script>
+// ── INVESTMENT TRACKER (admin) ────────────────────────────────────────────────
+let IV_FILTER={from:'',to:''}, IV_SET_PRESET=null, IV_LOADED=false, IV_DATA=null, IV_EDIT='', IV_TX='';
+
+function openInvestments(){
+  if(!IV_SET_PRESET)IV_SET_PRESET=initRangeBar('iv',f=>{IV_FILTER=f;loadInvestments();});
+  if(!IV_LOADED){IV_LOADED=true;IV_SET_PRESET('all');}else loadInvestments();
+}
+
+function loadInvestments(){
+  $('#iv_body').classList.add('loading');$('#iv_err').textContent='';
+  Api.getInvestmentDashboard(IV_FILTER,res=>{
+    $('#iv_body').classList.remove('loading');
+    if(!res.ok){$('#iv_err').textContent=res.error;return;}
+    if(!res.ready)$('#iv_err').textContent='The Investments tabs do not exist yet. Run setupFinanceSchema() once from the Apps Script editor.';
+    IV_DATA=res;renderInvestments(res);
+  },e=>{$('#iv_body').classList.remove('loading');$('#iv_err').textContent='Error: '+e.message;});
+  Api.getInvestmentTransactions('',res=>{
+    const tb=$('#iv_txTb');
+    if(!res.ok){tb.innerHTML='<tr class="empty"><td colspan="8">'+esc(res.error)+'</td></tr>';return;}
+    tb.innerHTML=res.entries.length?res.entries.map(e=>'<tr><td>'+esc(e.id)+(e.linked?'<div class="note">linked '+esc(e.linked)+'</div>':'')+'</td><td>'+esc(hd(e.date))+'</td><td>'+esc(e.investmentId)+' '+esc(e.investmentName)+'</td>'
+      +'<td>'+esc(e.type)+(e.reverses?'<div class="note">of '+esc(e.reverses)+'</div>':'')+(e.costSource?'<div class="note">'+esc(e.costSource)+'</div>':'')+'</td><td class="r">'+num0(e.amount)+'</td>'
+      +'<td>'+esc(e.notes)+(e.reference?'<div class="note">ref '+esc(e.reference)+'</div>':'')+'</td><td>'+entryStatus(e)+'</td><td>'+entryActions(e)+'</td></tr>').join('')
+      :'<tr class="empty"><td colspan="8">No transactions yet.</td></tr>';
+    setBadge('rb-inv',res.entries.filter(e=>e.status==='Pending'||e.status==='Partially Approved').length);
+  });
+}
+
+function renderInvestments(r){
+  const t=r.totals,p=r.period;
+  $('#iv_range').textContent=rangeText(r.range)+' · generated '+hd(r.generatedAt);
+  $('#iv_asof').textContent='as of '+hd(r.range.to);$('#iv_per').textContent=rangeText(r.range);
+  $('#iv_val').textContent=fmt(t.value);
+  $('#iv_valm').textContent=r.valuedCount+' of '+r.investments.length+' valued by statement; the rest at cost';
+  $('#iv_net').textContent=fmt(t.netInvested);$('#iv_netm').textContent='Contributed '+fmt(t.contributed)+', redeemed '+fmt(t.redeemed);
+  $('#iv_rec').textContent=fmt(t.incomeReceivedTotal);$('#iv_acc').textContent=fmt(t.accruedIncome);
+  $('#iv_ug').textContent=fmt(t.unrealizedGain);$('#iv_ug').className='val mono '+(t.unrealizedGain<0?'bad':'g');
+  $('#iv_rg').textContent='Realized on closed investments: '+fmt(t.realizedGain);
+  $('#iv_cost').textContent=fmt(t.costs);
+  $('#iv_ret').textContent=fmt(t.netReturn);$('#iv_ret').className='val mono '+(t.netReturn<0?'bad':'g');
+  $('#iv_perTb').innerHTML=kv([['Contributions (incl. initial)',num0(p.contributed||0)],['Redemptions / withdrawals',num0(p.redeemed||0)],
+    ['↳ of which transferred to the loan fund',num0(p.transfersToLoanFund||0)],['Contributions paid from the loan fund',num0(p.transfersFromLoanFund||0)],
+    ['Income earned (accrued)',num0(p.incomeEarned||0)],['Income received in cash',num0(p.incomeReceived||0)],['Income reinvested',num0(p.incomeReinvested||0)],
+    ['Fees',num0(p.fees||0)],['Taxes',num0(p.taxes||0)],['Net return in period',num0(p.netReturn||0),1]]);
+  const m=r.months;
+  miniChart($('#ic_rec'),m,'incomeReceived','col',1);miniChart($('#ic_earn'),m,'incomeEarned','col',1);
+  miniChart($('#ic_ret'),m,'netReturn','col',1);miniChart($('#ic_val'),m,'value','line',1);
+  $('#iv_monTb').innerHTML=m.length?m.map(x=>'<tr><td>'+esc(monLabel(x.month))+'</td>'+['incomeEarned','incomeReceived','incomeReinvested','costs','netReturn','netInvested','value'].map(f=>'<td class="r">'+num0(x[f])+'</td>').join('')+'</tr>').join(''):'<tr class="empty"><td colspan="8">No data.</td></tr>';
+  $('#iv_tb').innerHTML=r.investments.length?r.investments.map(i=>{
+    const f=i.figures;
+    return '<tr><td><b>'+esc(i.name)+'</b><div class="note">'+esc(i.id)+' · '+esc(i.type)+' · '+esc(i.provider)+(i.accountRef?' · '+esc(i.accountRef):'')+'</div>'
+      +(i.documentLink?'<div class="note"><a href="'+esc(i.documentLink)+'" target="_blank" rel="noopener">document</a></div>':'')+'</td>'
+      +'<td>'+badge(i.status,{active:'active',matured:'cleared',closed:'member'})+'</td><td class="r">'+num0(f.netInvested)+'</td>'
+      +'<td class="r">'+num0(f.value)+'<div class="note">'+(!f.valued?'at cost, no valuation':'valued '+num0(f.valuationAmount)+' on '+esc(hd(f.valuationDate))+' (manual)'+(f.valuationAmount!==f.value?', adjusted for later flows':''))+'</div></td>'
+      +'<td class="r">'+num0(f.incomeTotal)+(f.accruedIncome?'<div class="note">'+num0(f.accruedIncome)+' unpaid</div>':'')+'</td><td class="r">'+num0(f.costs)+'</td><td class="r">'+num0(f.netReturn)+'</td>'
+      +'<td>'+esc(i.maturityDate?hd(i.maturityDate):'—')+'</td>'
+      +'<td><div class="btn-row"><button class="btn sm solid" onclick="openInvTx(\''+esc(i.id)+'\')">Record</button><button class="btn sm" onclick="openInvTr(\''+esc(i.id)+'\')">Transfer</button><button class="btn sm" onclick="openInv(\''+esc(i.id)+'\')">Edit</button></div></td></tr>';
+  }).join(''):'<tr class="empty"><td colspan="9">No investments yet.</td></tr>';
+  const brk=rows=>rows.length?rows.map(x=>'<tr><td>'+esc(x.name)+' <span class="note">('+x.count+')</span></td><td class="r">'+num0(x.value)+'</td><td class="r">'+num0(x.netReturn)+'</td></tr>').join(''):'<tr class="empty"><td colspan="3">None.</td></tr>';
+  $('#iv_typeTb').innerHTML=brk(r.byType);$('#iv_provTb').innerHTML=brk(r.byProvider);
+  $('#iv_matTb').innerHTML=r.maturities.length?r.maturities.map(x=>'<tr><td>'+esc(hd(x.maturityDate))+'</td><td>'+esc(x.name)+' <span class="note">'+esc(x.provider)+'</span></td><td class="r">'+num0(x.value)+'</td></tr>').join(''):'<tr class="empty"><td>Nothing maturing in the next 90 days.</td></tr>';
+}
+
+// ── create / edit ─────────────────────────────────────────────────────────────
+function openInv(id){
+  IV_EDIT=id;mst('in_sts','','');
+  document.querySelectorAll('#m_inv .in-new').forEach(x=>x.classList.toggle('hidden',!!id));
+  $('#in_rswrap').classList.toggle('hidden',!id);
+  $('#in_t').textContent=id?'Edit Investment '+id:'New Investment';
+  ['nm','pv','md','ar','dl','nt','am','rf','rs'].forEach(k=>$('#in_'+k).value='');
+  $('#in_ty').value='Unit Trust';$('#in_st').value='Active';$('#in_sd').value=todayISO();$('#in_lf').checked=false;
+  om('m_inv');
+  if(id){mst('in_sts','','Loading…');Api.getInvestment(id,res=>{
+    if(!res.ok)return mst('in_sts','err',res.error);
+    const v=res.investment;$('#in_nm').value=v.name;$('#in_ty').value=v.type;$('#in_pv').value=v.provider;$('#in_sd').value=v.startDate;
+    $('#in_md').value=v.maturityDate;$('#in_ar').value=v.accountRef;$('#in_st').value=v.status;$('#in_dl').value=v.documentLink;$('#in_nt').value=v.notes;mst('in_sts','','');
+  });}
+}
+function submitInv(){
+  const d={name:$('#in_nm').value.trim(),type:$('#in_ty').value,provider:$('#in_pv').value.trim(),startDate:$('#in_sd').value,maturityDate:$('#in_md').value,
+    accountRef:$('#in_ar').value.trim(),status:$('#in_st').value,documentLink:$('#in_dl').value.trim(),notes:$('#in_nt').value.trim(),currency:'UGX'};
+  const done=res=>{$('#in_btn').disabled=false;if(!res.ok)return mst('in_sts','err',res.error);
+    mst('in_sts',res.txError?'err':'ok',IV_EDIT?'Saved.':'Created '+res.investmentId+(res.txId?'; initial investment proposed as '+res.txId:'')+(res.txError?'. The initial amount was not proposed: '+res.txError:'.'));
+    loadInvestments();if(!res.txError)setTimeout(()=>cm('m_inv'),1100);};
+  const fail=e=>{$('#in_btn').disabled=false;mst('in_sts','err','Error: '+e.message);};
+  $('#in_btn').disabled=true;mst('in_sts','','Saving…');
+  if(IV_EDIT)Api.updateInvestment(IV_EDIT,d,$('#in_rs').value.trim(),done,fail);
+  else Api.createInvestment(Object.assign(d,{initialAmount:$('#in_am').value,reference:$('#in_rf').value.trim(),fromLoanFund:$('#in_lf').checked}),done,fail);
+}
+
+// ── transactions ──────────────────────────────────────────────────────────────
+const INV_TX_HELP={
+  'Additional Contribution':'More money paid into this investment.',
+  'Redemption':'Money taken out of the investment and paid to the club. Not income. To move it into the loan fund, use Transfer instead.',
+  'Income Earned':'A return credited or due but not yet paid to the club (accrued).',
+  'Income Received':'Income actually paid to the club in cash. It settles any accrued income first, so it is never counted twice.',
+  'Income Reinvested':'Income kept inside the investment (added to its balance) instead of being paid out.',
+  'Fee':'A charge. Say whether the provider took it from the investment or the club paid it separately.',
+  'Tax':'Withholding or other tax. Record the gross income, then the tax.',
+  'Valuation':'The market value on the date shown, from a provider statement. Not cash and not income.',
+  'Initial Investment':'The first amount invested (only once per investment).'
+};
+function nameOfInv(id){const i=IV_DATA&&IV_DATA.investments.find(x=>x.id===id);return i?i.id+' '+i.name:id;}
+function openInvTx(id){IV_TX=id;$('#it_info').textContent=nameOfInv(id);$('#it_ty').value='Additional Contribution';['am','rf','nt'].forEach(k=>$('#it_'+k).value='');$('#it_dt').value=todayISO();$('#it_cs').value='';toggleInvTx();mst('it_st','','');om('m_invTx');}
+function toggleInvTx(){
+  const t=$('#it_ty').value;
+  $('#it_cswrap').classList.toggle('hidden',t!=='Fee'&&t!=='Tax');
+  $('#it_aml').textContent=t==='Valuation'?'Market value (UGX)':'Amount (UGX)';
+  $('#it_dtl').textContent=t==='Valuation'?'Valuation date':'Date';
+  $('#it_help').textContent=INV_TX_HELP[t]||'';
+}
+function submitInvTx(){
+  const t=$('#it_ty').value,am=$('#it_am').value;
+  if(am===''||n(am)<0||(t!=='Valuation'&&n(am)<=0))return mst('it_st','err','Enter a valid amount.');
+  $('#it_btn').disabled=true;mst('it_st','','Saving…');
+  Api.proposeInvestmentTx(IV_TX,t,am,$('#it_dt').value,$('#it_rf').value.trim(),$('#it_nt').value.trim(),$('#it_cs').value,res=>{
+    $('#it_btn').disabled=false;if(!res.ok)return mst('it_st','err',res.error);
+    mst('it_st','ok','Proposed as '+res.txId+'. Two other admins must approve it.');loadInvestments();setTimeout(()=>cm('m_invTx'),1100);
+  },e=>{$('#it_btn').disabled=false;mst('it_st','err','Error: '+e.message);});
+}
+function openInvTr(id){IV_TX=id;$('#tr_info').textContent=nameOfInv(id);['am','rf','nt'].forEach(k=>$('#tr_'+k).value='');$('#tr_dt').value=todayISO();$('#tr_dir').value='toLoanFund';mst('tr_st','','');om('m_invTr');}
+function submitInvTr(){
+  const am=$('#tr_am').value; if(!am||n(am)<=0)return mst('tr_st','err','Enter a valid amount.');
+  $('#tr_btn').disabled=true;mst('tr_st','','Saving…');
+  Api.proposeInvestmentTransfer($('#tr_dir').value,IV_TX,am,$('#tr_dt').value,$('#tr_rf').value.trim(),$('#tr_nt').value.trim(),res=>{
+    $('#tr_btn').disabled=false;if(!res.ok)return mst('tr_st','err',res.error);
+    mst('tr_st','ok','Proposed as '+res.txId+' and '+res.fundEntryId+' (linked). Two other admins must approve.');loadInvestments();setTimeout(()=>cm('m_invTr'),1300);
+  },e=>{$('#tr_btn').disabled=false;mst('tr_st','err','Error: '+e.message);});
+}
+</script>

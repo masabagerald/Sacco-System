@@ -74,7 +74,47 @@
       updateQuote('ln_pr', 'ln_tmwrap', 'ln_q');
     } },
 
-    'audit-log': { as: P.M001, async run() { await wait(300); goSec('audit'); await wait(500); } }
+    'audit-log': { as: P.M001, async run() { await wait(300); goSec('audit'); await wait(500); } },
+
+    'record-repayment': { as: P.M001, async run() {
+      await wait(300); goSec('loans'); await wait(700); focusOn(panelOf('#activeLoansTb'));
+      openRepay('L015', 120000); set('#rp_am', '120000'); set('#rp_dt', '2026-10-14'); set('#rp_nt', 'Mobile money, ref MM-88213');
+    } },
+
+    'reverse-repayment': { as: P.M001, async run() {
+      await wait(300); goSec('loans'); await wait(700); focusOn(panelOf('#repaymentsTb'));
+      openRevRepay('RPY-000046'); set('#rr_rs', 'Recorded against L014 by mistake; the payment was for L012');
+    } },
+
+    // Loan Insights as a Founder Member (Peter, not an admin): club totals only
+    'loan-insights-founder': { as: P.M004, who: 'founder', async run() {
+      await wait(300); goSec('insights'); await wait(700);
+      ['#li_cashTb', '#li_typeTb', '#lc_dis', '#li_cumTb'].forEach(s => { panelOf(s).style.display = 'none'; });
+    } },
+
+    'loan-insights-trends': { as: P.M001, async run() {
+      await wait(300); goSec('insights'); await wait(700); focusOn(panelOf('#lc_dis'));
+    } },
+
+    'loan-fund-entry': { as: P.M001, async run() {
+      await wait(300); goSec('insights'); await wait(800); focusOn(panelOf('#li_entTb'));
+      openFundEntry(); set('#fe_ty', 'Cash Injection'); set('#fe_am', '250000'); set('#fe_ref', 'BANK-1120'); set('#fe_ds', 'Grant from the alumni association');
+    } },
+
+    'loan-fund-trace': { as: P.M001, async run() {
+      await wait(300); goSec('insights'); await wait(800); loadFundLedger(); await wait(400); focusOn(panelOf('#li_ledTb'));
+    } },
+
+    'investments': { as: P.M001, async run() {
+      await wait(300); goSec('investments'); await wait(800);
+      ['#iv_perTb', '#ic_rec', '#iv_typeTb'].forEach(s => { panelOf(s).style.display = 'none'; });
+      document.querySelectorAll('#iv_body .sec-h')[1].style.display = 'none';
+    } },
+
+    'investment-transfer': { as: P.M001, async run() {
+      await wait(300); goSec('investments'); await wait(800); focusOn(panelOf('#iv_tb'));
+      openInvTr('INV001'); set('#tr_dir', 'toLoanFund'); set('#tr_am', '300000'); set('#tr_rf', 'TRF-9'); set('#tr_nt', 'Top up the loan float');
+    } }
   };
 
   window.addEventListener('load', async () => {
@@ -82,6 +122,7 @@
     const sc = SCENES[new URLSearchParams(location.search).get('scene')];
     if (!sc) { document.body.innerHTML = 'Unknown scene'; return; }
     window.SCENE_NONMEMBER = !!sc.nonMember;
+    window.SCENE_WHO = sc.who || 'admin';
     if (sc.as) { ME = sc.as; enterApp(); }
     await sc.run();
     document.title = 'READY';

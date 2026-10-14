@@ -1,0 +1,71 @@
+<!-- Investment Tracker (admins only; the server enforces it) -->
+<div class="panel">
+  <div class="ph">
+    <div><h2>Investments</h2><p class="sub">Unit trusts, fixed deposits, treasury bills and bonds. Every money movement and valuation needs two admin approvals before it counts.</p></div>
+    <div class="btn-row"><button class="btn sm" onclick="loadInvestments()">Refresh</button><button class="btn sm solid" onclick="openInv('')">+ New investment</button></div>
+  </div>
+  <div class="tabs" id="iv_presets">
+    <button class="tab" data-p="month">This month</button><button class="tab" data-p="prev">Previous month</button>
+    <button class="tab" data-p="ytd">Year to date</button><button class="tab on" data-p="all">All time</button><button class="tab" data-p="custom">Custom</button>
+  </div>
+  <div class="bar hidden" id="iv_custom">
+    <div class="field"><label>From</label><input id="iv_from" type="date"></div>
+    <div class="field"><label>To</label><input id="iv_to" type="date"></div>
+    <button class="btn sm solid" id="iv_apply">Apply</button>
+  </div>
+  <p class="note" id="iv_range"></p>
+  <div class="err" id="iv_err"></div>
+</div>
+
+<div id="iv_body" class="loadable">
+<h3 class="sec-h">Portfolio <span id="iv_asof"></span></h3>
+<p class="note sec-n" id="iv_valnote">Values come from valuations entered by hand from provider statements. There is no live market data.</p>
+<div class="cards">
+  <div class="card hero"><div class="lbl">Current portfolio value</div><div class="val mono" id="iv_val">–</div><div class="meta" id="iv_valm"></div></div>
+  <div class="card"><div class="lbl">Net invested capital</div><div class="val mono" id="iv_net">–</div><div class="meta" id="iv_netm"></div></div>
+  <div class="card"><div class="lbl">Income received</div><div class="val mono g" id="iv_rec">–</div><div class="meta">Cash paid to MSIC, plus income reinvested</div></div>
+  <div class="card"><div class="lbl">Accrued income (unpaid)</div><div class="val mono warn" id="iv_acc">–</div><div class="meta">Earned, not yet received</div></div>
+  <div class="card"><div class="lbl">Unrealized gain / loss</div><div class="val mono" id="iv_ug">–</div><div class="meta" id="iv_rg"></div></div>
+  <div class="card"><div class="lbl">Fees &amp; taxes</div><div class="val mono bad" id="iv_cost">–</div></div>
+  <div class="card"><div class="lbl">Net return (all time)</div><div class="val mono" id="iv_ret">–</div><div class="meta">Income − fees &amp; taxes + capital gain</div></div>
+</div>
+
+<h3 class="sec-h">Period totals <span id="iv_per"></span></h3>
+<div class="panel"><table><tbody id="iv_perTb"></tbody></table></div>
+
+<div class="panel">
+  <h2>Trends by month</h2><p class="sub">Columns are totals within each month; the line is value at month end.</p>
+  <div class="chart-grid">
+    <div><h4>Income received</h4><div id="ic_rec"></div></div>
+    <div><h4>Income earned (accrued)</h4><div id="ic_earn"></div></div>
+    <div><h4>Net return</h4><div id="ic_ret"></div></div>
+    <div><h4>Portfolio value (month end)</h4><div id="ic_val"></div></div>
+  </div>
+  <details class="tview"><summary>Show the monthly figures as a table</summary>
+    <div class="tscroll"><table><thead><tr><th>Month</th><th class="r">Income earned</th><th class="r">Income received</th><th class="r">Reinvested</th><th class="r">Fees &amp; taxes</th><th class="r">Net return</th><th class="r">Net invested (end)</th><th class="r">Value (end)</th></tr></thead>
+    <tbody id="iv_monTb"></tbody></table></div>
+  </details>
+</div>
+
+<div class="panel">
+  <h2>Holdings</h2><p class="sub">Account numbers are masked here; open Edit to see one.</p>
+  <div class="tscroll"><table><thead><tr><th>Investment</th><th>Status</th><th class="r">Net invested</th><th class="r">Value</th><th class="r">Income</th><th class="r">Fees &amp; taxes</th><th class="r">Net return</th><th>Maturity</th><th></th></tr></thead>
+  <tbody id="iv_tb"><tr class="empty"><td colspan="9">Loading&hellip;</td></tr></tbody></table></div>
+</div>
+
+<div class="panel">
+  <h2>Breakdown</h2>
+  <div class="split">
+    <div><h4>By type</h4><table><thead><tr><th>Type</th><th class="r">Value</th><th class="r">Net return</th></tr></thead><tbody id="iv_typeTb"></tbody></table></div>
+    <div><h4>By provider</h4><table><thead><tr><th>Provider</th><th class="r">Value</th><th class="r">Net return</th></tr></thead><tbody id="iv_provTb"></tbody></table></div>
+  </div>
+  <h4 style="margin-top:14px">Maturing in the next 90 days</h4>
+  <table><tbody id="iv_matTb"></tbody></table>
+</div>
+
+<div class="panel">
+  <h2>Investment transactions</h2><p class="sub">Proposed by one admin, approved by two others. Transfers to or from the loan fund are linked to a Loan Fund Ledger entry and approved together.</p>
+  <div class="tscroll"><table><thead><tr><th>ID</th><th>Date</th><th>Investment</th><th>Type</th><th class="r">Amount</th><th>Notes</th><th>Status</th><th></th></tr></thead>
+  <tbody id="iv_txTb"><tr class="empty"><td colspan="8">Loading&hellip;</td></tr></tbody></table></div>
+</div>
+</div>

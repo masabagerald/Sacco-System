@@ -83,6 +83,19 @@
         withinLimit: true, savings: 900000, maxLoan: 450000, daysPending: 2, decisionOverdue: false,
         guarantors: [{ memberNo: 'M001', name: name('M001'), response: 'Accepted' }, { memberNo: 'M002', name: name('M002'), response: 'Accepted' }],
         initiatedBy: 'M003', initiatedByName: name('M003'), approver1: 'M002', approver1Name: name('M002'), approver2: '', approver2Name: '' }] }),
+    getActiveLoans: () => ({ ok: true, loans: [
+      { loanId: 'L012', memberNo: 'M005', name: name('M005'), membershipType: 'Delegate Member', dateIssued: '2026-07-20', dueDate: '2026-09-20',
+        principal: 300000, totalDue: 335000, totalRepaid: 100000, outstandingBalance: 268500, overdue: true },
+      { loanId: 'L015', memberNo: 'M006', name: name('M006'), membershipType: 'Non-Member', dateIssued: '2026-10-06', dueDate: '2026-10-20',
+        principal: 100000, totalDue: 120000, totalRepaid: 0, outstandingBalance: 120000, overdue: false },
+      { loanId: 'L014', memberNo: 'M004', name: name('M004'), membershipType: 'Founder Member', dateIssued: '2026-09-20', dueDate: '2026-12-20',
+        principal: 500000, totalDue: 555000, totalRepaid: 0, outstandingBalance: 555000, overdue: false }] }),
+    getRepayments: () => ({ ok: true, ready: true, repayments: [
+      { reference: 'RPY-000047', date: '2026-10-13', loanId: 'L012', memberNo: 'M005', name: name('M005'), amount: 50000, notes: 'Cash, receipt 4471', recordedBy: 'M002', reverses: '', reversedBy: '' },
+      { reference: 'RPY-000046', date: '2026-10-12', loanId: 'L014', memberNo: 'M004', name: name('M004'), amount: 120000, notes: 'Mobile money, ref MM-87120', recordedBy: 'M001', reverses: '', reversedBy: '' },
+      { reference: 'RPY-000045', date: '2026-10-08', loanId: 'L012', memberNo: 'M005', name: name('M005'), amount: -35000, notes: 'Reversal of RPY-000044: entered twice', recordedBy: 'M003', reverses: 'RPY-000044', reversedBy: '' },
+      { reference: 'RPY-000044', date: '2026-10-07', loanId: 'L012', memberNo: 'M005', name: name('M005'), amount: 35000, notes: 'Cash', recordedBy: 'M002', reverses: '', reversedBy: 'RPY-000045' },
+      { reference: 'RPY-000043', date: '2026-09-30', loanId: 'L012', memberNo: 'M005', name: name('M005'), amount: 65000, notes: 'Cash, receipt 4402', recordedBy: 'M001', reverses: '', reversedBy: '' }] }),
     getAllFinesForAdmin: () => [
       { fineId: 'F007', memberName: name('M005'), date: '2026-10-01', reason: 'Late monthly premium', amount: 10000, status: 'Unpaid' },
       { fineId: 'F006', memberName: name('M003'), date: '2026-09-30', reason: 'Missed meeting', amount: 20000, status: 'Unpaid' }],
@@ -108,6 +121,9 @@
       if (fn === 'withSuccessHandler') return h => runner(h, onFail);
       if (fn === 'withFailureHandler') return h => runner(onOk, h);
       return (...args) => setTimeout(() => {
+        // Loan Insights / Investments: recorded from the real server (finance-data.js), as admin or as a Founder Member
+        const fin = window.FINANCE_MOCK && (window.FINANCE_MOCK[window.SCENE_WHO || 'admin'] || {})[fn];
+        if (fin) { if (onOk) onOk(JSON.parse(JSON.stringify(fin))); return; }
         if (!MOCK[fn]) { console.warn('No mock for ' + fn); return; }
         if (onOk) onOk(MOCK[fn](...args));
       }, 0);

@@ -31,3 +31,14 @@ function _adminCaller() {
   if (r.member.role.toLowerCase() !== 'admin') return { ok: false, error: 'Admin access required.' };
   return r;
 }
+
+// Loan Insights: admins get the full view (level 'admin'); members whose membership type is in
+// INSIGHTS_MEMBERSHIP_TYPES get the read-only aggregate view (level 'aggregate'); everyone else is refused.
+// Membership type grants this view only -- it never grants admin actions.
+function _insightsCaller() {
+  const r = _caller();
+  if (!r.ok) return r;
+  if (r.member.role.toLowerCase() === 'admin') return Object.assign({}, r, { level: 'admin' });
+  if (INSIGHTS_MEMBERSHIP_TYPES.indexOf(String(r.member.membershipType || '').trim()) > -1) return Object.assign({}, r, { level: 'aggregate' });
+  return { ok: false, error: 'Loan Insights are available to administrators and Founder Members only.' };
+}
