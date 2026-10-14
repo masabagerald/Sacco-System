@@ -29,6 +29,8 @@ function issueFine(memberNo, amount, reason) {
     ['Surcharge ID',newId],['Amount',fmtUGX(amount)],['Reason',reason],['Status','Unpaid']
   ],'A surcharge has been recorded on your account. Please settle with the treasurer.');
   auditLog('Surcharge Issued', memberNo, auth.member.memberNo, fmtUGX(amount)+'. Reason: '+reason, newId);
+  _notifyGuarantorsOfBorrower(memberNo, { key: 'fine-issued|' + newId, event: 'Surcharge / fine charged', amount, date: today(),
+    details: [['Surcharge ID', newId], ['Reason', reason], ['Status', 'Unpaid']], message: 'A surcharge or fine has been charged to the borrower and is outstanding.' });
   return { ok:true, fineId:newId };
 }
 
@@ -46,6 +48,8 @@ function markFinePaid(fineId) {
     ['Surcharge ID',fineId],['Amount',fmtUGX(num(fine['Amount (UGX)']))],['Status','Paid']
   ],'This surcharge has been marked as paid. Thank you.');
   auditLog('Surcharge Marked Paid', fine['MemberNo'], auth.member.memberNo, fmtUGX(num(fine['Amount (UGX)']))+'. Reason was: '+fine['Reason'], fineId);
+  _notifyGuarantorsOfBorrower(fine['MemberNo'], { key: 'fine-paid|' + String(fineId).trim(), event: 'Surcharge / fine paid', amount: num(fine['Amount (UGX)']),
+    date: today(), details: [['Surcharge ID', String(fineId).trim()], ['Reason', String(fine['Reason']||'')]], message: 'The borrower has paid a surcharge or fine.' });
   return { ok:true };
 }
 

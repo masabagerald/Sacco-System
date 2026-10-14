@@ -104,9 +104,10 @@ function _guarantorHandle(token, decide, confirm, reason) {
   if (decision === 'Declined') {
     _notifyAdmins('Guarantor declined: ' + requestId, rowsOut,
       guarantorName + ' declined to guarantee ' + applicantName + '\'s loan request. The request cannot be approved as it stands.');
-  } else if (_guaranteeResponses(requestId).every(g => g.response === 'Accepted')) {
-    // Admins and guarantors act in any order. If both admins have already approved, this acceptance
-    // is the last step: issue the loan now (every rule is checked again first).
+  } else if (_guarantorGate(requestId).ok) {
+    // Both guarantors have consented: the request moves to the admin approval stage. A request left
+    // "Awaiting Guarantors" by the earlier any-order flow already has both admin approvals, so this
+    // acceptance is its last step: issue the loan now (every rule is checked again first).
     if (String(req['Status']||'').trim() === AWAITING_GUARANTORS) {
       const fin = _withScriptLock(() => _finalizeLoanRequestLocked(requestId, String(req['Approver 2']||'').trim()));
       if (!fin.ok) {
@@ -115,9 +116,8 @@ function _guarantorHandle(token, decide, confirm, reason) {
           'Every guarantor has accepted and both admins approved, but the loan could not be issued. Fix the problem and click Issue loan, or reject the request with a reason.');
       }
     } else {
-      const approvals = String(req['Approver 1']||'').trim() ? 1 : 0;
       _notifyAdmins('Guarantors all accepted: ' + requestId, rowsOut,
-        'All guarantors have approved. ' + (approvals ? 'One admin has approved; a second, different admin must approve to issue the loan.' : 'Two different admins must approve to issue the loan.'));
+        'Both guarantors have consented. The request is ready for admin approval: two different admins, neither the initiator nor the applicant, must approve to issue the loan.');
     }
   }
 

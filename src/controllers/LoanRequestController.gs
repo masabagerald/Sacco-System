@@ -74,7 +74,7 @@ function _submitLoanRequest(memberNo, initiatedBy, initiatorName, amount, termIn
     ['Amount',fmtUGX(amount)],['Repayment term',spec.label+' at '+r2(spec.rate*100)+'% interest'],
     ['Total due',fmtUGX(q.total)],['Purpose',purpose||'-'],
     ['Guarantors',gc.guarantors.length?gc.guarantors.join(', '):'None required']
-  ],'A new loan request is pending two different admin approvals. Decision due within 3 days.');
+  ],'A new loan request has been submitted. Both guarantors must consent by email before it can be approved; then two different admins must approve. Decision due within 3 days.');
   auditLog('Loan Request Submitted', memberNo, initiatedBy,
     'Requested '+fmtUGX(amount)+' over '+spec.label+'. Guarantors: '+(gc.guarantors.join(', ')||'none')+'. Purpose: '+(purpose||'-'), newId);
   if (overrideUsed)
@@ -147,13 +147,12 @@ function getLoanRequests() {
     }).sort((a,b)=>String(b.date).localeCompare(String(a.date))) };
 }
 
-// Casts one of the two required admin approvals. Admins and guarantors can act in any order: the loan
-// is issued by whichever comes last -- the second admin approval (if every guarantor has accepted) or
-// the last guarantor's acceptance (if both admins have approved; see GuarantorWeb.gs). A guarantor's
-// decline blocks approval. Neither approver may be the initiator or the applicant. On a request
-// already "Awaiting Guarantors" whose guarantors have all accepted, this retries issuing the loan
-// (used when issuing failed at the guarantor's acceptance). Runs under the script lock so two
-// admins approving at once cannot create the loan twice.
+// Casts one of the two required admin approvals. The order is fixed: both guarantors consent first,
+// then two different admins approve, and the second approval issues the loan. Until both guarantors
+// have accepted, no admin approval is recorded; a decline blocks it for good. Neither approver may be
+// the initiator or the applicant. A request left "Awaiting Guarantors" by the earlier any-order flow
+// is issued (or retried) here once its guarantors have all accepted. Runs under the script lock so
+// two admins approving at once cannot create the loan twice.
 function approveLoanRequest(requestId, overrideReason) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
   return _withScriptLock(() => _approveLoanRequestLocked(auth, requestId, overrideReason));
@@ -186,8 +185,7 @@ function _approveLoanRequestLocked(auth, requestId, overrideReason) {
   if (spec.guarantorsRequired) {
     gc=_guarantorChecks(req['MemberNo'], amount, _guarantorMap()[String(requestId).trim()]||[], requestId);
     if (!gc.ok) return gc;
-    const declined = _guaranteeResponses(requestId).find(g => g.response === 'Declined');
-    if (declined) return {ok:false,error:'Guarantor ' + declined.guarantorNo + ' declined this request. It cannot be approved; reject it with a reason.'};
+    const gate = _guarantorGate(requestId); if (!gate.ok) return gate;
   }
   // Limit override: given now, or by the other approving admin earlier (kept on the request)
   const storedOverride = String(req['Limit Override']||'').trim();
@@ -198,32 +196,22 @@ function _approveLoanRequestLocked(auth, requestId, overrideReason) {
     if (ci(headers,'limit override') < 0) throw new Error('Loan Requests sheet is missing the "Limit Override" column. Run setupFinanceSchema() once from the script editor.');
     _setLoanRequestCell(sh, headers, req._row, 'limit override', overrideReason);
   }
-  const guarantorsReady = !spec.guarantorsRequired || _guarantorGate(requestId).ok;
-  const waitingNote = guarantorsReady ? '' : ' Waiting for: ' + _guaranteeResponses(requestId).filter(g => g.response !== 'Accepted').map(g => g.guarantorNo).join(', ') + '.';
-
   if (!approver1) {
     _setApprover(sh, headers, hRow, requestId, 1, auth.member.memberNo);
     _updateReqStatus(sh, headers, hRow, requestId, 'Partially Approved',
       'First approval by '+auth.member.memberNo+(overrideReason?' [OVERRIDE: '+overrideReason+']':''), auth.member.memberNo);
     _sendEmail(member?.['Email'],'Loan Request Update: '+requestId,[['Request ID',requestId],['Status','First approval received']],
-      'Your loan request has received its first admin approval. A second, different admin must approve'+(guarantorsReady?'':', and every guarantor must accept,')+' before it is finalized.');
+      'Your loan request has received its first admin approval. A second, different admin must approve before it is finalized.');
     _notifyAdmins('Second approval needed: '+requestId,[['Request ID',requestId],['Member',(member?member['Full Name']:req['MemberNo'])+' ('+req['MemberNo']+')'],
       ['Amount',fmtUGX(amount)],['First approval',auth.member.name+' ('+auth.member.memberNo+')']],
       'This loan request has its first approval. A different admin, who is neither the initiator nor the applicant, must give the final approval.');
     auditLog('Loan Request First Approval', req['MemberNo'], auth.member.memberNo,
       'First of two required approvals.'+(overrideReason?' Override: '+overrideReason:'')+(guarantorOverride?' Guarantor restriction override on file: '+guarantorOverride:''), requestId);
-    return { ok: true, stage: 'first', message: 'First approval recorded. A second, different admin must approve to finish.'+waitingNote };
+    return { ok: true, stage: 'first', message: 'First approval recorded. A second, different admin must approve to finish.' };
   }
 
   _setApprover(sh, headers, hRow, requestId, 2, auth.member.memberNo);
-  if (guarantorsReady) return _finalizeLoanRequestLocked(requestId, auth.member.memberNo);
-  _updateReqStatus(sh, headers, hRow, requestId, AWAITING_GUARANTORS,
-    'Approved by '+approver1+' and '+auth.member.memberNo+(overrideReason?' [OVERRIDE: '+overrideReason+']':'')+'. The loan is issued when every guarantor has accepted.'+waitingNote, auth.member.memberNo);
-  _sendEmail(member?.['Email'],'Loan Request Update: '+requestId,[['Request ID',requestId],['Status','Approved by two admins; waiting for guarantors']],
-    'Your loan request has both admin approvals. It will be issued as soon as every guarantor has accepted.');
-  auditLog('Loan Request Second Approval', req['MemberNo'], auth.member.memberNo,
-    'Second of two required approvals (with '+approver1+'). Loan to be issued once every guarantor accepts.'+waitingNote+(overrideReason?' Override: '+overrideReason:''), requestId);
-  return { ok: true, stage: 'awaiting', message: 'Both admin approvals are in. The loan is issued automatically when every guarantor has accepted.'+waitingNote };
+  return _finalizeLoanRequestLocked(requestId, auth.member.memberNo);
 }
 
 function _setLoanRequestCell(sh, headers, rowNum, name, value) {

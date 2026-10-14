@@ -28,8 +28,9 @@ function _setApprover(sh, headers, hRow, requestId, slot, memberNo) {
   }
 }
 
-// A loan request with both admin approvals but a guarantor still to answer. It is still open:
-// the loan is issued by whichever comes last -- the second admin approval or the last guarantor's acceptance.
+// A loan request with both admin approvals but a guarantor still to answer. Only the earlier any-order
+// flow created this status; admins now approve only after both guarantors consent. Kept so requests
+// already in it stay open and are issued when their last guarantor accepts.
 const AWAITING_GUARANTORS = 'Awaiting Guarantors';
 
 function _isOpenRequest(req) {

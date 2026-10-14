@@ -37,6 +37,10 @@ function _loanSpecFor(membershipType, termInput) {
       guarantorsRequired: true, savingsLimit: false } };
   }
   if (type === 'Founder Member' || type === 'Delegate Member') {
+    // A Soft Loan term key ('1w', '1m', ...) means the request was made while the member was a
+    // Non-Member and their membership type has changed since. Don't read '1w' as 1 month.
+    const soft = _termByKey(termInput);
+    if (soft) return { ok: false, error: 'This request was made as a Non-Member Soft Loan (' + soft.label + '), but the member is now a ' + type + '. Reject it; the member can apply again as a ' + type + '.' };
     const months = Math.round(num(termInput));
     if (!months || months < MEMBER_LOAN_MIN_MONTHS)
       return { ok: false, error: 'Minimum loan term is ' + MEMBER_LOAN_MIN_MONTHS + ' months.' };

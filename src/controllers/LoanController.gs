@@ -18,6 +18,14 @@ function getActiveLoans() {
   const { rows: members } = readSheet(SH_MEMBERS,'memberno');
   const byNo = {};
   members.forEach(m => { byNo[String(m['MemberNo']||'').trim()] = m; });
+  const gByLoan = _guarantorsByLoan();
+  const noticeSh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SH_GUARANTOR_NOTICES);
+  const notices = {};
+  if (noticeSh) readSheet(SH_GUARANTOR_NOTICES, 'event key').rows.forEach(n => {
+    const id = String(n['LoanID']||'').trim(), ts = String(n['Timestamp']||'');
+    const cur = notices[id] || (notices[id] = { count: 0, last: '' });
+    cur.count++; if (ts > cur.last) cur.last = ts;
+  });
   return { ok: true, loans: loans
     .filter(l => String(l['LoanID']||'').trim())
     .map(l => _computeLoan(l, reps))
@@ -26,7 +34,9 @@ function getActiveLoans() {
       const m = byNo[String(l.memberNo||'').trim()] || {};
       return { loanId: l.loanId, memberNo: l.memberNo, name: m['Full Name'] || '', membershipType: String(m['Membership Type']||''),
         dateIssued: l.dateIssued, dueDate: l.dueDate || '', principal: l.principal, totalDue: l.totalDue || 0, totalRepaid: l.totalRepaid,
-        outstandingBalance: l.outstandingBalance, overdue: l.overdue, progressLabel: l.progressLabel };
+        outstandingBalance: l.outstandingBalance, overdue: l.overdue, progressLabel: l.progressLabel,
+        guarantors: (gByLoan[String(l.loanId).trim()] || []).map(g => Object.assign({ name: (byNo[g.memberNo] || {})['Full Name'] || g.memberNo }, g)),
+        guarantorNotices: notices[String(l.loanId).trim()] || { count: 0, last: '' } };
     })
     .sort((a, b) => (b.overdue - a.overdue) || String(a.dueDate).localeCompare(String(b.dueDate))) };
 }
@@ -51,6 +61,7 @@ function recordRepayment(loanId, amount, notes, txDate) {
   const { rows: loans } = readSheet(SH_LOANS,'loanid');
   const loan = loans.find(l => String(l['LoanID']||'').trim()===String(loanId).trim());
   if (!loan) return {ok:false,error:'Loan not found.'};
+  const wasActive = _computeLoan(loan, readSheet(SH_REPAY,'loanid').rows).status === LOAN_STATUS.ACTIVE;
   const reference = _withScriptLock(() => _appendRepaymentRow({ date: dv.date, loanId, memberNo: loan['MemberNo'], amount,
     recordedBy: auth.member.memberNo, notes: notes||'' }));
   const { rows: reps2 } = readSheet(SH_REPAY,'loanid');
@@ -63,6 +74,7 @@ function recordRepayment(loanId, amount, notes, txDate) {
   ].concat(reference?[['Reference',reference]]:[]), updated.status===LOAN_STATUS.CLEARED?'Congratulations — this loan is now fully cleared!':'Your repayment has been recorded. Thank you.');
   auditLog('Loan Repayment', loan['MemberNo'], auth.member.memberNo,
     'Repayment of '+fmtUGX(amount)+(reference?' ('+reference+', dated '+dv.date+')':'')+'. Outstanding: '+fmtUGX(updated.outstandingBalance), loanId);
+  _notifyGuarantorsOfRepayment(loanId, reference, amount, dv.date, updated, wasActive);
   return { ok: true, loan: updated, reference };
 }
 
@@ -99,6 +111,9 @@ function reverseRepayment(reference, reason) {
   auditLog('Loan Repayment Reversed', res.orig['MemberNo'], auth.member.memberNo,
     'Reversed '+reference+' of '+fmtUGX(res.amount)+' (dated '+_dstr(res.orig['Date'])+') on '+loanId+' as '+res.reference+'. Reason: '+reason
     +'. Outstanding now: '+fmtUGX(outstanding), loanId);
+  _notifyGuarantors(loanId, { key: 'reversal|' + res.reference, event: 'Repayment reversed', amount: res.amount, date: today(), balance: outstanding,
+    details: [['Reversed', reference + ' dated ' + _dstr(res.orig['Date'])], ['Reason', reason]],
+    message: "A repayment recorded on the borrower's loan has been reversed, so the balance has gone up again." });
   return { ok: true, reference: res.reference, outstandingBalance: outstanding };
 }
 

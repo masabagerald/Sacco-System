@@ -20,7 +20,7 @@ function _termByKey(key) { return LOAN_TERMS.find(t => t.key === String(key||'')
 const LOAN_FIRST_INSTALMENT_DAYS = 28;    // Sec 13: first instalment at week 4
 const LOAN_DURATION_DAYS         = 56;    // Sec 12/13: everything due by week 8
 const LATE_PENALTY_RATE          = 0.10;  // Sec 14: 10% if unpaid at week 8
-const GUARANTOR_MIN_COUNT        = 2;     // Sec 4
+const GUARANTOR_COUNT            = 2;     // Sec 4: every loan, all membership types, needs exactly two
 const GUARANTOR_SAVINGS_RATIO    = 0.25;  // Sec 3: guarantor savings >= 25% of loan
 const DECISION_WINDOW_DAYS       = 3;     // Sec 9: committee decides within 3 days
 
@@ -33,6 +33,7 @@ const SH_REPAY     = 'Loan Repayments';
 const SH_FINES     = 'Surcharge';
 const SH_LOAN_REQ  = 'Loan Requests';
 const SH_GUARANTORS = 'Guarantors';
+const SH_GUARANTOR_NOTICES = 'Guarantor Notifications';
 const SH_WD_REQ    = 'Withdrawal Requests';
 const SH_AUDIT     = 'Audit Log';
 

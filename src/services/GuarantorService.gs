@@ -32,7 +32,7 @@ function _liveGuaranteesOf(memberNo, excludeRequestId) {
 function _guarantorChecks(applicantNo, amount, guarantorNos, excludeRequestId) {
   const applicant = String(applicantNo).trim();
   const list = [...new Set((guarantorNos||[]).map(g => String(g).trim()).filter(Boolean))];
-  if (list.length < GUARANTOR_MIN_COUNT) return { ok: false, error: 'At least ' + GUARANTOR_MIN_COUNT + ' guarantors are required. (Art. 4, Sec. 4)' };
+  if (list.length !== GUARANTOR_COUNT) return { ok: false, error: 'Exactly ' + GUARANTOR_COUNT + ' guarantors are required (' + list.length + ' chosen). (Art. 4, Sec. 4)' };
   if (list.includes(applicant)) return { ok: false, error: 'A member cannot guarantee their own loan.' };
   const needed = r2(num(amount) * GUARANTOR_SAVINGS_RATIO);
   for (const g of list) {
@@ -89,6 +89,19 @@ function _linkGuarantorsToLoan(requestId, loanId) {
     if (String(data[r][cR]).trim() === String(requestId).trim()) sh.getRange(r + 1, cL + 1).setValue(loanId);
 }
 
+// Each loan's guarantors with their consent: { loanId: [{memberNo, response, respondedAt}] }
+function _guarantorsByLoan() {
+  const { rows } = readSheet(SH_GUARANTORS, 'requestid');
+  const map = {};
+  rows.forEach(r => {
+    const id = String(r['LoanID']||'').trim();
+    if (!id) return;
+    (map[id] = map[id] || []).push({ memberNo: String(r['GuarantorNo']||'').trim(),
+      response: String(r['Response']||'').trim(), respondedAt: String(r['Responded At']||'') });
+  });
+  return map;
+}
+
 // Members a guarantor can pick from: active members other than the applicant.
 // Admins may pass applicantNo to load candidates for a member they are issuing a loan to.
 function getGuarantorCandidates(applicantNo) {
@@ -112,6 +125,7 @@ function setupGuaranteeSchema() {
   GUARANTOR_HEADERS.forEach(name => {
     if (!gHdr.includes(name.toLowerCase())) { g.getRange(1, g.getLastColumn() + 1).setValue(name); gHdr.push(name.toLowerCase()); }
   });
+  _guarantorNoticeSheet();  // Guarantor Notifications: one row per notice sent, so none is sent twice
 
   // Adds any missing columns to an existing tab. Finds the real header row (tabs have a title above it).
   const addColumns = (sheetName, hint, names) => {
@@ -142,9 +156,11 @@ function _guaranteeResponses(requestId) {
     .map(r => ({ guarantorNo: String(r['GuarantorNo']||'').trim(), response: String(r['Response']||'Pending').trim() || 'Pending' }));
 }
 
-// Approval is blocked until every guarantor has accepted
+// Admin approval is blocked until both guarantors have accepted
 function _guarantorGate(requestId) {
   const list = _guaranteeResponses(requestId);
+  if (list.length !== GUARANTOR_COUNT)
+    return { ok: false, error: 'This request has ' + list.length + ' guarantor(s) on file; exactly ' + GUARANTOR_COUNT + ' are required. Reject it so the member can apply again with two guarantors.' };
   const declined = list.find(g => g.response === 'Declined');
   if (declined) return { ok: false, error: 'Guarantor ' + declined.guarantorNo + ' declined this request. It cannot be approved; reject it with a reason.' };
   const waiting = list.find(g => g.response !== 'Accepted');

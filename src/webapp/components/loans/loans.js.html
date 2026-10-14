@@ -130,7 +130,9 @@ function renderActiveLoansAdmin(){
   const q=($('#al_q').value||'').trim().toLowerCase();
   const rows=ACTIVE_LOANS.filter(l=>!q||(l.loanId+' '+l.memberNo+' '+l.name).toLowerCase().indexOf(q)>-1);
   $('#activeLoansTb').innerHTML=rows.length?rows.map(l=>'<tr><td>'+esc(l.loanId)+(l.overdue?' '+badge('Overdue',BMAP):'')+'</td>'
-    +'<td>'+esc(l.memberNo)+' — '+esc(l.name)+'<div class="note">'+esc(l.membershipType||'type not set')+'</div></td>'
+    +'<td>'+esc(l.memberNo)+' — '+esc(l.name)+'<div class="note">'+esc(l.membershipType||'type not set')+'</div>'
+    +'<div class="note">Guarantors: '+((l.guarantors||[]).length?l.guarantors.map(g=>esc(g.name)+' ('+esc(g.memberNo)+')'+(g.respondedAt?' - consented '+esc(g.respondedAt):'')).join(', '):'none on file')+'</div>'
+    +((l.guarantorNotices&&l.guarantorNotices.count)?'<div class="note">'+l.guarantorNotices.count+' guarantor notice(s) sent, last '+esc(l.guarantorNotices.last)+'</div>':'')+'</td>'
     +'<td>'+esc(hd(l.dateIssued))+'</td><td>'+esc(l.dueDate?hd(l.dueDate):'—')+'</td>'
     +'<td class="r">'+money(l.totalDue)+'</td><td class="r">'+money(l.totalRepaid)+'</td><td class="r"><b>'+money(l.outstandingBalance)+'</b></td>'
     +'<td><button class="btn sm solid" onclick="openRepay(\''+esc(l.loanId)+'\','+l.outstandingBalance+')">Record Repayment</button></td></tr>').join('')
@@ -189,19 +191,21 @@ function loadLoanReqAdmin(){
       const ov=r.guarantorOverride?'<div class="note" style="color:var(--warn)">Guarantor restriction override: '+esc(r.guarantorOverride)+'</div>':'';
       const due=r.decisionOverdue?'<div class="note" style="color:var(--bad)">Decision overdue ('+r.daysPending+' days, limit 3)</div>'
         :(r.daysPending!==null?'<div class="note">Pending '+r.daysPending+' day(s)</div>':'');
-      // Admins and guarantors act in any order; the loan is issued when two admins have approved and every guarantor has accepted
+      // Both guarantors consent first; only then can two different admins approve. ("Awaiting Guarantors"
+      // is left over from the earlier any-order flow: both admins approved, the loan is issued at the last acceptance.)
       const awaiting=r.status==='Awaiting Guarantors';
       const open=r.status==='Pending'||r.status==='Partially Approved'||awaiting;
-      const allAccepted=!r.guarantorsRequired||r.guarantors.every(g=>g.response==='Accepted');
+      const allAccepted=!r.guarantorsRequired||(r.guarantors.length===2&&r.guarantors.every(g=>g.response==='Accepted'));
       const why=ME.memberNo===r.initiatedBy?'You initiated this request — another admin must approve it.'
         :ME.memberNo===String(r.memberNo)?'This is your own loan — another admin must approve it.'
         :(!awaiting&&ME.memberNo===r.approver1)?'You have approved — a different admin must give the other approval.':'';
       const already=open&&why?'<div class="note">'+why+'</div>':'';
       const nAppr=(r.approver1?1:0)+(r.approver2?1:0);
       const approvals='<div class="note">Admin approvals: '+nAppr+' of 2'+(nAppr?' ('+esc(r.approver1Name)+(r.approver2Name?', '+esc(r.approver2Name):'')+')':'')+'</div>'
-        +(r.guarantorsRequired&&!allAccepted&&open?'<div class="note">Waiting for guarantor'+(r.guarantors.filter(g=>g.response!=='Accepted').length>1?'s':'')+' to accept. The loan is issued as soon as every guarantor and two admins have approved, in any order.</div>':'');
+        +(r.guarantorsRequired&&!allAccepted&&open?'<div class="note">Waiting for guarantor'+(r.guarantors.filter(g=>g.response!=='Accepted').length>1?'s':'')+' to consent. Admins can approve only after both guarantors have accepted.</div>':'');
       const canAct=open&&!why;
-      const approveBtn=awaiting?(allAccepted?'<button class="btn sm solid" onclick="openApproveLR(\''+r.requestId+'\')">Issue loan</button> ':'')
+      const approveBtn=!allAccepted?''
+        :awaiting?'<button class="btn sm solid" onclick="openApproveLR(\''+r.requestId+'\')">Issue loan</button> '
         :'<button class="btn sm" onclick="openApproveLR(\''+r.requestId+'\')">Approve</button> ';
       const acts=canAct?approveBtn+'<button class="btn sm danger" onclick="openRejectLR(\''+r.requestId+'\')">Reject</button>':already;
       return '<tr><td>'+esc(r.requestId)+'</td><td>'+esc(r.memberName)+'<div class="note">'+esc(r.membershipType||'—')+' &middot; Guarantors: '+gl+'</div><div class="note">Initiated by '+esc(r.initiatedByName)+'</div>'+ov+approvals+'</td><td class="r">'+money(r.amount)+'<div class="note">Total '+fmt(r.total)+'</div></td><td>'+esc(r.termLabel)+'</td><td>'+esc(r.purpose)+'</td><td>'+lim+'</td><td>'+badge(r.status,BMAP)+due+'</td><td>'+acts+'</td></tr>';
@@ -228,7 +232,7 @@ function submitReqLoan(){
   if(!LOAN_PRODUCT||LOAN_PRODUCT.product==='none')return mst('rl_st','err','Your membership type has not been set. Contact an admin.');
   if(!tm)return mst('rl_st','err','Choose a repayment term.');
   const gs=needsGuarantors()?pickedGuarantors('rl_gt'):[];
-  if(needsGuarantors()&&gs.length<2)return mst('rl_st','err','Select at least two guarantors.');
+  if(needsGuarantors()&&gs.length!==2)return mst('rl_st','err','Select exactly two guarantors.');
   $('#rl_btn').disabled=true;mst('rl_st','','Submitting…');
   Api.requestLoan(am,tm,$('#rl_pu').value.trim(),gs, res=>{
     $('#rl_btn').disabled=false;
@@ -275,7 +279,7 @@ function submitLoan(){
   if(!LOAN_PRODUCT||LOAN_PRODUCT.product==='none')return mst('ln_st','err','This member\'s membership type has not been set.');
   if(!tm)return mst('ln_st','err','Choose a repayment term.');
   const gs=needsGuarantors()?pickedGuarantors('ln_gt'):[];
-  if(needsGuarantors()&&gs.length<2)return mst('ln_st','err','Select at least two guarantors.');
+  if(needsGuarantors()&&gs.length!==2)return mst('ln_st','err','Select exactly two guarantors.');
   $('#ln_btn').disabled=true;mst('ln_st','','Saving…');
   Api.issueLoan(mb,pr,$('#ln_pu').value.trim(),gs,tm,$('#ln_ov').value.trim(), res=>{
     $('#ln_btn').disabled=false;

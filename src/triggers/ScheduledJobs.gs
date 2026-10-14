@@ -49,6 +49,8 @@ function _sendRepaymentReminders() {
       _sendEmail(m['Email'],'Overdue Loan Notice',overdue.map(l=>[l.loanId,fmtUGX(l.outstandingBalance)+' ('+l.progressLabel+')']),
         'You have overdue loans. Please contact the treasurer to arrange repayment.');
       overdueNames.push(m['Full Name']);
+      overdue.forEach(l => _notifyGuarantors(l.loanId, { key: 'overdue|' + l.loanId, event: 'Loan overdue', amount: 0, date: today(),
+        balance: l.outstandingBalance, message: "The borrower's loan is overdue." }));
     }
     if (isReminderDay) {
       const upcoming=myLoans.filter(l=>!l.overdue);
@@ -122,6 +124,9 @@ function processLoanDueDates() {
         ],'Your loan is now overdue. A 10% surcharge on the loan and interest has been applied automatically. Please contact the treasurer to arrange repayment.');
         markNoticed(l);
         surcharged.push(m['Full Name']);
+        _notifyGuarantors(c.loanId, { key: 'overdue|' + c.loanId, event: 'Loan overdue: surcharge charged', amount: surcharge, date: today(),
+          balance: r2(c.outstandingBalance + surcharge), details: [['Due date', human_date(c.dueDate)], ['Overdue surcharge (10%)', fmtUGX(surcharge)]],
+          message: 'The borrower has missed the due date. A 10% overdue surcharge has been charged on the loan and interest.' });
       } else if (daysPastDue <= OVERDUE_MAX_DAILY_NOTICE_DAYS) {
         _sendEmail(m['Email'],'Overdue Loan Reminder: '+c.loanId,[['Loan ID',c.loanId],['Days overdue',String(daysPastDue)],['Outstanding',fmtUGX(c.outstandingBalance)]],
           'Your loan remains overdue. Please contact the treasurer to arrange repayment.');

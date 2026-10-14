@@ -39,6 +39,10 @@ function recordSavings(memberNo, type, amount, account, category, surchargeReaso
   auditLog(tx.type, memberNo, auth.member.memberNo,
     tx.type + ' of ' + fmtUGX(tx.amount) + ' (' + tx.account + ' account' + (tx.category ? ', ' + tx.category : '') + ', dated ' + tx.date + ')'
     + (tx.notes ? '. Note: ' + tx.notes : '') + '. New ' + tx.account + ' balance: ' + fmtUGX(bal[tx.account]) + '. Total savings: ' + fmtUGX(bal.total), reference);
+  // A surcharge on an unpaid loan or its interest concerns the borrower's guarantors too
+  if (tx.type === TX_DEPOSIT && tx.category === 'Surcharge' && /loan|interest/i.test(tx.surchargeReason || ''))
+    _notifyGuarantorsOfBorrower(memberNo, { key: 'surcharge-paid|' + reference, event: 'Surcharge paid', amount: tx.amount, date: tx.date,
+      details: [['Surcharge reason', tx.surchargeReason], ['Reference', reference]], message: 'The borrower has paid a surcharge (' + tx.surchargeReason + ').' });
   return { ok: true, reference, newBalance: bal.total, accountBalance: bal[tx.account] };
 }
 
