@@ -241,5 +241,9 @@ function setupFinanceSchema() {
       });
     });
   _setupRepaymentReferences();  // Loan Repayments: Reference + Reverses, references for existing rows
+  // Loan Requests: the limit-override reason is kept on the request, so it still applies when the
+  // last guarantor's acceptance (rather than an admin) is what issues the loan
+  const lr = readSheet(SH_LOAN_REQ, 'requestid');
+  if (lr.hRow > -1 && ci(lr.headers, 'limit override') < 0) lr.sh.getRange(lr.hRow + 1, lr.sh.getLastColumn() + 1).setValue('Limit Override');
   Logger.log('Finance schema ready.');
 }

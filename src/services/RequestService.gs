@@ -28,9 +28,13 @@ function _setApprover(sh, headers, hRow, requestId, slot, memberNo) {
   }
 }
 
+// A loan request with both admin approvals but a guarantor still to answer. It is still open:
+// the loan is issued by whichever comes last -- the second admin approval or the last guarantor's acceptance.
+const AWAITING_GUARANTORS = 'Awaiting Guarantors';
+
 function _isOpenRequest(req) {
   const st = String(req['Status'] || '').trim();
-  return st === 'Pending' || st === 'Partially Approved';
+  return st === 'Pending' || st === 'Partially Approved' || st === AWAITING_GUARANTORS;
 }
 
 // Segregation of duties for any request needing two admin approvals (loans and withdrawals).

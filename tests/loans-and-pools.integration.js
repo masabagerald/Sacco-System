@@ -92,7 +92,7 @@ module.exports = {
     assert.deepStrictEqual(asked, [DAN, EMAIL.FAY], 'both guarantors are emailed');
 
     fakes.signInAs(ALICE);
-    fails(g.approveLoanRequest(req.requestId, ''), /Waiting for guarantor/, 'approval before consent');
+    assert.strictEqual(ok(g.approveLoanRequest(req.requestId, ''), 'an admin may approve before the guarantors answer').stage, 'first');
 
     // Opening the link alone records nothing
     g._guarantorHandle(responseOf(ctx, req.requestId, 'M004').Token, 'approve', '', '');
@@ -111,6 +111,7 @@ module.exports = {
     assert.ok(ctx.audit().some(a => a.Action === 'Guarantor Declined' && /Cannot commit this month/.test(a.Details)));
     assert.ok(fakes.emails.some(e => e.to === 'admins' && /Guarantor declined/.test(e.subject)));
 
+    fakes.signInAs(CAROL);
     fails(g.approveLoanRequest(req.requestId, ''), /declined/, 'approval after a decline');
     fakes.signInAs(BOB);
     ok(g.rejectLoanRequest(req.requestId, 'Guarantor declined'), 'reject');
@@ -122,7 +123,7 @@ module.exports = {
   'an approved Soft Loan follows consent then two different admins'(c) {
     const ctx = seed(c), { g, fakes } = ctx;
     const { requestId, loanId } = runningSoftLoan(ctx);
-    assert.ok(fakes.emails.some(e => /Ready for approval/.test(e.subject)), 'admins told once all guarantors consent');
+    assert.ok(fakes.emails.some(e => /Guarantors all accepted/.test(e.subject)), 'admins told once all guarantors consent');
     assert.ok(fakes.emails.some(e => /Second approval needed/.test(e.subject)), 'admins told a second approval is needed');
     const loan = ctx.loans()[0];
     assert.deepStrictEqual([loan.LoanID, loan.MemberNo, loan['Loan Model'], loan['Processing Fee (UGX)'], loan['Interest Rate (%)'], loan['Term (days)']],
@@ -143,7 +144,107 @@ module.exports = {
     fakes.signInAs(ALICE);
     fails(g.approveLoanRequest(req.requestId, ''), /You initiated this request/, 'Alice approving her proposal');
     fakes.signInAs(CAROL);
-    fails(g.approveLoanRequest(req.requestId, ''), /Waiting for guarantor/, 'Carol is an eligible approver; only consent is missing');
+    ok(g.approveLoanRequest(req.requestId, ''), 'Carol is an eligible approver, even before the guarantors answer');
+  },
+
+  'admins and guarantors can act in any order; the last one issues the loan'(c) {
+    const ctx = seed(c), { g, fakes } = ctx;
+    fund(ctx, 'M004', 'Principal', 100000); fund(ctx, 'M007', 'Principal', 100000);
+    const request = () => { fakes.signInAs(NAN); return ok(g.requestLoan(50000, '1w', 'Stock', ['M004', 'M007']), 'request').requestId; };
+    const status = id => ctx.loanReqs().find(r => r.RequestID === id).Status;
+
+    // 1. Both admins first, then the guarantors: the last guarantor's acceptance issues the loan
+    const a = request();
+    fakes.signInAs(BOB); ok(g.approveLoanRequest(a, ''), 'Bob first');
+    fakes.signInAs(ALICE);
+    const second = ok(g.approveLoanRequest(a, ''), 'Alice second');
+    assert.strictEqual(second.stage, 'awaiting');
+    assert.strictEqual(status(a), 'Awaiting Guarantors');
+    assert.strictEqual(ctx.loans().length, 0, 'no loan until every guarantor accepts');
+    fakes.signInAs(CAROL);
+    fails(g.approveLoanRequest(a, ''), /Waiting for guarantor/, 'nothing to issue yet');
+    respond(ctx, a, 'M004', 'approve');
+    assert.strictEqual(ctx.loans().length, 0, 'one guarantor is not enough');
+    respond(ctx, a, 'M007', 'approve');
+    assert.strictEqual(status(a), 'Approved');
+    const loan = ctx.loans()[0];
+    assert.deepStrictEqual([loan.MemberNo, loan['Principal (UGX)'], loan['Issued By']], ['M006', 50000, 'M001'], 'issued in the second approver\'s name');
+    assert.ok(ctx.guarantors().filter(r => r.RequestID === a).every(r => r.LoanID === loan.LoanID));
+    assert.ok(ctx.audit().some(x => x.Action === 'Loan Request Fully Approved' && x['Reference ID'] === a));
+  },
+
+  'one admin, then the guarantors, then the second admin'(c) {
+    const ctx = seed(c), { g, fakes } = ctx;
+    fund(ctx, 'M004', 'Principal', 100000); fund(ctx, 'M007', 'Principal', 100000);
+    fakes.signInAs(NAN);
+    const id = ok(g.requestLoan(50000, '1w', 'Stock', ['M004', 'M007']), 'request').requestId;
+    fakes.signInAs(ALICE); ok(g.approveLoanRequest(id, ''), 'first');
+    respond(ctx, id, 'M004', 'approve'); respond(ctx, id, 'M007', 'approve');
+    assert.strictEqual(ctx.loans().length, 0, 'guarantors alone do not issue it');
+    assert.ok(fakes.emails.some(e => /Guarantors all accepted/.test(e.subject)));
+    fakes.signInAs(BOB);
+    assert.strictEqual(ok(g.approveLoanRequest(id, ''), 'second').stage, 'final');
+    assert.strictEqual(ctx.loans().length, 1);
+  },
+
+  'a decline after both admin approvals stops the loan'(c) {
+    const ctx = seed(c), { g, fakes } = ctx;
+    fund(ctx, 'M004', 'Principal', 100000); fund(ctx, 'M007', 'Principal', 100000);
+    fakes.signInAs(NAN);
+    const id = ok(g.requestLoan(50000, '1w', 'Stock', ['M004', 'M007']), 'request').requestId;
+    fakes.signInAs(ALICE); ok(g.approveLoanRequest(id, ''), 'first');
+    fakes.signInAs(BOB); ok(g.approveLoanRequest(id, ''), 'second');
+    respond(ctx, id, 'M004', 'approve');
+    respond(ctx, id, 'M007', 'decline', 'Not this month');
+    assert.strictEqual(ctx.loans().length, 0);
+    fakes.signInAs(CAROL);
+    fails(g.approveLoanRequest(id, ''), /declined/, 'cannot be issued');
+    ok(g.rejectLoanRequest(id, 'Guarantor declined'), 'reject');
+    assert.strictEqual(ctx.loanReqs()[0].Status, 'Rejected');
+  },
+
+  'if the loan cannot be issued at the last acceptance, admins are told and can retry'(c) {
+    const ctx = seed(c), { g, fakes } = ctx;
+    fund(ctx, 'M004', 'Principal', 100000); fund(ctx, 'M007', 'Principal', 100000);
+    fakes.signInAs(NAN);
+    const id = ok(g.requestLoan(50000, '1w', 'Stock', ['M004', 'M007']), 'request').requestId;
+    fakes.signInAs(ALICE); ok(g.approveLoanRequest(id, ''), 'first');
+    fakes.signInAs(BOB); ok(g.approveLoanRequest(id, ''), 'second');
+    respond(ctx, id, 'M004', 'approve');
+    // Meanwhile Fay's Principal falls below 25% of the loan, so she no longer qualifies as a guarantor
+    fakes.signInAs(ALICE); ok(g.recordSavings('M007', 'Withdrawal', 90000, 'Principal', '', '', '', ''), 'withdrawal');
+    respond(ctx, id, 'M007', 'approve');
+    assert.strictEqual(ctx.loans().length, 0, 'not issued');
+    assert.strictEqual(ctx.loanReqs()[0].Status, 'Awaiting Guarantors', 'still open');
+    assert.ok(fakes.emails.some(e => e.to === 'admins' && /Loan not issued/.test(e.subject)));
+    assert.ok(ctx.audit().some(x => x.Action === 'Loan Issue Failed' && /M007/.test(x.Details)));
+    fakes.signInAs(CAROL);
+    fails(g.approveLoanRequest(id, ''), /M007 has Principal savings/, 'retry while the problem remains');
+    fakes.signInAs(ALICE); ok(g.recordSavings('M007', 'Deposit', 90000, 'Principal', 'Monthly Premium', '', '', ''), 'topped up');
+    fakes.signInAs(NAN);
+    fails(g.approveLoanRequest(id, ''), /Admin access required/, 'the applicant cannot issue it');
+    fakes.signInAs(CAROL);
+    assert.strictEqual(ok(g.approveLoanRequest(id, ''), 'retry').stage, 'final');
+    assert.strictEqual(ctx.loans()[0]['Issued By'], 'M003');
+  },
+
+  'a limit override given at the first approval still applies when a guarantor completes the loan'(c) {
+    const ctx = seed(c), { g, fakes } = ctx;
+    fund(ctx, 'M005', 'Principal', 100000, '2024-01-01');               // Eve: limit 50,000
+    fund(ctx, 'M001', 'Principal', 100000); fund(ctx, 'M002', 'Principal', 100000);
+    fakes.signInAs(EVE);
+    const id = ok(g.requestLoan(80000, 3, 'Fees', ['M001', 'M002']), 'over-limit request').requestId;
+    fakes.signInAs(CAROL);
+    fails(g.approveLoanRequest(id, ''), /Exceeds limit/, 'needs a reason');
+    ok(g.approveLoanRequest(id, 'Committee minute 14/2026'), 'first, with the override');
+    fakes.signInAs(DAN);
+    fails(g.approveLoanRequest(id, ''), /Admin access required/, 'not an admin');
+    fakes.signInAs(BOB);
+    assert.strictEqual(ok(g.approveLoanRequest(id, ''), 'second, no new reason needed').stage, 'awaiting');
+    respond(ctx, id, 'M001', 'approve'); respond(ctx, id, 'M002', 'approve');
+    const loan = ctx.loans()[0];
+    assert.ok(loan, 'issued by the last acceptance');
+    assert.strictEqual(loan.Override, 'Committee minute 14/2026');
   },
 
   'a guarantor of a running loan needs an admin override to borrow'(c) {

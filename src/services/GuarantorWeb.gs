@@ -47,7 +47,7 @@ function _guarantorHandle(token, decide, confirm, reason) {
 
   const { rows: reqs } = readSheet(SH_LOAN_REQ, 'requestid');
   const req = reqs.find(r => String(r['RequestID']||'').trim() === requestId);
-  if (!req || String(req['Status']||'').trim() !== 'Pending')
+  if (!req || !_isOpenRequest(req))
     return _guarantorPage('Request closed', 'This loan request is no longer open for guarantor responses.');
 
   const current = String(row['Response']||'Pending').trim();
@@ -104,10 +104,21 @@ function _guarantorHandle(token, decide, confirm, reason) {
   if (decision === 'Declined') {
     _notifyAdmins('Guarantor declined: ' + requestId, rowsOut,
       guarantorName + ' declined to guarantee ' + applicantName + '\'s loan request. The request cannot be approved as it stands.');
-  } else {
-    const all = _guaranteeResponses(requestId);
-    if (all.every(g => g.response === 'Accepted'))
-      _notifyAdmins('Ready for approval: ' + requestId, rowsOut, 'All guarantors have approved. You can now approve this request.');
+  } else if (_guaranteeResponses(requestId).every(g => g.response === 'Accepted')) {
+    // Admins and guarantors act in any order. If both admins have already approved, this acceptance
+    // is the last step: issue the loan now (every rule is checked again first).
+    if (String(req['Status']||'').trim() === AWAITING_GUARANTORS) {
+      const fin = _withScriptLock(() => _finalizeLoanRequestLocked(requestId, String(req['Approver 2']||'').trim()));
+      if (!fin.ok) {
+        auditLog('Loan Issue Failed', String(req['MemberNo']||''), 'System', 'All guarantors accepted but the loan could not be issued: ' + fin.error, requestId);
+        _notifyAdmins('Loan not issued: ' + requestId, rowsOut.concat([['Problem', fin.error]]),
+          'Every guarantor has accepted and both admins approved, but the loan could not be issued. Fix the problem and click Issue loan, or reject the request with a reason.');
+      }
+    } else {
+      const approvals = String(req['Approver 1']||'').trim() ? 1 : 0;
+      _notifyAdmins('Guarantors all accepted: ' + requestId, rowsOut,
+        'All guarantors have approved. ' + (approvals ? 'One admin has approved; a second, different admin must approve to issue the loan.' : 'Two different admins must approve to issue the loan.'));
+    }
   }
 
   return _guarantorPage(decision === 'Accepted' ? 'Thank you' : 'Response recorded',

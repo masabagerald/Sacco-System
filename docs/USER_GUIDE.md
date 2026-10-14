@@ -162,7 +162,7 @@ Click **Request a Loan** under **My loans**. The form shows the loan type that a
 #### Rules for every loan
 
 - You need **at least 2 guarantors**. They must be **Founder Members**, and each needs Principal savings of at least **25% of the loan**.
-- Every guarantor must **agree by email** before the admins can approve your loan.
+- Every guarantor must **agree by email**, and two admins must approve. These can happen in any order; your loan is issued as soon as the last of them is done.
 - You can't take a new loan while you have one running.
 - You can't take a loan while you are guaranteeing someone else's running loan, unless an admin proposes the loan for you with a recorded override reason.
 - The committee aims to decide within **3 days**.
@@ -363,9 +363,13 @@ For **Operations** and **Welfare**, the balance shown is the **club pool** balan
 **Approving a loan request** (Loans → **Loan Requests**):
 
 - Each request shows the guarantors and their answers (Pending / Accepted / Declined), any override, and how long it has been waiting. A request older than 3 days is flagged.
-- **Approval is blocked until every guarantor has accepted.** Admins are emailed **"Ready for approval"** when the last guarantor agrees. If a guarantor declines, reject the request with a reason.
+- **Admins and guarantors can act in any order.** You can approve before the guarantors have answered. The note under each request shows how many admin approvals it has (for example **Admin approvals: 1 of 2**) and which guarantors still need to accept.
+- **The loan is issued by whichever comes last**: the second admin approval, or the last guarantor accepting. If both admins approve first, the request shows **Awaiting Guarantors** and the loan is issued automatically when the last guarantor accepts. Admins are emailed **"Guarantors all accepted"** when every guarantor has agreed.
+- If a guarantor **declines**, the request can't be approved or issued. Reject it with a reason.
+- Every rule is checked again when the loan is issued. If something has changed (for example a guarantor's savings fell below 25% of the loan), the loan is not issued and admins are emailed **"Loan not issued"**. Fix the problem and click **Issue loan**, or reject the request.
 - **Member loans** show **Within limit** or **Over limit** against 50% of the member's Principal savings. To approve an over-limit loan, enter an **Override Reason**. Soft Loans have no savings limit.
-- The **second** approval issues the loan, and the due date is counted from that day.
+- The due date is counted from the day the loan is issued.
+- An override reason given by either approving admin is kept with the request, so the other admin doesn't need to enter it again.
 
 ![Loan Requests list: a Soft Loan with one guarantor still pending, and a member loan with an override awaiting its final approval](images/11-loan-approvals.png)
 

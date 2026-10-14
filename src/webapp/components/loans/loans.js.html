@@ -189,15 +189,21 @@ function loadLoanReqAdmin(){
       const ov=r.guarantorOverride?'<div class="note" style="color:var(--warn)">Guarantor restriction override: '+esc(r.guarantorOverride)+'</div>':'';
       const due=r.decisionOverdue?'<div class="note" style="color:var(--bad)">Decision overdue ('+r.daysPending+' days, limit 3)</div>'
         :(r.daysPending!==null?'<div class="note">Pending '+r.daysPending+' day(s)</div>':'');
-      const open=r.status==='Pending'||r.status==='Partially Approved';
+      // Admins and guarantors act in any order; the loan is issued when two admins have approved and every guarantor has accepted
+      const awaiting=r.status==='Awaiting Guarantors';
+      const open=r.status==='Pending'||r.status==='Partially Approved'||awaiting;
+      const allAccepted=!r.guarantorsRequired||r.guarantors.every(g=>g.response==='Accepted');
       const why=ME.memberNo===r.initiatedBy?'You initiated this request — another admin must approve it.'
         :ME.memberNo===String(r.memberNo)?'This is your own loan — another admin must approve it.'
-        :ME.memberNo===r.approver1?'You gave the first approval — a different admin must give the second.':'';
+        :(!awaiting&&ME.memberNo===r.approver1)?'You have approved — a different admin must give the other approval.':'';
       const already=open&&why?'<div class="note">'+why+'</div>':'';
-      const approvals='<div class="note">Approvals: '+(r.approver1Name?esc(r.approver1Name):'none yet')+(r.approver2Name?', '+esc(r.approver2Name):'')+' (needs 2)</div>';
+      const nAppr=(r.approver1?1:0)+(r.approver2?1:0);
+      const approvals='<div class="note">Admin approvals: '+nAppr+' of 2'+(nAppr?' ('+esc(r.approver1Name)+(r.approver2Name?', '+esc(r.approver2Name):'')+')':'')+'</div>'
+        +(r.guarantorsRequired&&!allAccepted&&open?'<div class="note">Waiting for guarantor'+(r.guarantors.filter(g=>g.response!=='Accepted').length>1?'s':'')+' to accept. The loan is issued as soon as every guarantor and two admins have approved, in any order.</div>':'');
       const canAct=open&&!why;
-      const approveLbl=r.approver1?'Approve (2nd &amp; final)':'Approve (1st)';
-      const acts=canAct?'<button class="btn sm" onclick="openApproveLR(\''+r.requestId+'\')">'+approveLbl+'</button> <button class="btn sm danger" onclick="openRejectLR(\''+r.requestId+'\')">Reject</button>':already;
+      const approveBtn=awaiting?(allAccepted?'<button class="btn sm solid" onclick="openApproveLR(\''+r.requestId+'\')">Issue loan</button> ':'')
+        :'<button class="btn sm" onclick="openApproveLR(\''+r.requestId+'\')">Approve</button> ';
+      const acts=canAct?approveBtn+'<button class="btn sm danger" onclick="openRejectLR(\''+r.requestId+'\')">Reject</button>':already;
       return '<tr><td>'+esc(r.requestId)+'</td><td>'+esc(r.memberName)+'<div class="note">'+esc(r.membershipType||'—')+' &middot; Guarantors: '+gl+'</div><div class="note">Initiated by '+esc(r.initiatedByName)+'</div>'+ov+approvals+'</td><td class="r">'+money(r.amount)+'<div class="note">Total '+fmt(r.total)+'</div></td><td>'+esc(r.termLabel)+'</td><td>'+esc(r.purpose)+'</td><td>'+lim+'</td><td>'+badge(r.status,BMAP)+due+'</td><td>'+acts+'</td></tr>';
     }).join('');
   });
@@ -302,7 +308,8 @@ function openApproveLR(id){
     +(r.savingsLimit?' Principal savings: '+fmt(r.savings)+', max: '+fmt(r.maxLoan)+'.':' Soft Loan: no savings cap.')
     +(r.guarantorOverride?' Guarantor restriction override: '+r.guarantorOverride+'.':'');
   $('#alr_ov').value='';mst('alr_st','','');
-  if(!r.withinLimit){$('#alr_lim').classList.remove('hidden');$('#alr_lim').textContent='Exceeds the 50% savings limit. Override reason required.';$('#alr_ovwrap').classList.remove('hidden');}
+  if(!r.withinLimit){$('#alr_lim').classList.remove('hidden');$('#alr_ovwrap').classList.remove('hidden');
+    $('#alr_lim').textContent=r.limitOverride?'Exceeds the 50% savings limit. Override reason on file from the other approval: '+r.limitOverride+'. You may add your own.':'Exceeds the 50% savings limit. Override reason required.';}
   else{$('#alr_lim').classList.add('hidden');$('#alr_ovwrap').classList.add('hidden');}
   om('m_approveLR');
 }
@@ -311,7 +318,7 @@ function submitApproveLR(){
   Api.approveLoanRequest(APPROV_REQ.requestId,$('#alr_ov').value.trim(), res=>{
     $('#alr_btn').disabled=false;
     if(!res.ok){mst('alr_st','err',res.error);if(res.limitCheck)$('#alr_ovwrap').classList.remove('hidden');return;}
-    mst('alr_st','ok',res.stage==='first'?res.message:'Fully approved. Loan '+res.loanId+' created.');
+    mst('alr_st','ok',res.stage==='final'?'Fully approved. Loan '+res.loanId+' created.':res.message);
     loadLoanReqAdmin();loadAdmin();setTimeout(()=>cm('m_approveLR'),1400);
   }, e=>{$('#alr_btn').disabled=false;mst('alr_st','err','Error: '+e.message);});
 }

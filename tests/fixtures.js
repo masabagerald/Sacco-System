@@ -31,7 +31,7 @@ function seed({ g, fakes, val }) {
   fakes.addSheet(val('SH_REPAY'), [['LoanID', 'Date', 'Timestamp', 'MemberNo', 'Amount (UGX)', 'Recorded By', 'Notes']]);
   fakes.addSheet(val('SH_FINES'), [['FineID', 'MemberNo', 'Amount (UGX)', 'Status']]);
   fakes.addSheet(val('SH_LOAN_REQ'), [['RequestID', 'Timestamp', 'MemberNo', 'Amount (UGX)', 'Repayment Term', 'Purpose', 'Status', 'Decision Notes', 'Decided By',
-    'Initiated By', 'Guarantor 1', 'Guarantor 2', 'Total Due', 'Approver 1', 'Approver 1 At', 'Approver 2', 'Approver 2 At', 'Guarantor Override']]);
+    'Initiated By', 'Guarantor 1', 'Guarantor 2', 'Total Due', 'Approver 1', 'Approver 1 At', 'Approver 2', 'Approver 2 At', 'Guarantor Override', 'Limit Override']]);
   fakes.addSheet(val('SH_GUARANTORS'), [val('GUARANTOR_HEADERS')]);
   const recs = (name, hint) => () => fakes.sheet(val(name)).records(hint);
   return { g, fakes, val,
