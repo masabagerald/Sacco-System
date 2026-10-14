@@ -19,6 +19,7 @@ class FakeRange {
 
 class FakeSheet {
   constructor(name, rows) { this.name = name; this.data = (rows || []).map(r => r.slice()); }
+  getName() { return this.name; }
   _width() { return this.data.reduce((w, r) => Math.max(w, r.length), 0); }
   _get(row, col) { const r = this.data[row - 1]; return r && r[col - 1] !== undefined ? r[col - 1] : ''; }
   _set(row, col, v) {
@@ -63,6 +64,7 @@ function createGasFakes() {
 
   const spreadsheet = {
     getSheetByName: name => sheets[name] || null,
+    getSheets: () => Object.values(sheets),
     insertSheet: name => (sheets[name] = new FakeSheet(name, []))
   };
 

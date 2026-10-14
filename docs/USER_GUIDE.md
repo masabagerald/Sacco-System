@@ -290,7 +290,7 @@ Figures are recalculated from the transaction records every time the dashboard l
 
 **Members** lists every member with their role, membership type, status and total savings.
 
-- **+ Add Member**: enter the name, the email they will sign in with, their phone number, role (Member or Admin), membership type and **date joined the club**. Member numbers (M001, M002, …) are assigned automatically.
+- **+ Add Member**: enter the name, the email they will sign in with, their phone number, role (Member or Admin), membership type and **date joined the club**. Member numbers (MSIC-0001, MSIC-0002, …) are assigned automatically. A number never changes, even if the member's membership type or date joined does.
 - **Edit**: change a member's role, membership type, status (Active / Inactive) or date joined. Inactive members cannot sign in. Leaving the date box empty keeps the current date.
 
 > **Members who joined before the app was in use.** Set each one's **Date joined** to the date they really joined. The 12-month saving rule for loans counts from that date. Otherwise a long-standing member would be treated as new and refused a loan. The date can't be in the future, and every change is kept in the audit log.

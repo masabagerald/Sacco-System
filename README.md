@@ -98,7 +98,7 @@ The spreadsheet must have these tabs (exact names, set in `src/utils/Config.gs`)
 
 | Tab | Key columns |
 |---|---|
-| `Members` | MemberNo, Full Name, Email, Phone, Role (`Member`/`Admin`), Date Joined, Status (`Active`/...) |
+| `Members` | MemberNo (`MSIC-0001`, `MSIC-0002`, …: assigned automatically, never changed or reused), Full Name, Email, Phone, Role (`Member`/`Admin`), Date Joined, Status (`Active`/...) |
 | `Savings` | Date, Timestamp, MemberNo, Deposit Type (`Deposit`/`Withdrawal`; the older name `Type` also works), Amount (UGX), Recorded By, Reference, Notes |
 | `Loans` | LoanID, Timestamp, MemberNo, Date Issued, Principal (UGX), Loan Model (`Flat` for new loans, blank for older reducing-balance loans), Processing Fee (UGX), Monthly Rate (%) and Term (months) (older loans only), Status, Issued By, Purpose, Override Reason |
 | `Guarantors` | Timestamp, RequestID, LoanID, ApplicantNo, GuarantorNo, Token, Response, Responded At, Decline Reason (one row per guarantor; LoanID is filled once the loan is issued) |
@@ -163,6 +163,8 @@ Edit the constants at the top of `src/utils/Config.gs`:
 ## Upgrading to deposit accounts
 
 After deploying, run `setupGuaranteeSchema()` once from the Apps Script editor. It adds any missing columns: `Deposit Account` and `Reverses` (**Savings**), `Deposit Account` (**Withdrawal Requests**), `Guarantor Override` (**Loan Requests**), `Last Notice` (**Loans**, which stops a retried daily job emailing twice) and `Decline Reason` (**Guarantors**), and creates the `Guarantor Notifications` tab (also created automatically the first time a notice is sent). It is safe to run again.
+
+**Member numbers.** New members are numbered `MSIC-0001`, `MSIC-0002`, … (club prefix and serial; see `src/services/MemberNumberService.gs`). To convert older `M001`-style numbers, run `previewMemberNumberMigration()` from the Apps Script editor to see what would change, then `migrateMemberNumbers()` once. It rewrites every member-number column on every tab except the append-only **Audit Log**, which keeps the old numbers and gets one entry recording the mapping. Free-text notes are not changed. It is safe to run again.
 
 Existing rows are not changed. Rows without an account are placed by their payment category: Operations Fee → Operations, Welfare Fee → Welfare, everything else (including older withdrawals) → Principal. Each member's total savings therefore stays the same. Withdrawal requests made before this change draw on Principal.
 

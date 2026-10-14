@@ -20,8 +20,8 @@ function addMember(name, email, phone, role, membershipType, dateJoined) {
   try {
     const { rows } = readSheet(SH_MEMBERS,'memberno');
     if (rows.some(r=>String(r['Email']||'').trim().toLowerCase()===email)) return {ok:false,error:'Email already registered to another member.'};
-    // Member numbers are generated: M001, M002, ... (continues from the highest existing number)
-    const memberNo = nextId(SH_MEMBERS,'memberno','M');
+    // Member numbers are generated: MSIC-0001, MSIC-0002, ... (continues from the highest existing number)
+    const memberNo = _nextMemberNo();
     const { sh, headers, hRow } = readSheet(SH_MEMBERS,'memberno');
     const row=emptyRow(sh,hRow,ci(headers,'full name'));
     const s=(c,v)=>{if(c>-1)sh.getRange(row,c+1).setValue(v);};
