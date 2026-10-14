@@ -8,7 +8,9 @@
       <div class="field full"><label>Full Name</label><input id="mb_nm" type="text"></div>
       <div class="field full"><label>Email (Gmail for sign-in)</label><input id="mb_em" type="email" placeholder="name@gmail.com"></div>
       <div class="field"><label>Phone</label><input id="mb_ph" type="text" placeholder="optional"></div>
+      <div class="field"><label>Date joined the club</label><input id="mb_dj" type="date"></div>
     </div>
+    <p class="note">For a member who joined before the app was in use, enter the date they really joined. Loans count the 12-month saving period from it.</p>
     <div class="mact"><button class="btn" onclick="cm('m_member')">Cancel</button><button class="btn solid" id="mb_btn" onclick="submitMember()">Add Member</button></div>
     <div class="mst" id="mb_st"></div>
   </div>
@@ -21,8 +23,10 @@
     <div class="mgrid">
       <div class="field"><label>Role</label><select id="em_rl"><option>Member</option><option>Admin</option></select></div>
       <div class="field"><label>Membership type</label><select id="em_mt"><option value="">— not set —</option><option>Founder Member</option><option>Delegate Member</option><option>Non-Member</option></select></div>
-      <div class="field full"><label>Status</label><select id="em_st"><option>Active</option><option>Inactive</option></select></div>
+      <div class="field"><label>Status</label><select id="em_st"><option>Active</option><option>Inactive</option></select></div>
+      <div class="field"><label>Date joined the club</label><input id="em_dj" type="date"></div>
     </div>
+    <p class="note">Loans count the 12-month saving period from the date joined (or the first recorded Principal deposit, if earlier). Changes are kept in the audit log.</p>
     <div class="mact"><button class="btn" onclick="cm('m_editMember')">Cancel</button><button class="btn solid" id="em_btn" onclick="submitEditMember()">Save</button></div>
     <div class="mst" id="em_st2"></div>
   </div>

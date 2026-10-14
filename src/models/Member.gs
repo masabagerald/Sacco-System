@@ -8,8 +8,17 @@ function makeMemberRecord(row) {
     phone: row['Phone'] || '',
     role: String(row['Role']||'Member').trim(),
     membershipType: row['Membership Type'] || '',
+    dateJoined: _dstr(row['Date Joined']),
     status: row['Status'] || ''
   };
+}
+
+// Date a member joined the club ('yyyy-MM-dd'). Blank means today; it cannot be in the future.
+// Members who joined before the app was in use get their real joining date, which the 12-month
+// saving rule for loans counts from.
+function validateDateJoined(d) {
+  const v = validateTxDate(d);
+  return v.ok ? v : { ok: false, error: 'Enter a valid date joined (it cannot be in the future).' };
 }
 
 // Validates the required shape for a new member. Uniqueness (memberNo/email

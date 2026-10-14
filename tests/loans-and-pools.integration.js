@@ -167,6 +167,36 @@ module.exports = {
     assert.ok(ctx.audit().some(x => x.Action === 'Loan Request Fully Approved' && /Guarantor restriction override: Committee minute/.test(x.Details)));
   },
 
+  'the 12-month saving period counts from the date a member joined'(c) {
+    const ctx = seed(c), { g, fakes } = ctx;
+    const sixMonthsAgo = g.fmt_date(g._addMonths(new Date(), -6));
+    const members = () => fakes.sheet(ctx.val('SH_MEMBERS')).records('memberno');
+    fakes.signInAs(ALICE);
+    ok(g.updateMember('M007', 'Member', 'Founder Member', 'Active', sixMonthsAgo), 'Fay joined six months ago');
+    fund(ctx, 'M007', 'Principal', 400000);                          // deposits only entered today, as at go-live
+    fund(ctx, 'M001', 'Principal', 100000); fund(ctx, 'M002', 'Principal', 100000);
+    fakes.signInAs(EMAIL.FAY);
+    fails(g.requestLoan(100000, 3, 'Roof', ['M001', 'M002']), /at least 12 months.*Eligible from/, 'six months is not enough');
+
+    fakes.signInAs(ALICE);
+    fails(g.updateMember('M007', 'Member', 'Founder Member', 'Active', '2999-01-01'), /date joined/, 'future date');
+    ok(g.updateMember('M007', 'Member', 'Founder Member', 'Active', '2019-03-01'), 'the real joining date, before the app');
+    assert.strictEqual(members().find(m => m.MemberNo === 'M007')['Date Joined'], '2019-03-01');
+    assert.ok(ctx.audit().some(a => a.Action === 'Member Updated' && /Date joined: .* -> 2019-03-01/.test(a.Details)), 'the change is audited');
+    ok(g.updateMember('M007', 'Member', 'Founder Member', 'Active', ''), 'saving with the date box empty');
+    assert.strictEqual(members().find(m => m.MemberNo === 'M007')['Date Joined'], '2019-03-01', 'a blank date leaves it unchanged');
+    fakes.signInAs(EMAIL.FAY);
+    ok(g.requestLoan(100000, 3, 'Roof', ['M001', 'M002']), 'eligible: joined 2019, although the first recorded deposit is today');
+
+    // A new member added with their real joining date
+    fakes.signInAs(ALICE);
+    const add = ok(g.addMember('Joan', 'joan@x.org', '', 'Member', 'Founder Member', '2020-06-15'), 'add');
+    assert.strictEqual(members().find(m => m.MemberNo === add.memberNo)['Date Joined'], '2020-06-15');
+    fails(g.addMember('Kim', 'kim@x.org', '', 'Member', 'Founder Member', 'June 2020'), /date joined/, 'bad date');
+    fakes.signInAs(DAN);
+    fails(g.updateMember('M007', 'Member', 'Founder Member', 'Active', '2018-01-01'), /Admin access required/, 'non-admin');
+  },
+
   'the loan cap counts Principal savings only'(c) {
     const ctx = seed(c), { g } = ctx;
     fund(ctx, 'M004', 'Principal', 100000, '2024-01-01'); fund(ctx, 'M004', 'Operations', 500000);

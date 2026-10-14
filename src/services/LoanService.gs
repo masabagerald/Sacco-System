@@ -234,16 +234,20 @@ function _loanEligibility(memberNo, membershipType, guarantorOverride) {
   const mNo = String(memberNo).trim();
 
   if (String(membershipType||'').trim() !== 'Non-Member') {
-    // Sec 1: must have saved for at least 12 months, counted from the first Principal deposit
-    // that has not been reversed (Operations and Welfare are club pools, not savings)
+    // Sec 1: must have saved for at least 12 months, counted from the earlier of the member's Date
+    // Joined and their first Principal deposit that has not been reversed (Operations and Welfare are
+    // club pools, not savings). Date Joined lets members who saved before the app was in use qualify
+    // without their old deposits being entered.
     const { rows: savRows } = readSheet(SH_SAVINGS, 'memberno');
     const reversed = {};
     savRows.forEach(r => { const o = String(r['Reverses']||'').trim(); if (o) reversed[o] = true; });
-    const deposits = savRows.filter(r => String(r['MemberNo']||'').trim() === mNo
+    const starts = savRows.filter(r => String(r['MemberNo']||'').trim() === mNo
       && _txType(r).toLowerCase() === 'deposit' && _accountOf(r) === 'Principal'
-      && !reversed[String(r['Reference']||'').trim()] && r['Date']);
-    if (!deposits.length) return { ok: false, error: 'Member has no savings yet. Loans are only available after saving for a minimum of 12 months.' };
-    const first = new Date(Math.min(...deposits.map(r => _ymd(r['Date']).getTime())));
+      && !reversed[String(r['Reference']||'').trim()] && r['Date']).map(r => _ymd(r['Date']).getTime());
+    const joined = _dstr((_memberByNo(mNo) || {})['Date Joined']);
+    if (joined) starts.push(_ymd(joined).getTime());
+    if (!starts.length) return { ok: false, error: 'Member has no savings yet. Loans are only available after saving for a minimum of 12 months.' };
+    const first = new Date(Math.min(...starts));
     const eligibleFrom = new Date(first); eligibleFrom.setMonth(eligibleFrom.getMonth() + 12);
     if (new Date() < eligibleFrom) return { ok: false, error: 'Member must save for at least 12 months before accessing a loan. Eligible from ' + human_date(eligibleFrom) + '.' };
   }
