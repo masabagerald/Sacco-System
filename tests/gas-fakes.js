@@ -6,6 +6,7 @@ class FakeRange {
   constructor(sheet, row, col, numRows, numCols) { Object.assign(this, { sheet, row, col, numRows, numCols }); }
   setValue(v) { this.sheet._set(this.row, this.col, v); return this; }
   setValues(vals) { vals.forEach((r, i) => r.forEach((v, j) => this.sheet._set(this.row + i, this.col + j, v))); return this; }
+  setNumberFormat(f) { this.sheet.formats[this.row + ':' + this.col] = f; return this; }
   getValues() {
     const out = [];
     for (let i = 0; i < this.numRows; i++) {
@@ -18,7 +19,7 @@ class FakeRange {
 }
 
 class FakeSheet {
-  constructor(name, rows) { this.name = name; this.data = (rows || []).map(r => r.slice()); }
+  constructor(name, rows) { this.name = name; this.data = (rows || []).map(r => r.slice()); this.formats = {}; }
   getName() { return this.name; }
   _width() { return this.data.reduce((w, r) => Math.max(w, r.length), 0); }
   _get(row, col) { const r = this.data[row - 1]; return r && r[col - 1] !== undefined ? r[col - 1] : ''; }
@@ -65,6 +66,7 @@ function createGasFakes() {
   const spreadsheet = {
     getSheetByName: name => sheets[name] || null,
     getSheets: () => Object.values(sheets),
+    getSpreadsheetTimeZone: () => 'Africa/Nairobi',
     insertSheet: name => (sheets[name] = new FakeSheet(name, []))
   };
 

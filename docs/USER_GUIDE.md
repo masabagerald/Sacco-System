@@ -205,7 +205,7 @@ The applicant is told your answer. If you decline, the admins are told too, and 
 
 - you can't guarantee anyone else;
 - you can't take your own loan unless an admin approves an override;
-- you are emailed a **Guarantor notice** whenever the borrower makes a repayment (showing how much went to interest, surcharges and principal), pays or is charged a surcharge or fine, falls overdue, has a repayment reversed, and when the loan is fully cleared. Each notice shows the amount, the date and the remaining balance. The notices are for your information only: no money is paid to you. They stop once the loan is cleared.
+- you are emailed a **Guarantor notice** whenever the borrower makes a repayment, pays or is charged a surcharge or fine, falls overdue, has a repayment reversed, and when the loan is fully cleared. Each notice shows the amount, the date and the remaining balance. The notices are for your information only: no money is paid to you. They stop once the loan is cleared.
 
 ### Surcharges
 
@@ -290,7 +290,7 @@ Figures are recalculated from the transaction records every time the dashboard l
 
 **Members** lists every member with their role, membership type, status and total savings.
 
-- **+ Add Member**: enter the name, the email they will sign in with, their phone number, role (Member or Admin), membership type and **date joined the club**. Member numbers (MSIC-0001, MSIC-0002, …) are assigned automatically. A number never changes, even if the member's membership type or date joined does.
+- **+ Add Member**: enter the name, the email they will sign in with, their phone number (optional; a Ugandan number such as 0712 345 678, or any other country's number with its country code, such as +254 712 345 678; it is saved as +256…), role (Member or Admin), membership type and **date joined the club**. Member numbers (MSIC-0001, MSIC-0002, …) are assigned automatically. A number never changes, even if the member's membership type or date joined does.
 - **Edit**: change a member's role, membership type, status (Active / Inactive) or date joined. Inactive members cannot sign in. Leaving the date box empty keeps the current date.
 
 > **Members who joined before the app was in use.** Set each one's **Date joined** to the date they really joined. The 12-month saving rule for loans counts from that date. Otherwise a long-standing member would be treated as new and refused a loan. The date can't be in the future, and every change is kept in the audit log.
@@ -383,12 +383,19 @@ When a member pays towards a loan:
 
 1. Go to **Loans**. The **Active Loans** panel at the top lists every member's running loan, with overdue loans first. Type a name or loan ID in the filter box to find one quickly.
 2. Click **Record Repayment** on the loan.
-3. Enter the **Amount** paid and the **Date of payment** (it can't be in the future). Add any **Notes**, such as the receipt or mobile money reference.
-4. Click **Save**.
+3. Enter the **Amount received** and the **Date of payment** (it can't be in the future). Add any **Notes**, such as the receipt or mobile money reference.
+4. Check the **Breakdown**, then click **Save**.
 
-![Active Loans panel with the Record Repayment form open for a Soft Loan, showing the amount, date of payment and a mobile money reference](images/20-record-repayment.png)
+![Record Repayment form for a Soft Loan: 50,000 received, with the breakdown showing the processing fee and interest settled and 30,000 going to principal](images/20-record-repayment.png)
 
-The member is emailed the new outstanding balance, and the repayment is recorded in the audit log with your name. When nothing is left to pay, the loan is marked **Cleared** and drops off the list. A repayment takes effect straight away; it doesn't need a second approval.
+**The breakdown** lists each part of the loan: **Principal**, **Interest**, **Processing fee** and, if one has been charged, the **Overdue surcharge** or **Late penalty**. For each part it shows what was charged, what has been **paid so far**, what is **outstanding before** this payment, how much of **this payment** goes to it, and the **balance after**. It updates as you type. You don't split the payment yourself: the club rule applies it to the processing fee first, then interest, then any surcharge or penalty, then principal. A processing fee that is already paid shows **Already paid** and takes nothing more; loans that have no processing fee show **Not applicable**.
+
+Before saving, the form warns you if:
+- the amount is **more than the loan's outstanding balance**. Tick the box to hold the excess as credit on the loan (the club rule), or correct the amount;
+- a repayment of the **same amount and date** is already recorded on the loan. Tick the box only if this really is a second payment;
+- someone else recorded a repayment on the loan while the form was open. The breakdown refreshes; check it and save again.
+
+The member is emailed the new outstanding balance, and the repayment is recorded in the audit log with your name and how it was split. When nothing is left to pay, the loan is marked **Cleared** and drops off the list. A repayment takes effect straight away; it doesn't need a second approval.
 
 **If a repayment was entered wrongly** (wrong amount, wrong loan, or entered twice), reverse it and then record the correct one:
 
@@ -414,7 +421,7 @@ The 10% overdue surcharge on single-due-date loans is applied **automatically** 
 ### Reports and the audit log
 
 - **Reports**: **Download Ledger PDF** (a formatted report) or **Download Ledger CSV** (for a spreadsheet). Both include members, loans, savings transactions with their accounts, and surcharges.
-- **Audit log**: every action is listed with the time, the action, the member affected, who did it and the details. This covers contributions, corrections, reversals, withdrawal and loan requests, approvals, rejections, guarantor answers (with decline reasons) and overrides. Entries can't be edited in the app.
+- **Audit log**: every action is listed with its date and exact time (East Africa Time, to the second), the action, the member affected, who did it and the details. This covers contributions, corrections, reversals, withdrawal and loan requests, approvals, rejections, guarantor answers (with decline reasons) and overrides. Entries can't be edited in the app.
 
 ![Audit log listing guarantor consent, loan requests, an override, approvals, a deposit and a correction](images/13-audit-log.png)
 

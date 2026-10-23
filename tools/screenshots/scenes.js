@@ -78,7 +78,8 @@
 
     'record-repayment': { as: P.M001, async run() {
       await wait(300); goSec('loans'); await wait(700); focusOn(panelOf('#activeLoansTb'));
-      openRepay('L015', 120000); set('#rp_am', '120000'); set('#rp_dt', '2026-10-14'); set('#rp_nt', 'Mobile money, ref MM-88213');
+      openRepay('L015', 120000); set('#rp_am', '50000'); set('#rp_dt', '2026-10-14'); set('#rp_nt', 'Mobile money, ref MM-88213');
+      loadRepayPreview(); await wait(300);
     } },
 
     'reverse-repayment': { as: P.M001, async run() {

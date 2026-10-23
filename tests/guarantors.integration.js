@@ -31,6 +31,16 @@ function respond(ctx, requestId, guarantorNo, decide, reason) {
 
 const rowValue = (mail, label) => { const r = (mail.rows || []).find(x => x[0] === label); return r ? r[1] : undefined; };
 
+// A guarantor notice holds only: borrower name, loan, event, amount (when there is one), date and the
+// remaining balance. No member number, reference, repayment split, savings or charge reasons.
+const NOTICE_LABELS = ['Borrower', 'Loan ID', 'Event', 'Amount', 'Date', 'Remaining loan balance'];
+function assertMinimalNotice(mail, event) {
+  const labels = (mail.rows || []).map(r => r[0]);
+  assert.ok(labels.every(l => NOTICE_LABELS.includes(l)), 'unexpected rows in guarantor notice: ' + labels.join(', '));
+  assert.strictEqual(rowValue(mail, 'Event'), event);
+  assert.ok(!/\(M0\d\d\)|RPY-|Applied to|Surcharge on|savings/i.test(JSON.stringify(mail.rows) + mail.message), 'no member number, reference, split or reason');
+}
+
 // One applicant of each membership type. Guarantors: Alice (M001) and Dan (M004). Approvers: Bob, then Carol.
 const APPLICANTS = [
   { type: 'Founder Member', email: EMAIL.FAY, no: 'M007', term: 3, total: 60000 },
@@ -75,6 +85,9 @@ APPLICANTS.forEach(a => {
     const req = () => ctx.loanReqs().find(r => r.RequestID === id);
     assert.deepStrictEqual([req()['Guarantor 1'], req()['Guarantor 2']], GUARANTORS);
     assert.deepStrictEqual(fakes.emails.filter(e => /guarantor request/.test(e.subject)).map(e => e.to).sort(), [ALICE, DAN], 'both guarantors asked');
+    const ask = fakes.emails.find(e => /guarantor request/.test(e.subject)).html;
+    assert.ok(/UGX 50,000/.test(ask) && ask.indexOf(id) > -1 && /decide=approve/.test(ask) && /decide=decline/.test(ask), 'request email: amount, request ID and both links');
+    assert.ok(!/Stock|interest|Processing fee|savings/i.test(ask), 'request email leaves out purpose, rate, fees and savings');
 
     fakes.signInAs(BOB);
     fails(g.approveLoanRequest(id, ''), /Waiting for guarantor M001/, 'before any consent');
@@ -126,9 +139,8 @@ APPLICANTS.forEach(a => {
     const m = mails[0];
     assert.strictEqual(rowValue(m, 'Amount'), 'UGX 20,000');
     assert.strictEqual(rowValue(m, 'Remaining loan balance'), 'UGX ' + (a.total - 20000).toLocaleString('en-US'));
-    assert.strictEqual(rowValue(m, 'Reference'), rep.reference);
-    assert.ok(rowValue(m, 'Applied to interest'), 'shows the interest paid');
-    assert.match(m.message, /including interest/);
+    assert.ok(rep.reference, 'repayment has a reference');
+    assertMinimalNotice(m, 'Loan repayment');
     assert.match(m.message, /no money is paid to you/);
     // Guarantors receive nothing: the payment is the borrower's, and no ledger row names a guarantor
     assert.ok(fakes.sheet(ctx.val('SH_REPAY')).records('loanid').every(r => r.MemberNo === a.no));
@@ -136,6 +148,9 @@ APPLICANTS.forEach(a => {
 
     const fine = ok(g.issueFine(a.no, 3000, 'Late repayment'), 'fine');
     assert.deepStrictEqual(ctx.guarantorMail('Surcharge / fine charged').map(m => m.to).sort(), [ALICE, DAN]);
+    const fineMail = ctx.guarantorMail('Surcharge / fine charged')[0];
+    assertMinimalNotice(fineMail, 'Surcharge / fine charged');
+    assert.ok(!/Late repayment|F\d{3}/.test(JSON.stringify(fineMail.rows)), 'fine reason and ID are not sent');
     ok(g.markFinePaid(fine.fineId), 'fine paid');
     assert.deepStrictEqual(ctx.guarantorMail('Surcharge / fine paid').map(m => m.to).sort(), [ALICE, DAN]);
     ok(g.issueFine('M002', 3000, 'Late to meeting'), 'a fine for someone with no guaranteed loan');
@@ -150,7 +165,8 @@ APPLICANTS.forEach(a => {
 
     const before = ctx.notices().length;
     ok(g.issueFine(a.no, 2000, 'Late to meeting'), 'a fine after clearance');
-    ok(g.recordRepayment(loanId, 1000, 'Overpayment', ''), 'a payment on the cleared loan');
+    fails(g.recordRepayment(loanId, 1000, 'Overpayment', ''), /more than the UGX 0 outstanding/, 'an overpayment needs confirming');
+    ok(g.recordRepayment(loanId, 1000, 'Overpayment', '', { allowOverpayment: true }), 'a confirmed payment on the cleared loan');
     assert.strictEqual(ctx.notices().length, before, 'no notices once the loan is cleared');
 
     const log = ctx.notices();
@@ -181,8 +197,9 @@ Object.assign(tests, {
     fakes.signInAs(ALICE);
     ok(g.recordRepayment(loanId, 20000, '', ''), 'repayment');
     const m = ctx.guarantorMail('Loan repayment')[0];
-    assert.strictEqual(rowValue(m, 'Applied to surcharge / penalty'), 'UGX 5,250', 'the surcharge paid is shown');
-    assert.match(m.message, /including interest, including a surcharge/);
+    assertMinimalNotice(m, 'Loan repayment');
+    assert.strictEqual(rowValue(m, 'Remaining loan balance'), 'UGX 47,750');
+    assertMinimalNotice(overdue[0], 'Loan overdue: surcharge charged');
   },
 
   'the same notice is never sent twice for one event'(c) {
@@ -201,7 +218,8 @@ Object.assign(tests, {
     ok(g.recordSavings('M005', 'Deposit', 4000, 'Principal', 'Surcharge', 'Surcharge on Unpaid Loan Balance', '', ''), 'loan surcharge');
     const mails = ctx.guarantorMail('Surcharge paid');
     assert.deepStrictEqual(mails.map(m => m.to).sort(), [ALICE, DAN]);
-    assert.strictEqual(rowValue(mails[0], 'Surcharge reason'), 'Surcharge on Unpaid Loan Balance');
+    assertMinimalNotice(mails[0], 'Surcharge paid');
+    assert.strictEqual(rowValue(mails[0], 'Amount'), 'UGX 4,000');
     ok(g.recordSavings('M005', 'Deposit', 4000, 'Principal', 'Surcharge', 'Surcharge on Unpaid Premium', '', ''), 'premium surcharge');
     assert.strictEqual(ctx.guarantorMail('Surcharge paid').length, 2, 'premium surcharges are not loan charges');
   },

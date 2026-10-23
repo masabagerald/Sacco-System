@@ -68,7 +68,7 @@ function _submitLoanRequest(memberNo, initiatedBy, initiatorName, amount, termIn
   const q = _quoteFor(amount, spec);
   s(ci(headers,'total due'),q.total);
   const tokens = spec.guarantorsRequired ? _appendGuarantors(newId, '', memberNo, gc.guarantors) : [];
-  if (spec.guarantorsRequired) _sendGuarantorRequests(newId, memberNo, amount, purpose, spec, tokens);
+  if (spec.guarantorsRequired) _sendGuarantorRequests(newId, memberNo, amount, spec, tokens);
   _notifyAdmins('New Loan Request: '+newId,[
     ['Request ID',newId],['Member',(member?member['Full Name']:memberNo)+' ('+memberNo+')'],['Initiated by',initiatorName],
     ['Amount',fmtUGX(amount)],['Repayment term',spec.label+' at '+r2(spec.rate*100)+'% interest'],

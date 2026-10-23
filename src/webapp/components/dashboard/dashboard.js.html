@@ -12,7 +12,9 @@ function loadAdmin(){
     $('#d_rep').textContent=fmt(res.repaymentsThisMonth);
     $('#d_li').textContent=res.loansIssuedThisMonth;$('#d_lia').textContent=fmt(res.loansIssuedAmountThisMonth);
     $('#d_od').textContent=res.overdueCount;$('#d_oda').textContent=fmt(res.overdueAmount);
-    $('#d_us').textContent=res.unpaidSurchargeCount;
+    const items=c=>c+' item'+(c===1?'':'s');
+    $('#d_finMeta').textContent=items(res.unpaidSurchargeCount)+' open';
+    $('#d_ps').textContent=fmt(res.paidFinesTotal);$('#d_psMeta').textContent=items(res.paidSurchargeCount)+' settled, all time';
     $('#d_catSub').textContent='Month of '+res.month+'. Deposits saved before categories existed show as Uncategorised.';
     const tot=res.categoryTotals.reduce((s,c)=>s+c.amount,0);
     $('#d_catTb').innerHTML=res.categoryTotals.map(c=>'<tr><td>'+esc(c.category)+'</td><td class="r">'+Math.round(c.amount).toLocaleString('en-US')+'</td></tr>').join('')
@@ -50,9 +52,10 @@ function renderAccTab(){
 function loadAudit(){
   Api.getAuditLog(200, res=>{
     if(!res.ok)return;
+    $('#auditTz').textContent=res.timeZone?'Date and time of each action, in '+res.timeZone+' time.':'';
     const tb=$('#auditTb');
     if(!res.entries.length){tb.innerHTML='<tr class="empty"><td colspan="6">No audit entries yet.</td></tr>';return;}
-    tb.innerHTML=res.entries.map(e=>'<tr><td>'+esc(hd(e.timestamp))+'</td><td>'+esc(e.action)+'</td><td>'+esc(e.member)+'</td><td>'+esc(e.performedBy)+'</td><td>'+esc(e.details)+'</td><td>'+esc(e.refId)+'</td></tr>').join('');
+    tb.innerHTML=res.entries.map(e=>'<tr><td>'+esc(hdt(e.timestamp))+'</td><td>'+esc(e.action)+'</td><td>'+esc(e.member)+'</td><td>'+esc(e.performedBy)+'</td><td>'+esc(e.details)+'</td><td>'+esc(e.refId)+'</td></tr>').join('');
   });
 }
 </script>

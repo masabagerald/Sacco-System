@@ -5,11 +5,12 @@
     <div class="mgrid">
       <div class="field"><label>Role</label><select id="mb_rl"><option>Member</option><option>Admin</option></select></div>
       <div class="field"><label>Membership type</label><select id="mb_mt"><option value="">— not set —</option><option>Founder Member</option><option>Delegate Member</option><option>Non-Member</option></select></div>
-      <div class="field full"><label>Full Name</label><input id="mb_nm" type="text"></div>
-      <div class="field full"><label>Email (Gmail for sign-in)</label><input id="mb_em" type="email" placeholder="name@gmail.com"></div>
-      <div class="field"><label>Phone</label><input id="mb_ph" type="text" placeholder="optional"></div>
+      <div class="field full"><label for="mb_nm">Full Name</label><input id="mb_nm" type="text" aria-describedby="mb_nm_err" onblur="checkMemberField('name')"><div class="ferr" id="mb_nm_err" role="alert"></div></div>
+      <div class="field full"><label for="mb_em">Email (Gmail for sign-in)</label><input id="mb_em" type="email" autocomplete="off" placeholder="name@gmail.com" aria-describedby="mb_em_err" onblur="checkMemberField('email')"><div class="ferr" id="mb_em_err" role="alert"></div></div>
+      <div class="field"><label for="mb_ph">Phone</label><input id="mb_ph" type="tel" placeholder="optional, e.g. 0712 345 678" aria-describedby="mb_ph_err" onblur="checkMemberField('phone')"><div class="ferr" id="mb_ph_err" role="alert"></div></div>
       <div class="field"><label>Date joined the club</label><input id="mb_dj" type="date"></div>
     </div>
+    <p class="note">Phone: Ugandan numbers can be entered as 0712 345 678 or +256 712 345 678; numbers from other countries need their country code (e.g. +254&hellip;). Numbers are saved as +256&hellip;.</p>
     <p class="note">For a member who joined before the app was in use, enter the date they really joined. Loans count the 12-month saving period from it.</p>
     <div class="mact"><button class="btn" onclick="cm('m_member')">Cancel</button><button class="btn solid" id="mb_btn" onclick="submitMember()">Add Member</button></div>
     <div class="mst" id="mb_st"></div>

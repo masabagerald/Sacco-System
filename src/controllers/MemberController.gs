@@ -10,8 +10,14 @@ function getAllMembersSummary() {
 
 function addMember(name, email, phone, role, membershipType, dateJoined) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
-  name=String(name||'').trim(); email=String(email||'').trim().toLowerCase();
-  if (!name || !email) return {ok:false,error:'Name and email are required.'};
+  name=String(name||'').trim();
+  if (!name) return {ok:false,field:'name',error:'Full name is required.'};
+  // Contact details are checked here as well as on the form, so a direct call cannot skip the checks.
+  // A failure names the field ('email' / 'phone') so the form can show the message beside it.
+  const ev = validateEmail(email); if (!ev.ok) return ev;
+  email = ev.email;
+  const pv = normalizePhone(phone); if (!pv.ok) return pv;
+  phone = pv.phone;
   membershipType = String(membershipType||'').trim();
   if (membershipType && MEMBERSHIP_TYPES.indexOf(membershipType) < 0) return {ok:false,error:'Choose a valid membership type.'};
   const jv = validateDateJoined(dateJoined); if (!jv.ok) return jv;
@@ -19,17 +25,19 @@ function addMember(name, email, phone, role, membershipType, dateJoined) {
   lock.waitLock(15000);
   try {
     const { rows } = readSheet(SH_MEMBERS,'memberno');
-    if (rows.some(r=>String(r['Email']||'').trim().toLowerCase()===email)) return {ok:false,error:'Email already registered to another member.'};
+    if (rows.some(r=>String(r['Email']||'').trim().toLowerCase()===email)) return {ok:false,field:'email',error:'Email already registered to another member.'};
     // Member numbers are generated: MSIC-0001, MSIC-0002, ... (continues from the highest existing number)
     const memberNo = _nextMemberNo();
     const { sh, headers, hRow } = readSheet(SH_MEMBERS,'memberno');
     const row=emptyRow(sh,hRow,ci(headers,'full name'));
     const s=(c,v)=>{if(c>-1)sh.getRange(row,c+1).setValue(v);};
     s(ci(headers,'memberno'),memberNo); s(ci(headers,'full name'),name);
-    s(ci(headers,'email'),email); s(ci(headers,'phone'),phone||'');
+    s(ci(headers,'email'),email);
+    // Plain-text cell, so Sheets keeps the leading + instead of reading the number as a value
+    const cPh=ci(headers,'phone'); if(cPh>-1) sh.getRange(row,cPh+1).setNumberFormat('@').setValue(phone);
     s(ci(headers,'role'),role||'Member'); s(ci(headers,'membership type'),membershipType||'');
     s(ci(headers,'date joined'),jv.date); s(ci(headers,'status'),'Active');
-    auditLog('Member Added', memberNo, auth.member.memberNo, name+' ('+email+'), '+(membershipType||'membership type not set')+', joined '+jv.date, memberNo);
+    auditLog('Member Added', memberNo, auth.member.memberNo, name+' ('+email+(phone?', '+phone:'')+'), '+(membershipType||'membership type not set')+', joined '+jv.date, memberNo);
     return { ok:true, memberNo: memberNo };
   } finally { lock.releaseLock(); }
 }

@@ -11,7 +11,7 @@ function _memberName(memberNo, members) {
 
 // Emails every guarantor on a new request. Email failures are logged, not thrown,
 // so the request itself still saves.
-function _sendGuarantorRequests(requestId, applicantNo, amount, purpose, termDef, tokens) {
+function _sendGuarantorRequests(requestId, applicantNo, amount, termDef, tokens) {
   const { rows: members } = readSheet(SH_MEMBERS, 'memberno');
   const applicant = _memberName(applicantNo, members);
   const base = _webAppUrl();
@@ -19,7 +19,7 @@ function _sendGuarantorRequests(requestId, applicantNo, amount, purpose, termDef
     const m = members.find(x => String(x['MemberNo']||'').trim() === String(t.guarantorNo).trim());
     if (!m || !String(m['Email']||'').trim()) { Logger.log('No email for guarantor ' + t.guarantorNo); return; }
     const link = d => base + '?g=' + t.token + '&decide=' + d;
-    const html = _guarantorEmailHtml(m['Full Name'] || '', requestId, applicant, amount, purpose, termDef, link('approve'), link('decline'));
+    const html = _guarantorEmailHtml(m['Full Name'] || '', requestId, applicant, amount, termDef, link('approve'), link('decline'));
     try {
       _sendHtmlEmail(m['Email'], '[' + SACCO_NAME + '] Please respond to guarantor request ' + requestId, html);
     } catch (e) { Logger.log('Guarantor email failed for ' + t.guarantorNo + ': ' + e); }
@@ -139,17 +139,16 @@ function _guarantorPage(title, bodyHtml) {
   return HtmlService.createHtmlOutput(html).setTitle(SACCO_NAME).addMetaTag('viewport', 'width=device-width, initial-scale=1.0');
 }
 
-// Email to a guarantor: loan details and the Approve / Decline buttons
-function _guarantorEmailHtml(name, requestId, applicant, amount, purpose, termDef, approveUrl, declineUrl) {
+// Email to a guarantor: who is asking, how much and for how long, and the Approve / Decline buttons.
+// Kept to what a guarantor needs to decide; the loan's purpose, rate and fees are not included.
+function _guarantorEmailHtml(name, requestId, applicant, amount, termDef, approveUrl, declineUrl) {
   const btn = (url, label, color) => '<a href="' + url + '" style="display:block;text-align:center;background:' + color + ';color:#ffffff;text-decoration:none;font-weight:700;padding:13px;border-radius:8px;font-size:14px;">' + label + '</a>';
   const body =
     '<p style="margin:0 0 12px;">Hello ' + esc(name) + ',</p>' +
-    '<p style="margin:0 0 12px;"><strong>' + esc(applicant) + '</strong> has asked you to guarantee a loan of <strong>' + esc(fmtUGX(amount)) + '</strong>' + (purpose ? ' for ' + esc(purpose) : '') + '.</p>' +
+    '<p style="margin:0 0 12px;"><strong>' + esc(applicant) + '</strong> has asked you to guarantee a loan of <strong>' + esc(fmtUGX(amount)) + '</strong>.</p>' +
     _emailRows([
       ['Request ID', requestId],
-      ['Repayment term', termDef.label + ' at ' + r2(termDef.rate * 100) + '% interest'],
-      ['Processing fee', fmtUGX(termDef.fee)],
-      ['Due', 'Full amount on the due date (counted from approval)']
+      ['Repayment term', termDef.label]
     ]) +
     '<p style="margin:14px 0 16px;color:#5b6b7d;font-size:13px;">Guaranteeing means you agree to support repayment if the member cannot pay.</p>' +
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>' +

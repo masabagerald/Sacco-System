@@ -125,7 +125,7 @@ function processLoanDueDates() {
         markNoticed(l);
         surcharged.push(m['Full Name']);
         _notifyGuarantors(c.loanId, { key: 'overdue|' + c.loanId, event: 'Loan overdue: surcharge charged', amount: surcharge, date: today(),
-          balance: r2(c.outstandingBalance + surcharge), details: [['Due date', human_date(c.dueDate)], ['Overdue surcharge (10%)', fmtUGX(surcharge)]],
+          balance: r2(c.outstandingBalance + surcharge),
           message: 'The borrower has missed the due date. A 10% overdue surcharge has been charged on the loan and interest.' });
       } else if (daysPastDue <= OVERDUE_MAX_DAILY_NOTICE_DAYS) {
         _sendEmail(m['Email'],'Overdue Loan Reminder: '+c.loanId,[['Loan ID',c.loanId],['Days overdue',String(daysPastDue)],['Outstanding',fmtUGX(c.outstandingBalance)]],

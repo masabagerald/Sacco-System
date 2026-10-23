@@ -30,19 +30,21 @@ function recordSavings(memberNo, type, amount, account, category, surchargeReaso
   if (!res.ok) return res;
   const reference = res.references[0];
   const bal = _accountBalances(memberNo);
+  // Withdrawal emails never show savings balances (the member sees them after signing in)
+  const isDeposit = tx.type === TX_DEPOSIT;
   _sendEmail(m['Email'], tx.type + ' Confirmation', [
     ['Member', (m['Full Name']||memberNo) + ' (' + memberNo + ')'],
-    ['Type', tx.type], ['Account', tx.account], ['Category', tx.category || '-'], ['Amount', fmtUGX(tx.amount)],
-    [tx.account + ' balance', fmtUGX(bal[tx.account])], ['Total savings', fmtUGX(bal.total)],
-    ['Reference', reference], ['Date', human_date(tx.date)]
-  ], tx.type === TX_DEPOSIT ? 'Your ' + tx.account + ' account has been updated.' : 'Your withdrawal has been recorded.');
+    ['Type', tx.type], ['Account', tx.account], ['Category', tx.category || '-'], ['Amount', fmtUGX(tx.amount)]
+  ].concat(isDeposit ? [[tx.account + ' balance', fmtUGX(bal[tx.account])], ['Total savings', fmtUGX(bal.total)]] : [])
+   .concat([['Reference', reference], ['Date', human_date(tx.date)]]),
+    isDeposit ? 'Your ' + tx.account + ' account has been updated.' : 'Your withdrawal has been recorded. Sign in to see your balance.');
   auditLog(tx.type, memberNo, auth.member.memberNo,
     tx.type + ' of ' + fmtUGX(tx.amount) + ' (' + tx.account + ' account' + (tx.category ? ', ' + tx.category : '') + ', dated ' + tx.date + ')'
     + (tx.notes ? '. Note: ' + tx.notes : '') + '. New ' + tx.account + ' balance: ' + fmtUGX(bal[tx.account]) + '. Total savings: ' + fmtUGX(bal.total), reference);
   // A surcharge on an unpaid loan or its interest concerns the borrower's guarantors too
   if (tx.type === TX_DEPOSIT && tx.category === 'Surcharge' && /loan|interest/i.test(tx.surchargeReason || ''))
     _notifyGuarantorsOfBorrower(memberNo, { key: 'surcharge-paid|' + reference, event: 'Surcharge paid', amount: tx.amount, date: tx.date,
-      details: [['Surcharge reason', tx.surchargeReason], ['Reference', reference]], message: 'The borrower has paid a surcharge (' + tx.surchargeReason + ').' });
+      message: 'The borrower has paid a surcharge.' });
   return { ok: true, reference, newBalance: bal.total, accountBalance: bal[tx.account] };
 }
 
@@ -66,10 +68,11 @@ function reverseSavingsTransaction(reference, reason) {
   if (!res.ok) return res;
   const bal = _accountBalances(memberNo);
   const m = _memberByNo(memberNo);
+  const wasWithdrawal = origType.toLowerCase() === 'withdrawal';  // withdrawal emails show no savings balances
   _sendEmail(m?.['Email'], 'Savings Transaction Reversed', [
-    ['Reversed', origType + ' ' + reference], ['Account', account], ['Amount', fmtUGX(amount)], ['Reason', reason],
-    [account + ' balance', fmtUGX(bal[account])], ['Total savings', fmtUGX(bal.total)], ['Reference', res.references[0]]
-  ], 'A transaction on your savings has been reversed.');
+    ['Reversed', origType + ' ' + reference], ['Account', account], ['Amount', fmtUGX(amount)], ['Reason', reason]
+  ].concat(wasWithdrawal ? [] : [[account + ' balance', fmtUGX(bal[account])], ['Total savings', fmtUGX(bal.total)]])
+   .concat([['Reference', res.references[0]]]), 'A transaction on your savings has been reversed.');
   auditLog('Savings Reversal', memberNo, auth.member.memberNo,
     'Reversed ' + origType + ' ' + reference + ' of ' + fmtUGX(amount) + ' (' + account + ' account, dated ' + (orig['Date']||'-') + '). Reason: ' + reason
     + '. New ' + account + ' balance: ' + fmtUGX(bal[account]), res.references[0]);

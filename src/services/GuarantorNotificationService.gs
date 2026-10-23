@@ -28,7 +28,10 @@ function _loanGuarantorNos(loanId) {
 }
 
 // Emails each guarantor of loanId at most once for ev.key.
-// ev: { key, event, amount, date, balance, details: [[label, value]], message, final }
+// ev: { key, event, amount, date, balance, message, final }
+// The email holds only what a guarantor needs: whose loan, what happened, the amount, the date and
+// what is still owed (their exposure). The borrower's member number, references, the fee/interest/
+// principal split and surcharge or fine reasons are not sent.
 // Skipped while the loan is not running, unless ev.final (the clearing payment and the clearance notice).
 // Email failures never block the transaction that triggered the notice. Returns the number sent.
 function _notifyGuarantors(loanId, ev) {
@@ -48,11 +51,9 @@ function _notifyGuarantors(loanId, ev) {
   const borrowerNo = String(loan['MemberNo']||'').trim();
   const borrower = _memberName(borrowerNo, members);
   const balance = ev.balance === undefined ? c.outstandingBalance : ev.balance;
-  const table = [['Borrower', borrower + ' (' + borrowerNo + ')'], ['Loan ID', id], ['Event', ev.event]]
+  const table = [['Borrower', borrower], ['Loan ID', id], ['Event', ev.event]]
     .concat(ev.amount ? [['Amount', fmtUGX(ev.amount)]] : [])
-    .concat([['Transaction date', human_date(ev.date || today())]])
-    .concat(ev.details || [])
-    .concat([['Remaining loan balance', fmtUGX(balance)]]);
+    .concat([['Date', human_date(ev.date || today())], ['Remaining loan balance', fmtUGX(balance)]]);
   let count = 0;
   guarantors.forEach(g => {
     if (sent[ev.key + '|' + g]) return;
@@ -60,7 +61,7 @@ function _notifyGuarantors(loanId, ev) {
     const email = m ? String(m['Email']||'').trim() : '';
     if (email) _sendEmail(email, 'Guarantor notice: ' + ev.event + ' on ' + id, table,
       'Hello ' + (m['Full Name'] || g) + ', you guarantee this loan. ' + ev.message
-      + ' This notice is for your information only; no money is paid to you.');
+      + ' This notice is for your information only; no action is needed and no money is paid to you.');
     else Logger.log('No email for guarantor ' + g + '; notice ' + ev.key + ' recorded without sending.');
     const row = headers.map(h => ({ 'timestamp': now_ts(), 'event key': ev.key, 'loanid': id, 'borrowerno': borrowerNo,
       'guarantorno': g, 'event': ev.event, 'amount (ugx)': ev.amount || '', 'transaction date': ev.date || today(),
@@ -87,29 +88,13 @@ function _notifyGuarantorsOfBorrower(memberNo, ev) {
   return _guaranteedLoansOf(memberNo).reduce((n, id) => n + _notifyGuarantors(id, Object.assign({}, ev, { key: ev.key + '|' + id })), 0);
 }
 
-// How one repayment was applied to the loan's charges, as label/value rows (fee, interest, surcharge, principal)
-function _repaymentSplitRows(loanId, reference) {
-  if (!reference) return [];
-  const loan = readSheet(SH_LOANS, 'loanid').rows.find(l => String(l['LoanID']||'').trim() === String(loanId).trim());
-  if (!loan) return [];
-  const a = _loanBreakdown(loan, readSheet(SH_REPAY, 'loanid').rows).allocations.find(x => x.ref === reference);
-  if (!a) return [];
-  return [['Applied to processing fee', a.fee], ['Applied to interest', a.interest], ['Applied to surcharge / penalty', a.penalty],
-    ['Applied to principal', a.principal], ['Overpaid (held as credit)', a.overpaid]]
-    .filter(r => r[1] > 0).map(r => [r[0], fmtUGX(r[1])]);
-}
-
 // After a repayment is recorded. wasActive: the loan was running before this payment.
 function _notifyGuarantorsOfRepayment(loanId, reference, amount, date, updated, wasActive) {
   if (!wasActive) return;
   const key = reference || (loanId + '|' + now_ts() + '|' + amount);
-  const split = _repaymentSplitRows(loanId, reference);
-  const kinds = split.map(r => r[0]).join(' ');
-  const what = 'repayment' + (/interest/.test(kinds) ? ', including interest' : '') + (/surcharge/.test(kinds) ? ', including a surcharge' : '');
   const cleared = updated.status === LOAN_STATUS.CLEARED;
   _notifyGuarantors(loanId, { key: 'repayment|' + key, event: 'Loan repayment', amount, date, balance: updated.outstandingBalance,
-    details: split.concat(reference ? [['Reference', reference]] : []), final: true,
-    message: 'The borrower has made a loan ' + what + '.' });
+    final: true, message: 'The borrower has made a loan repayment.' });
   if (cleared)
     _notifyGuarantors(loanId, { key: 'cleared|' + loanId + '|' + key, event: 'Loan cleared', amount: 0, date, balance: 0, final: true,
       message: 'The loan is now fully cleared, and your guarantee has ended. You will receive no further notices about it.' });

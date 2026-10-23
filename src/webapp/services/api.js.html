@@ -42,8 +42,10 @@ const Api = {
   getLoanTerms: (forMemberNo, onSuccess, onFailure) => callServer('getLoanTerms', [forMemberNo], onSuccess, onFailure),
   getGuarantorCandidates: (applicantNo, onSuccess, onFailure) =>
     callServer('getGuarantorCandidates', [applicantNo], onSuccess, onFailure),
-  recordRepayment: (loanId, amount, notes, txDate, onSuccess, onFailure) =>
-    callServer('recordRepayment', [loanId, amount, notes, txDate], onSuccess, onFailure),
+  recordRepayment: (loanId, amount, notes, txDate, opts, onSuccess, onFailure) =>
+    callServer('recordRepayment', [loanId, amount, notes, txDate, opts], onSuccess, onFailure),
+  getRepaymentPreview: (loanId, amount, txDate, onSuccess, onFailure) =>
+    callServer('getRepaymentPreview', [loanId, amount, txDate], onSuccess, onFailure),
   addMember: (name, email, phone, role, membershipType, dateJoined, onSuccess, onFailure) =>
     callServer('addMember', [name, email, phone, role, membershipType, dateJoined], onSuccess, onFailure),
   updateMember: (memberNo, role, membershipType, status, dateJoined, onSuccess, onFailure) =>

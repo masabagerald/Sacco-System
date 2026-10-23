@@ -28,14 +28,51 @@ function submitEditMember(){
     mst('em_st2','ok','Saved.');loadAdmin();setTimeout(()=>cm('m_editMember'),700);
   }, e=>{$('#em_btn').disabled=false;mst('em_st2','err','Error: '+e.message);});
 }
-function openAddMember(){['mb_nm','mb_em','mb_ph'].forEach(i=>$('#'+i).value='');$('#mb_rl').value='Member';$('#mb_mt').value='';$('#mb_dj').value=todayISO();mst('mb_st','','');om('m_member');}
+// ── Add member: contact checks (same rules as validateEmail / normalizePhone on the server) ──
+const MB_FIELDS={name:'mb_nm',email:'mb_em',phone:'mb_ph'};
+function emailError(v){
+  const e=String(v||'').trim().toLowerCase();
+  if(!e)return 'Email is required.';
+  if(e.length>254)return 'Email is too long.';
+  const m=e.match(/^([a-z0-9!#$%&'*+\/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+\/=?^_`{|}~-]+)*)@((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63})$/);
+  return (!m||m[1].length>64)?'Enter a valid email address, for example name@gmail.com.':'';
+}
+function phoneError(v){
+  const raw=String(v||'').trim(); if(!raw)return '';
+  if(/[^0-9+\s().\-]/.test(raw)||raw.indexOf('+')>0||(raw.match(/\+/g)||[]).length>1)return 'Phone number can contain only digits, spaces, dashes, brackets and a leading +.';
+  let d=raw.replace(/[^0-9]/g,'');
+  if(raw[0]!=='+'){
+    if(/^00/.test(d))d=d.slice(2);
+    else if(/^0[0-9]{9}$/.test(d))d='256'+d.slice(1);
+    else if(/^[2-7][0-9]{8}$/.test(d))d='256'+d;
+    else if(!/^256/.test(d))return 'Enter a Ugandan number (e.g. 0712 345 678) or include the country code (e.g. +254 712 345 678).';
+  }
+  if(/^256/.test(d))return /^256[2-7][0-9]{8}$/.test(d)?'':'Enter a valid Ugandan number: 9 digits after +256, for example +256 712 345 678.';
+  return /^[1-9][0-9]{7,14}$/.test(d)?'':'Enter a valid international number: country code and number, 8 to 15 digits in all.';
+}
+function memberFieldError(f){
+  const v=$('#'+MB_FIELDS[f]).value;
+  return f==='name'?(v.trim()?'':'Full name is required.'):f==='email'?emailError(v):phoneError(v);
+}
+function showMemberFieldError(f,msg){
+  $('#'+MB_FIELDS[f]+'_err').textContent=msg||'';
+  $('#'+MB_FIELDS[f]).classList.toggle('invalid',!!msg);
+  $('#'+MB_FIELDS[f]).setAttribute('aria-invalid',msg?'true':'false');
+}
+function checkMemberField(f){const msg=memberFieldError(f);showMemberFieldError(f,msg);return !msg;}
+function openAddMember(){Object.keys(MB_FIELDS).forEach(f=>showMemberFieldError(f,''));['mb_nm','mb_em','mb_ph'].forEach(i=>$('#'+i).value='');$('#mb_rl').value='Member';$('#mb_mt').value='';$('#mb_dj').value=todayISO();mst('mb_st','','');om('m_member');}
 function submitMember(){
   const nm=$('#mb_nm').value.trim(),em=$('#mb_em').value.trim();
-  if(!nm||!em)return mst('mb_st','err','Name and email are required.');
+  // Every field is checked so all problems show at once; what was typed stays in the form
+  const bad=Object.keys(MB_FIELDS).filter(f=>!checkMemberField(f));
+  if(bad.length){$('#'+MB_FIELDS[bad[0]]).focus();return mst('mb_st','err','Please correct the highlighted field'+(bad.length>1?'s':'')+'.');}
   $('#mb_btn').disabled=true;mst('mb_st','','Saving…');
   Api.addMember(nm,em,$('#mb_ph').value.trim(),$('#mb_rl').value,$('#mb_mt').value,$('#mb_dj').value, res=>{
     $('#mb_btn').disabled=false;
-    if(!res.ok)return mst('mb_st','err',res.error);
+    if(!res.ok){
+      if(MB_FIELDS[res.field]){showMemberFieldError(res.field,res.error);$('#'+MB_FIELDS[res.field]).focus();return mst('mb_st','err','Please correct the highlighted field.');}
+      return mst('mb_st','err',res.error);
+    }
     mst('mb_st','ok','Member added as '+res.memberNo+'.');loadAdmin();setTimeout(()=>cm('m_member'),900);
   }, e=>{$('#mb_btn').disabled=false;mst('mb_st','err','Error: '+e.message);});
 }

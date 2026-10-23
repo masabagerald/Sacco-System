@@ -17,7 +17,14 @@ function getAdminDashboard() {
   const activeLoans = computedLoans.filter(l=>l.status==='Active');
   const totalOutstanding = activeLoans.reduce((s,l)=>s+l.outstandingBalance,0);
   const overdueLoans = activeLoans.filter(l=>l.overdue);
-  const unpaidFines = fines.filter(f=>String(f['FineID']||'').trim()!==''&&String(f['Status']||'').toLowerCase()==='unpaid').reduce((s,f)=>s+num(f['Amount (UGX)']),0);
+  // Surcharge register: each item is wholly Unpaid or Paid (markFinePaid settles the full amount; there
+  // are no part-payments). Other statuses (blank, or set by hand on the sheet) count in neither card.
+  const fineStatus = f => String(f['Status']||'').trim().toLowerCase();
+  const fineItems = fines.filter(f=>String(f['FineID']||'').trim()!=='');
+  const unpaidFineItems = fineItems.filter(f=>fineStatus(f)==='unpaid');
+  const paidFineItems = fineItems.filter(f=>fineStatus(f)==='paid');
+  const unpaidFines = unpaidFineItems.reduce((s,f)=>s+num(f['Amount (UGX)']),0);
+  const paidFines = paidFineItems.reduce((s,f)=>s+num(f['Amount (UGX)']),0);
   const pendingLoanReqs = loanReqs.filter(r=>String(r['RequestID']||'').trim()!==''&&String(r['Status']||'').trim()==='Pending').length;
   const pendingWdReqs   = wdReqs.filter(r=>String(r['RequestID']||'').trim()!==''&&String(r['Status']||'').trim()==='Pending').length;
   // Savings this month, by type and by payment category (reversals posted this month net off)
@@ -41,7 +48,7 @@ function getAdminDashboard() {
     .reduce((s,r) => s + num(_pick(r,['Amount (UGX)','Total Amount Paid'])), 0);
   const issuedThisMonth = loans.filter(l => String(l['Date Issued']||'').indexOf(month) === 0 && String(l['LoanID']||'').trim() !== '');
   const overdueAmount = overdueLoans.reduce((s,l) => s + l.outstandingBalance, 0);
-  const unpaidFineCount = fines.filter(f => String(f['FineID']||'').trim() !== '' && String(f['Status']||'').toLowerCase() === 'unpaid').length;
+  const unpaidFineCount = unpaidFineItems.length;
   return { ok:true, totalMembers:active.length, totalSavings:r2(totalSavings),
     month: month, depositsThisMonth: r2(deposits), withdrawalsThisMonth: r2(withdrawals),
     repaymentsThisMonth: r2(repaid), loansIssuedThisMonth: issuedThisMonth.length,
@@ -50,20 +57,23 @@ function getAdminDashboard() {
     categoryTotals: Object.keys(byCategory).map(k => ({ category: k, amount: r2(byCategory[k]) })),
     depositAccounts: _depositAccountSummary(savRows, nameOf, month),
     totalLoansOutstanding:r2(totalOutstanding), activeLoanCount:activeLoans.length,
-    unpaidFinesTotal:r2(unpaidFines), pendingLoanRequests:pendingLoanReqs, pendingWithdrawalRequests:pendingWdReqs,
+    unpaidFinesTotal:r2(unpaidFines), paidFinesTotal:r2(paidFines), paidSurchargeCount:paidFineItems.length, pendingLoanRequests:pendingLoanReqs, pendingWithdrawalRequests:pendingWdReqs,
     overdueLoans:overdueLoans.map(l=>({loanId:l.loanId,memberNo:l.memberNo,
       memberName:(_memberByNo(l.memberNo)||{})['Full Name']||l.memberNo,
       outstandingBalance:l.outstandingBalance,progressLabel:l.progressLabel})) };
 }
 
+// Newest first. Timestamps are 'yyyy-MM-dd HH:mm:ss' in the script timezone (the zone now_ts() writes
+// in); entries made on the same second keep their sheet order (later row first).
 function getAuditLog(limit) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
   limit = num(limit) || 100;
   const { rows } = readSheet(SH_AUDIT,'timestamp');
   const sorted = rows
-    .map(r=>({timestamp:r['Timestamp'],action:r['Action'],member:r['Member (Affected)'],
-      performedBy:r['Performed By'],details:r['Details'],refId:r['Reference ID']}))
-    .sort((a,b)=>String(b.timestamp).localeCompare(String(a.timestamp)))
-    .slice(0, limit);
-  return { ok:true, entries: sorted };
+    .map(r=>({timestamp:String(r['Timestamp']||''),action:r['Action'],member:r['Member (Affected)'],
+      performedBy:r['Performed By'],details:r['Details'],refId:r['Reference ID'],_row:r._row}))
+    .sort((a,b)=>b.timestamp.localeCompare(a.timestamp) || b._row-a._row)
+    .slice(0, limit)
+    .map(e=>{ delete e._row; return e; });
+  return { ok:true, entries: sorted, timeZone: Session.getScriptTimeZone() };
 }

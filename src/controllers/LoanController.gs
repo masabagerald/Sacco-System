@@ -53,19 +53,50 @@ function issueLoan(memberNo, principal, purpose, guarantorNos, termInput, guaran
     String(guarantorOverride||'').trim());
 }
 
-function recordRepayment(loanId, amount, notes, txDate) {
+// Breakdown shown on the Record Repayment form: each part of the loan (principal, interest, processing
+// fee, any surcharge) with what was charged, paid so far, outstanding, and how `amount` paid on
+// `txDate` would be applied. amount 0 shows the loan as it stands.
+function getRepaymentPreview(loanId, amount, txDate) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
-  amount = num(amount);
+  amount = r2(num(amount));
+  if (amount < 0) return { ok: false, field: 'amount', error: 'The amount cannot be negative.' };
+  const dv = validateTxDate(txDate); if (!dv.ok) return Object.assign({ field: 'date' }, dv);
+  const loan = readSheet(SH_LOANS,'loanid').rows.find(l => String(l['LoanID']||'').trim() === String(loanId||'').trim());
+  if (!loan) return { ok: false, error: 'Loan not found.' };
+  const m = _memberByNo(loan['MemberNo']);
+  return Object.assign({ ok: true, memberName: m ? (m['Full Name'] || '') : '' },
+    _repaymentPreview(loan, readSheet(SH_REPAY,'loanid').rows, amount, dv.date));
+}
+
+// opts (from the Record Repayment form): { stateKey, allowOverpayment, confirmDuplicate } -- see
+// _repaymentCheckError. The checks and the new row are made under one script lock, so two admins (or
+// a double click) cannot both record against the same balance.
+function recordRepayment(loanId, amount, notes, txDate, opts) {
+  const auth = _adminCaller(); if (!auth.ok) return auth;
+  amount = r2(num(amount));
   const av = validateRepaymentAmount(amount); if (!av.ok) return av;
   const dv = validateTxDate(txDate); if (!dv.ok) return dv;
-  const { rows: loans } = readSheet(SH_LOANS,'loanid');
-  const loan = loans.find(l => String(l['LoanID']||'').trim()===String(loanId).trim());
-  if (!loan) return {ok:false,error:'Loan not found.'};
-  const wasActive = _computeLoan(loan, readSheet(SH_REPAY,'loanid').rows).status === LOAN_STATUS.ACTIVE;
-  const reference = _withScriptLock(() => _appendRepaymentRow({ date: dv.date, loanId, memberNo: loan['MemberNo'], amount,
-    recordedBy: auth.member.memberNo, notes: notes||'' }));
+  loanId = String(loanId||'').trim();
+  const saved = _withScriptLock(() => {
+    const loan = readSheet(SH_LOANS,'loanid').rows.find(l => String(l['LoanID']||'').trim() === loanId);
+    if (!loan) return {ok:false,error:'Loan not found.'};
+    const reps = readSheet(SH_REPAY,'loanid').rows;
+    const refused = _repaymentCheckError(loan, reps, amount, dv.date, opts); if (refused) return refused;
+    const wasActive = _computeLoan(loan, reps).status === LOAN_STATUS.ACTIVE;
+    const reference = _appendRepaymentRow({ date: dv.date, loanId, memberNo: loan['MemberNo'], amount,
+      recordedBy: auth.member.memberNo, notes: notes||'' });
+    return { ok: true, loan, wasActive, reference };
+  });
+  if (!saved.ok) return saved;
+  const { loan, wasActive, reference } = saved;
   const { rows: reps2 } = readSheet(SH_REPAY,'loanid');
   const updated = _computeLoan(loan, reps2);
+  // How this payment was applied, from the same split every report uses
+  const alloc = reference ? _loanBreakdown(loan, reps2).allocations.find(a => a.ref === reference) || null : null;
+  const allocation = alloc ? { fee: alloc.fee, interest: alloc.interest, penalty: alloc.penalty, principal: alloc.principal, overpaid: alloc.overpaid } : null;
+  const splitText = allocation ? ' Applied: fee '+fmtUGX(allocation.fee)+', interest '+fmtUGX(allocation.interest)
+    +(allocation.penalty?', surcharge/penalty '+fmtUGX(allocation.penalty):'')+', principal '+fmtUGX(allocation.principal)
+    +(allocation.overpaid?', held as credit '+fmtUGX(allocation.overpaid):'')+'.' : '';
   if (updated.outstandingBalance<=0.5) _setLoanStatus(loanId,LOAN_STATUS.CLEARED);
   const m = _memberByNo(loan['MemberNo']);
   _sendEmail(m?.['Email'],'Repayment Received: '+loanId,[
@@ -73,9 +104,9 @@ function recordRepayment(loanId, amount, notes, txDate) {
     ['New Outstanding',fmtUGX(updated.outstandingBalance)],['Status',updated.status]
   ].concat(reference?[['Reference',reference]]:[]), updated.status===LOAN_STATUS.CLEARED?'Congratulations — this loan is now fully cleared!':'Your repayment has been recorded. Thank you.');
   auditLog('Loan Repayment', loan['MemberNo'], auth.member.memberNo,
-    'Repayment of '+fmtUGX(amount)+(reference?' ('+reference+', dated '+dv.date+')':'')+'. Outstanding: '+fmtUGX(updated.outstandingBalance), loanId);
+    'Repayment of '+fmtUGX(amount)+(reference?' ('+reference+', dated '+dv.date+')':'')+'. Outstanding: '+fmtUGX(updated.outstandingBalance)+'.'+splitText, loanId);
   _notifyGuarantorsOfRepayment(loanId, reference, amount, dv.date, updated, wasActive);
-  return { ok: true, loan: updated, reference };
+  return { ok: true, loan: updated, reference, allocation };
 }
 
 // Cancels a recorded repayment by adding a reversal row (negative amount, linked by "Reverses").
@@ -112,7 +143,6 @@ function reverseRepayment(reference, reason) {
     'Reversed '+reference+' of '+fmtUGX(res.amount)+' (dated '+_dstr(res.orig['Date'])+') on '+loanId+' as '+res.reference+'. Reason: '+reason
     +'. Outstanding now: '+fmtUGX(outstanding), loanId);
   _notifyGuarantors(loanId, { key: 'reversal|' + res.reference, event: 'Repayment reversed', amount: res.amount, date: today(), balance: outstanding,
-    details: [['Reversed', reference + ' dated ' + _dstr(res.orig['Date'])], ['Reason', reason]],
     message: "A repayment recorded on the borrower's loan has been reversed, so the balance has gone up again." });
   return { ok: true, reference: res.reference, outstandingBalance: outstanding };
 }

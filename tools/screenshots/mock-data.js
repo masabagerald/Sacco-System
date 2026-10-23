@@ -61,7 +61,7 @@
     getAdminDashboard: () => ({ ok: true, totalMembers: 7, totalSavings: 7235000, totalLoansOutstanding: 1180000, activeLoanCount: 3,
       unpaidFinesTotal: 30000, pendingLoanRequests: 2, pendingWithdrawalRequests: 1, month: '2026-10',
       depositsThisMonth: 525000, withdrawalsThisMonth: 50000, repaymentsThisMonth: 210000, loansIssuedThisMonth: 1, loansIssuedAmountThisMonth: 100000,
-      overdueCount: 0, overdueAmount: 0, unpaidSurchargeCount: 2,
+      overdueCount: 0, overdueAmount: 0, unpaidSurchargeCount: 2, paidFinesTotal: 45000, paidSurchargeCount: 4,
       categoryTotals: [['Membership Fee', 0], ['Annual Subscription Fee', 0], ['Monthly Premium', 420000], ['Operations Fee', 60000], ['Welfare Fee', 45000], ['Surcharge', 0], ['Uncategorised', 0]]
         .map(([category, amount]) => ({ category, amount })),
       depositAccounts: accounts, overdueLoans: [] }),
@@ -90,6 +90,20 @@
         principal: 100000, totalDue: 120000, totalRepaid: 0, outstandingBalance: 120000, overdue: false },
       { loanId: 'L014', memberNo: 'M004', name: name('M004'), membershipType: 'Founder Member', dateIssued: '2026-09-20', dueDate: '2026-12-20',
         principal: 500000, totalDue: 555000, totalRepaid: 0, outstandingBalance: 555000, overdue: false }] }),
+    // L015: 100,000 principal + 10,000 interest + 10,000 processing fee, nothing paid yet
+    getRepaymentPreview: (loanId, amount, date) => {
+      const parts = [['principal', 'Principal', 100000], ['interest', 'Interest', 10000], ['fee', 'Processing fee', 10000]];
+      let left = Number(amount) || 0;
+      const take = {};
+      ['fee', 'interest', 'principal'].forEach(p => { const c = parts.find(x => x[0] === p)[2]; take[p] = Math.min(left, c); left -= take[p]; });
+      return { ok: true, loanId, memberNo: 'M006', model: 'term', status: 'Active', date, amount: Number(amount) || 0,
+        allocationOrder: ['fee', 'interest', 'penalty', 'principal'],
+        components: parts.map(([part, label, charged]) => ({ part, label, charged, paidBefore: 0, outstandingBefore: charged, allocated: take[part],
+          balanceAfter: charged - take[part], status: charged - take[part] <= 0 ? 'Settled by this payment' : 'Outstanding', chargeChanged: false })),
+        credit: { before: 0, allocated: left, after: left },
+        totals: { outstandingBefore: 120000, amount: Number(amount) || 0, outstandingAfter: Math.max(0, 120000 - (Number(amount) || 0)) },
+        overpayment: Math.max(0, (Number(amount) || 0) - 120000), similar: [], chargeChanged: false, reconciles: true, stateKey: '0|0|120000' };
+    },
     getRepayments: () => ({ ok: true, ready: true, repayments: [
       { reference: 'RPY-000047', date: '2026-10-13', loanId: 'L012', memberNo: 'M005', name: name('M005'), amount: 50000, notes: 'Cash, receipt 4471', recordedBy: 'M002', reverses: '', reversedBy: '' },
       { reference: 'RPY-000046', date: '2026-10-12', loanId: 'L014', memberNo: 'M004', name: name('M004'), amount: 120000, notes: 'Mobile money, ref MM-87120', recordedBy: 'M001', reverses: '', reversedBy: '' },
@@ -113,7 +127,7 @@
       ['2026-10-08 09:40', 'Withdrawal First Approval', 'M004', 'M002', 'First of two required approvals (UGX 50,000 from Welfare).', 'W009'],
       ['2026-10-05 10:12', 'Deposit', 'M004', 'M001', 'Deposit of UGX 100,000 (Principal account, Monthly Premium, dated 2026-10-05). Note: Slip 55812. New Principal balance: UGX 1,250,000. Total savings: UGX 1,460,000', 'DEP-000344'],
       ['2026-08-07 15:03', 'Contribution Corrected', 'M004', 'M001', 'DEP-000290 corrected. Before: UGX 150,000 in Principal (Monthly Premium, dated 2026-08-05). After: UGX 100,000 in Principal (Monthly Premium, dated 2026-08-05). Reason: Wrong amount', 'DEP-000295']
-    ].map(([timestamp, action, member, performedBy, details, refId]) => ({ timestamp, action, member, performedBy, details, refId })) })
+    ].map(([timestamp, action, member, performedBy, details, refId]) => ({ timestamp, action, member, performedBy, details, refId })), timeZone: 'Africa/Nairobi' })
   };
 
   function runner(onOk, onFail) {

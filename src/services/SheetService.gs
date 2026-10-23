@@ -6,6 +6,18 @@ function getSheet(name) {
   return sh;
 }
 
+// Columns that hold a moment rather than a day ("Timestamp", "Responded At", "Approver 1 At").
+// Sheets turns the 'yyyy-MM-dd HH:mm:ss' text written by now_ts() into a date-time cell; these
+// columns are read back with their time, every other date cell as 'yyyy-MM-dd'.
+function _isMomentHeader(h) { return /timestamp|\bat$/i.test(String(h).trim()); }
+
+// Spreadsheet timezone: the zone Sheets used when it turned the written text into a date-time, so
+// formatting in it gives back exactly the wall-clock time that was written.
+function _sheetTimeZone() {
+  try { return SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone() || Session.getScriptTimeZone(); }
+  catch (e) { return Session.getScriptTimeZone(); }
+}
+
 // Read a sheet into an array of row objects keyed by header name.
 // headerHint: one column name expected in the header row.
 function readSheet(sheetName, headerHint) {
@@ -17,12 +29,14 @@ function readSheet(sheetName, headerHint) {
   }
   if (hRow === -1) return { headers: [], rows: [], sh, hRow: -1 };
   const headers = data[hRow].map(h => String(h).trim());
+  const moment = headers.map(_isMomentHeader);
+  let tz = null;
   const rows = [];
   for (let r = hRow + 1; r < data.length; r++) {
     const obj = { _row: r + 1 }; let any = false;
     headers.forEach((h, c) => {
       let v = data[r][c];
-      if (v instanceof Date) v = fmt_date(v);
+      if (v instanceof Date) v = moment[c] ? Utilities.formatDate(v, tz || (tz = _sheetTimeZone()), 'yyyy-MM-dd HH:mm:ss') : fmt_date(v);
       obj[h] = v; if (String(v).trim()) any = true;
     });
     if (any) rows.push(obj);

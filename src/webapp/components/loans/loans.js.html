@@ -290,17 +290,102 @@ function submitLoan(){
 }
 
 // ── repayment ─────────────────────────────────────────────────────────────────
-function openRepay(lid,bal){REPAY_LOAN=lid;const al=ACTIVE_LOANS.find(l=>l.loanId===lid);$('#rp_info').textContent='Loan '+lid+(al?' — '+al.name+' ('+al.memberNo+')':'')+' — outstanding: '+fmt(bal);$('#rp_am').value='';$('#rp_dt').value=todayISO();$('#rp_nt').value='';mst('rp_st','','');om('m_repay');}
+// The breakdown comes from the server (getRepaymentPreview), which splits the payment exactly as the
+// recorded repayment will be split: processing fee, interest, surcharge/penalty, then principal.
+// RP: { seq, timer, preview (matching the current inputs, or null), saving, done }
+let RP={seq:0,timer:null,preview:null,saving:false,done:false};
+function openRepay(lid,bal){
+  REPAY_LOAN=lid;RP={seq:0,timer:null,preview:null,saving:false,done:false};
+  const al=ACTIVE_LOANS.find(l=>l.loanId===lid);
+  $('#rp_info').textContent='Loan '+lid+(al?' — '+al.name+' ('+al.memberNo+')':'')+' — outstanding: '+fmt(bal);
+  $('#rp_am').value='';$('#rp_dt').value=todayISO();$('#rp_nt').value='';mst('rp_st','','');
+  $('#rp_tb').innerHTML='<tr class="empty"><td colspan="6">Loading&hellip;</td></tr>';$('#rp_warn').innerHTML='';$('#rp_order').textContent='';
+  $('#rp_btn').disabled=true;
+  om('m_repay');loadRepayPreview();
+}
+// Input changed: the old breakdown no longer applies, so saving waits for the new one
+function queueRepayPreview(){
+  RP.preview=null;$('#rp_btn').disabled=true;mst('rp_st','','');
+  clearTimeout(RP.timer);RP.timer=setTimeout(loadRepayPreview,350);
+}
+function loadRepayPreview(){
+  const raw=$('#rp_am').value.trim(), am=raw===''?0:Number(raw), dt=$('#rp_dt').value;
+  $('#rp_warn').innerHTML='';
+  if(raw!==''&&!isFinite(am))return repayWarn('Enter the amount as a number.');
+  if(am<0)return repayWarn('The amount cannot be negative. To undo a repayment, use Reverse in the Repayments list.');
+  const seq=++RP.seq;
+  Api.getRepaymentPreview(REPAY_LOAN,am,dt,res=>{
+    if(seq!==RP.seq||!$('#m_repay').classList.contains('on'))return;  // a newer request is on its way
+    if(!res.ok){$('#rp_tb').innerHTML='<tr class="empty"><td colspan="6">'+esc(res.error)+'</td></tr>';return;}
+    renderRepayPreview(res);
+  },e=>{if(seq===RP.seq)repayWarn('Could not load the breakdown: '+e.message);});
+}
+function repayWarn(msg){$('#rp_warn').innerHTML='<div class="lim-warn">'+esc(msg)+'</div>';$('#rp_btn').disabled=true;}
+function renderRepayPreview(p){
+  RP.preview=p;
+  const m=v=>Math.round(n(v)).toLocaleString('en-US');
+  const paying=p.amount>0;
+  const rows=p.components.map(c=>{
+    const na=c.status==='Not applicable';
+    return '<tr><td>'+esc(c.label)+'<div class="st">'+esc(c.status)+(c.chargeChanged?' · charge changes with this payment date':'')+'</div></td>'
+      +'<td class="r">'+(na?'—':m(c.charged))+'</td><td class="r">'+(na?'—':m(c.paidBefore))+'</td>'
+      +'<td class="r">'+(na?'—':m(c.outstandingBefore))+'</td>'
+      +'<td class="r'+(c.allocated>0?' alloc':'')+'">'+(paying&&!na?m(c.allocated):'—')+'</td>'
+      +'<td class="r">'+(na?'—':paying?m(c.balanceAfter):m(c.outstandingBefore))+'</td></tr>';
+  });
+  const cr=p.credit;
+  if(cr.before!==0||cr.allocated>0){
+    rows.push('<tr><td>'+(cr.before<0?'Credit owed back':'Credit held')+'<div class="st">'+(cr.before<0?'a reversal took back credit already used':'overpayment kept on the loan')+'</div></td>'
+      +'<td class="r">—</td><td class="r">—</td><td class="r">'+(cr.before?m(-cr.before):'0')+'</td>'
+      +'<td class="r'+(cr.allocated>0?' alloc':'')+'">'+(paying?m(cr.allocated):'—')+'</td><td class="r">'+(paying?m(-cr.after):m(-cr.before))+'</td></tr>');
+  }
+  rows.push('<tr class="tot"><td>Total</td><td></td><td></td><td class="r">'+m(p.totals.outstandingBefore)+'</td>'
+    +'<td class="r">'+(paying?m(p.totals.amount):'—')+'</td><td class="r">'+m(paying?p.totals.outstandingAfter:p.totals.outstandingBefore)+'</td></tr>');
+  $('#rp_tb').innerHTML=rows.join('');
+  const name={fee:'processing fee',interest:'interest',penalty:'surcharge / penalty',principal:'principal'};
+  $('#rp_order').textContent='Each payment is applied in this order (club rule): '+p.allocationOrder.map(k=>name[k]||k).join(' → ')
+    +'. Anything over the amount owed is held as credit on the loan. Amounts in UGX.';
+
+  // Checks before saving
+  const w=[];
+  if(!p.reconciles)w.push('<div class="lim-warn">The parts do not add up to the loan balance. Do not record this repayment; ask the system administrator to check the loan.</div>');
+  if(p.status!=='Active')w.push('<div class="lim-warn">This loan is already '+esc(p.status)+'. Any payment on it is held as credit.</div>');
+  if(p.overpayment>0)w.push('<div class="lim-warn">'+fmt(p.amount)+' is '+fmt(p.overpayment)+' more than the '+fmt(p.totals.outstandingBefore)+' outstanding.'
+    +'<label><input type="checkbox" id="rp_ovok" onchange="updateRepayBtn()"> Hold the excess '+fmt(p.overpayment)+' as credit on this loan</label></div>');
+  if(p.similar&&p.similar.length)w.push('<div class="lim-warn">A repayment of '+fmt(p.amount)+' dated '+esc(hd(p.date))+' is already recorded on this loan ('
+    +p.similar.map(s=>esc(s.reference||'no reference')+(s.timestamp?', entered '+esc(hdt(s.timestamp)):'')).join('; ')+').'
+    +'<label><input type="checkbox" id="rp_dupok" onchange="updateRepayBtn()"> This is a separate payment, not the same one entered twice</label></div>');
+  if(p.chargeChanged)w.push('<p class="note">The payment date changes a charge (for example, a late penalty is lower if paid before the deadline). Balance after shows the result.</p>');
+  $('#rp_warn').innerHTML=w.join('');
+  updateRepayBtn();
+}
+function updateRepayBtn(){
+  const p=RP.preview;
+  const okOv=!p||!p.overpayment||($('#rp_ovok')&&$('#rp_ovok').checked);
+  const okDup=!p||!(p.similar&&p.similar.length)||($('#rp_dupok')&&$('#rp_dupok').checked);
+  $('#rp_btn').disabled=!p||!(p.amount>0)||!p.reconciles||!okOv||!okDup||RP.saving||RP.done;
+}
 function submitRepay(){
-  const am=$('#rp_am').value;
-  if(!am||n(am)<=0)return mst('rp_st','err','Enter a valid amount.');
-  $('#rp_btn').disabled=true;mst('rp_st','','Saving…');
-  Api.recordRepayment(REPAY_LOAN,$('#rp_am').value,$('#rp_nt').value.trim(),$('#rp_dt').value, res=>{
-    $('#rp_btn').disabled=false;
-    if(!res.ok)return mst('rp_st','err',res.error);
-    mst('rp_st','ok','Recorded. Outstanding: '+fmt(res.loan.outstandingBalance));
-    loadMyAccount();loadAdmin();setTimeout(()=>cm('m_repay'),900);
-  }, e=>{$('#rp_btn').disabled=false;mst('rp_st','err','Error: '+e.message);});
+  const p=RP.preview;
+  if(RP.saving||RP.done)return;   // one save per form; a second click does nothing
+  if(!p||!(p.amount>0))return mst('rp_st','err','Enter the amount received.');
+  if(Number($('#rp_am').value)!==p.amount||$('#rp_dt').value!==p.date)return queueRepayPreview();
+  RP.saving=true;updateRepayBtn();mst('rp_st','','Saving…');
+  const opts={stateKey:p.stateKey,allowOverpayment:!!($('#rp_ovok')&&$('#rp_ovok').checked),confirmDuplicate:!!($('#rp_dupok')&&$('#rp_dupok').checked)};
+  Api.recordRepayment(REPAY_LOAN,p.amount,$('#rp_nt').value.trim(),p.date,opts, res=>{
+    RP.saving=false;
+    if(!res.ok){
+      if(res.preview)renderRepayPreview(Object.assign({},res.preview));
+      updateRepayBtn();
+      return mst('rp_st','err',res.error);
+    }
+    RP.done=true;updateRepayBtn();
+    const a=res.allocation, m=v=>fmt(v);
+    mst('rp_st','ok','Recorded'+(res.reference?' as '+res.reference:'')+'. '
+      +(a?'Applied: fee '+m(a.fee)+', interest '+m(a.interest)+(a.penalty?', surcharge '+m(a.penalty):'')+', principal '+m(a.principal)+(a.overpaid?', credit '+m(a.overpaid):'')+'. ':'')
+      +'Outstanding now: '+fmt(res.loan.outstandingBalance)+'.');
+    loadMyAccount();loadAdmin();setTimeout(()=>cm('m_repay'),2500);
+  }, e=>{RP.saving=false;updateRepayBtn();mst('rp_st','err','Error: '+e.message);});
 }
 
 // ── approve/reject loan requests ──────────────────────────────────────────────

@@ -4,6 +4,12 @@
 // limited by the club-wide balance of the account (see _withdrawalAvailable).
 // Needs two different, non-initiating admins to approve before funds are released (segregation of duties).
 
+// Rows for a withdrawal email: enough to identify the request, and never a savings balance.
+function _withdrawalEmailRows(requestId, memberLabel, account, amount, extra) {
+  return [['Request ID', requestId]].concat(memberLabel ? [['Member', memberLabel]] : [])
+    .concat([['Account', account], ['Amount', fmtUGX(amount)]]).concat(extra || []);
+}
+
 function requestWithdrawal(amount, reason, otherText, account) {
   const auth = _caller(); if (!auth.ok) return auth;
   amount=num(amount);
@@ -38,10 +44,9 @@ function requestWithdrawal(amount, reason, otherText, account) {
     s(ci(headers,'deposit account'),account);
     s(ci(headers,'reason'),reason); s(ci(headers,'status'),'Pending');
     s(ci(headers,'initiated by'),memberNo);
-    _notifyAdmins('Withdrawal Request: '+newId,[
-      ['Request ID',newId],['Member',auth.member.name+' ('+memberNo+')'],['Account',account],
-      ['Amount',fmtUGX(amount)],['Reason',reason],[(pooled?'Club ':'')+account+' balance',fmtUGX(bal)]
-    ],'A withdrawal request is pending two different admin approvals.');
+    // Withdrawal emails carry no savings balances; admins check the balance on the Withdrawal Approvals screen
+    _notifyAdmins('Withdrawal Request: '+newId,_withdrawalEmailRows(newId, auth.member.name+' ('+memberNo+')', account, amount, [['Reason',reason]]),
+      'A withdrawal request is pending two different admin approvals. Review the available balance in the app before approving.');
     auditLog('Withdrawal Request Submitted', memberNo, memberNo,
       'Requested withdrawal of '+fmtUGX(amount)+' from the '+account+' account. Reason: '+reason, newId);
     return { ok: true, requestId: newId };
@@ -127,9 +132,8 @@ function _approveWithdrawalLocked(auth, requestId) {
   _setApprover(sh, headers, hRow, requestId, 2, auth.member.memberNo);
   _updateReqStatus(sh,headers,hRow,requestId,'Approved','Approved by '+approver1+' and '+auth.member.memberNo,auth.member.memberNo);
   const newBal=_accountBalances(memberNo);
-  _sendEmail(m['Email'],'Withdrawal Approved: '+requestId,[
-    ['Request ID',requestId],['Account',account],['Amount',fmtUGX(amount)],[account+' balance',fmtUGX(newBal[account])],['Total savings',fmtUGX(newBal.total)]
-  ],'Your withdrawal request has received both required admin approvals and your '+account+' balance has been updated.');
+  _sendEmail(m['Email'],'Withdrawal Approved: '+requestId,_withdrawalEmailRows(requestId, '', account, amount, [['Ledger reference',res.references[0]]]),
+    'Your withdrawal request has received both required admin approvals and your '+account+' balance has been updated. Sign in to see your balance.');
   auditLog('Withdrawal Fully Approved', memberNo, auth.member.memberNo,
     'Withdrawal of '+fmtUGX(amount)+' from '+account+' approved by '+approver1+' and '+auth.member.memberNo+'. New '+account+' balance: '+fmtUGX(newBal[account])+'. Ledger ref '+res.references[0], requestId);
   return { ok: true, newBalance: newBal.total, stage: 'final' };
