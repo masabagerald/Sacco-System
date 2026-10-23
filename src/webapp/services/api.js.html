@@ -48,8 +48,14 @@ const Api = {
     callServer('getRepaymentPreview', [loanId, amount, txDate], onSuccess, onFailure),
   addMember: (name, email, phone, role, membershipType, dateJoined, onSuccess, onFailure) =>
     callServer('addMember', [name, email, phone, role, membershipType, dateJoined], onSuccess, onFailure),
-  updateMember: (memberNo, role, membershipType, status, dateJoined, onSuccess, onFailure) =>
-    callServer('updateMember', [memberNo, role, membershipType, status, dateJoined], onSuccess, onFailure),
+  updateMember: (memberNo, role, membershipType, status, dateJoined, committeeRole, onSuccess, onFailure) =>
+    callServer('updateMember', [memberNo, role, membershipType, status, dateJoined, committeeRole], onSuccess, onFailure),
+  checkLoanCoverage: (amount, termKey, guarantorNos, forMemberNo, onSuccess, onFailure) =>
+    callServer('checkLoanCoverage', [amount, termKey, guarantorNos, forMemberNo], onSuccess, onFailure),
+  requestSecuredLoan: (amount, termKey, purpose, guarantorNos, security, onSuccess, onFailure) =>
+    callServer('requestSecuredLoan', [amount, termKey, purpose, guarantorNos, security], onSuccess, onFailure),
+  approveLoanWaiver: (requestId, comment, onSuccess, onFailure) => callServer('approveLoanWaiver', [requestId, comment], onSuccess, onFailure),
+  rejectLoanWaiver: (requestId, reason, onSuccess, onFailure) => callServer('rejectLoanWaiver', [requestId, reason], onSuccess, onFailure),
   requestLoan: (amount, termKey, purpose, guarantorNos, onSuccess, onFailure) =>
     callServer('requestLoan', [amount, termKey, purpose, guarantorNos], onSuccess, onFailure),
   issueFine: (memberNo, amount, reason, onSuccess, onFailure) =>

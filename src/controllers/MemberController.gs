@@ -42,8 +42,10 @@ function addMember(name, email, phone, role, membershipType, dateJoined) {
   } finally { lock.releaseLock(); }
 }
 
-// Changes an existing member's role, membership type, active/inactive status and (when given) date joined
-function updateMember(memberNo, role, membershipType, status, dateJoined) {
+// Changes an existing member's role, membership type, active/inactive status and (when given) date joined.
+// committeeRole (ISS-11): 'Finance Committee', 'Chairperson' or '' (none); left unchanged when not given.
+// It decides who may approve secured-loan waivers, so every change is kept in the audit log.
+function updateMember(memberNo, role, membershipType, status, dateJoined, committeeRole) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
   memberNo = String(memberNo||'').trim();
   role = String(role||'').trim();
@@ -53,6 +55,9 @@ function updateMember(memberNo, role, membershipType, status, dateJoined) {
   if (role !== 'Admin' && role !== 'Member') return {ok:false,error:'Role must be Admin or Member.'};
   if (membershipType && MEMBERSHIP_TYPES.indexOf(membershipType) < 0) return {ok:false,error:'Choose a valid membership type.'};
   if (status !== 'Active' && status !== 'Inactive') return {ok:false,error:'Status must be Active or Inactive.'};
+  const setCommittee = committeeRole !== undefined && committeeRole !== null;
+  committeeRole = String(committeeRole == null ? '' : committeeRole).trim();
+  if (setCommittee && committeeRole && COMMITTEE_ROLES.indexOf(committeeRole) < 0) return {ok:false,error:'Committee role must be '+COMMITTEE_ROLES.join(', ')+' or none.'};
   const { sh, headers, rows } = readSheet(SH_MEMBERS,'memberno');
   const row = rows.find(r => String(r['MemberNo']||'').trim() === memberNo);
   if (!row) return {ok:false,error:'Member not found.'};
@@ -64,10 +69,20 @@ function updateMember(memberNo, role, membershipType, status, dateJoined) {
     if (jv.date !== before) joinedNote = ', Date joined: '+(before||'-')+' -> '+jv.date;
     dateJoined = jv.date;
   }
+  if (setCommittee && committeeRole !== String(row['Committee Role']||'').trim() && ci(headers, 'committee role') < 0)
+    return {ok:false,error:'The Members sheet has no "Committee Role" column. Run setupGuaranteeSchema() once from the script editor.'};
   const set = (name, v) => { const c = ci(headers, name); if (c > -1) sh.getRange(row._row, c + 1).setValue(v); };
   set('role', role); set('membership type', membershipType); set('status', status);
   if (joinedNote) set('date joined', dateJoined);
+  let committeeNote = '';
+  if (setCommittee) {
+    const before = String(row['Committee Role']||'').trim();
+    if (committeeRole !== before) {
+      set('committee role', committeeRole);
+      committeeNote = ', Committee role: '+(before||'none')+' -> '+(committeeRole||'none');
+    }
+  }
   auditLog('Member Updated', memberNo, auth.member.memberNo,
-    'Role: '+role+', Membership type: '+(membershipType||'-')+', Status: '+status+joinedNote, memberNo);
+    'Role: '+role+', Membership type: '+(membershipType||'-')+', Status: '+status+joinedNote+committeeNote, memberNo);
   return { ok: true };
 }

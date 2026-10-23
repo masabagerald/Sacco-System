@@ -82,6 +82,22 @@
       loadRepayPreview(); await wait(300);
     } },
 
+    'secured-loan-request': { as: P.M004, async run() {
+      await wait(500); openReqLoan(); await wait(600);
+      set('#rl_am', '300000'); set('#rl_tmwrap_input', '3'); set('#rl_pu', 'Clinic equipment');
+      ['M001', 'M007'].forEach(no => { document.querySelector('#rl_gt input[value="' + no + '"]').checked = true; });
+      loadCoverage(); await wait(300); openSecuredLoan();
+      set('#sl_type', 'Land Title'); set('#sl_value', '45000000');
+      set('#sl_description', 'Plot 214, Block 9, Namakwekwe, Mbale (0.25 acres)'); set('#sl_ownership', 'Registered to Peter Wanyama (sole owner)');
+      set('#sl_documents', 'https://drive.google.com/file/d/1xExampleTitleScan/view');
+      set('#sl_justification', 'Buying an ultrasound machine for my clinic; repayment from clinic income.');
+    } },
+
+    'waiver-decision': { as: P.M001, async run() {
+      await wait(300); goSec('loans'); await wait(800); focusOn(panelOf('#loanReqAdminTb')); openWaiver('R025');
+      set('#wv_comment', 'Title verified at the lands office; value confirmed by the valuer.');
+    } },
+
     'reverse-repayment': { as: P.M001, async run() {
       await wait(300); goSec('loans'); await wait(700); focusOn(panelOf('#repaymentsTb'));
       openRevRepay('RPY-000046'); set('#rr_rs', 'Recorded against L014 by mistake; the payment was for L012');

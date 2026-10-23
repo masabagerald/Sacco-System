@@ -15,6 +15,7 @@ This guide explains how to use the club's web app: signing in, checking your sav
   - [Your deposit accounts](#your-deposit-accounts)
   - [Requesting a withdrawal](#requesting-a-withdrawal)
   - [Loans](#loans)
+  - [Loans with security (Founder Members)](#loans-with-security-founder-members)
   - [Being a guarantor](#being-a-guarantor)
   - [Surcharges](#surcharges)
   - [Your statement](#your-statement)
@@ -28,6 +29,7 @@ This guide explains how to use the club's web app: signing in, checking your sav
   - [Correcting or reversing a transaction](#correcting-or-reversing-a-transaction)
   - [Approving withdrawals](#approving-withdrawals)
   - [Proposing and approving loans](#proposing-and-approving-loans)
+  - [Deciding waivers for loans with security](#deciding-waivers-for-loans-with-security)
   - [Recording loan repayments](#recording-loan-repayments)
   - [Surcharges (admin)](#surcharges-admin)
   - [Reports and the audit log](#reports-and-the-audit-log)
@@ -177,6 +179,24 @@ Click **Request a Loan** under **My loans**. The form shows the loan type that a
 | Processing fee | 10,000 |
 | **Total to repay** | **120,000** |
 
+#### Loans with security (Founder Members)
+
+The constitution sets two savings coverage requirements: your loan must be within your cap (50% of your Principal savings), and each guarantor needs Principal savings of at least 25% of the loan. When you fill in **Request a Loan**, the form shows whether these are met. If one is not, a Founder Member can offer an asset as security and ask the committee to waive that requirement:
+
+1. In **Request a Loan**, enter the amount and term and tick your two guarantors. The **Savings coverage** box shows which requirement is not met.
+2. Click **Request for a Loan with Security**.
+3. Choose the **Type of security** (Land Title, Car Logbook, Equipment, or Others; for Others, say what it is), and enter its **estimated value**, a **description**, the **ownership details** and **why the waiver should be granted**. You can add links to scanned documents (for example in Google Drive), one per line.
+4. Click **Submit for Waiver Approval**.
+
+![Request for a Loan with Security: the requirement not met, and a land title offered as security](images/22-secured-loan-request.png)
+
+What happens next:
+
+- The request shows as **Pending Waiver Approval**. At least **three committee administrators** (the Chairperson and two Finance Committee members) must approve the waiver. You are emailed when it is submitted, at each approval, and when it is approved or rejected. A rejection always comes with the reason.
+- **Your guarantors are asked to consent only after the waiver is approved.** Then the loan follows the usual steps: both guarantors agree, then two different admins approve and the loan is issued.
+- The waiver covers only the requirement that was not met. Every other rule still applies: the 12-month saving period, one loan at a time, exactly two Founder Member guarantors who agree, interest, fees and the due date.
+- The value and ownership you give are taken as declared; the committee checks the security before deciding.
+
 #### Repayment, reminders and late payment
 
 You will receive emails:
@@ -291,7 +311,7 @@ Figures are recalculated from the transaction records every time the dashboard l
 **Members** lists every member with their role, membership type, status and total savings.
 
 - **+ Add Member**: enter the name, the email they will sign in with, their phone number (optional; a Ugandan number such as 0712 345 678, or any other country's number with its country code, such as +254 712 345 678; it is saved as +256…), role (Member or Admin), membership type and **date joined the club**. Member numbers (MSIC-0001, MSIC-0002, …) are assigned automatically. A number never changes, even if the member's membership type or date joined does.
-- **Edit**: change a member's role, membership type, status (Active / Inactive) or date joined. Inactive members cannot sign in. Leaving the date box empty keeps the current date.
+- **Edit**: change a member's role, membership type, status (Active / Inactive), date joined or **committee role** (Finance Committee or Chairperson, for deciding waivers on loans with security). Inactive members cannot sign in. Leaving the date box empty keeps the current date.
 
 > **Members who joined before the app was in use.** Set each one's **Date joined** to the date they really joined. The 12-month saving rule for loans counts from that date. Otherwise a long-standing member would be treated as new and refused a loan. The date can't be in the future, and every change is kept in the audit log.
 
@@ -375,7 +395,21 @@ For **Operations** and **Welfare**, the balance shown is the **club pool** balan
 - The due date is counted from the day the loan is issued.
 - An override reason given by either approving admin is kept with the request, so the other admin doesn't need to enter it again.
 
-![Loan Requests list: a Soft Loan with one guarantor still pending, and a member loan with an override awaiting its final approval](images/11-loan-approvals.png)
+![Loan Requests list: a loan with security waiting for its waiver, a Soft Loan with one guarantor still pending, and a member loan awaiting its final approval](images/11-loan-approvals.png)
+
+### Deciding waivers for loans with security
+
+A Founder Member who does not meet a savings coverage requirement can ask for a **loan with security** (see Part 1). These requests show in **Loan Requests** with the label **Loan with security** and the status **Pending Waiver Approval**.
+
+- Only administrators with a **Committee role** can decide a waiver. Set it under Members → **Edit** → **Committee role** (**Finance Committee** or **Chairperson**). Every change is kept in the audit log.
+- A waiver needs **three different committee administrators**: at least **one Chairperson** and **two Finance Committee** members. Each administrator decides once. Nobody can decide a waiver for their own loan or one they submitted. Once the two Finance Committee approvals are in, only the Chairperson can give the third.
+- Click **Decide waiver** to see the requirement not met, the applicant's and guarantors' savings coverage, the security details and documents, and the decisions so far. Then **Approve waiver**, or **Reject waiver** with a reason (the reason is emailed to the applicant). One rejection closes the request.
+- The value and ownership of the security are **as declared by the applicant and not verified**. Check them before approving.
+- Until the waiver is approved, the loan can't be approved or rejected in the usual way, and the guarantors are not asked. When the third approval is given, the guarantors are emailed for consent and the request becomes **Pending**. It then needs two different admins' approval, as for any loan. An over-limit loan whose cap was waived needs no override reason.
+- Only the requirement that failed is waived. If something else changes later (for example the other guarantor's savings fall below 25%), the loan is refused at approval as usual.
+- Each decision is kept on the **Waiver Decisions** tab of the spreadsheet, the security and the original savings figures on **Loan Waivers**, and every step in the audit log.
+
+![Secured Loan Waiver: the requirement not met, savings coverage, the security offered and one Finance Committee approval so far](images/23-waiver-decision.png)
 
 ### Recording loan repayments
 

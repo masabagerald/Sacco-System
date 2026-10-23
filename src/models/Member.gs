@@ -9,6 +9,7 @@ function makeMemberRecord(row) {
     role: String(row['Role']||'Member').trim(),
     membershipType: row['Membership Type'] || '',
     dateJoined: _dstr(row['Date Joined']),
+    committeeRole: String(row['Committee Role']||'').trim(),
     status: row['Status'] || ''
   };
 }

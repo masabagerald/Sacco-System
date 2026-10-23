@@ -55,11 +55,12 @@
     <h3>Request a Loan</h3>
     <p class="sub">Choose the amount and term. The total due is shown before you submit. You need exactly two Founder Member guarantors, each with Principal savings of at least 25% of the loan. Both guarantors must agree by email before the admins can approve.</p>
     <div class="mgrid">
-      <div class="field"><label>Amount (UGX)</label><input id="rl_am" type="number" min="0" oninput="updateQuote('rl_am','rl_tmwrap','rl_q')"></div>
-      <div class="field"><label>Repayment term</label><div id="rl_tmwrap" onchange="updateQuote('rl_am','rl_tmwrap','rl_q')" oninput="updateQuote('rl_am','rl_tmwrap','rl_q')"><p class="note">Loading&hellip;</p></div></div>
+      <div class="field"><label>Amount (UGX)</label><input id="rl_am" type="number" min="0" oninput="updateQuote('rl_am','rl_tmwrap','rl_q');queueCoverage()"></div>
+      <div class="field"><label>Repayment term</label><div id="rl_tmwrap" onchange="updateQuote('rl_am','rl_tmwrap','rl_q');queueCoverage()" oninput="updateQuote('rl_am','rl_tmwrap','rl_q')"><p class="note">Loading&hellip;</p></div></div>
       <div class="field full"><div id="rl_q"></div></div>
       <div class="field full"><label>Purpose</label><input id="rl_pu" type="text"></div>
-      <div class="field full hidden" id="rl_gtwrap"><label>Guarantors (exactly 2, must be Founder Members)</label><div class="chk-list" id="rl_gt"></div></div>
+      <div class="field full hidden" id="rl_gtwrap"><label>Guarantors (exactly 2, must be Founder Members)</label><div class="chk-list" id="rl_gt" onchange="queueCoverage()"></div></div>
+      <div class="field full" id="rl_cov"></div>
     </div>
     <div class="mact"><button class="btn" onclick="cm('m_reqLoan')">Cancel</button><button class="btn solid" id="rl_btn" onclick="submitReqLoan()">Submit Request</button></div>
     <div class="mst" id="rl_st"></div>
@@ -84,5 +85,38 @@
     <div class="mgrid"><div class="field full"><label>Reason</label><input id="rjlr_rs" type="text"></div></div>
     <div class="mact"><button class="btn" onclick="cm('m_rejectLR')">Cancel</button><button class="btn danger" id="rjlr_btn" onclick="submitRejectLR()">Reject</button></div>
     <div class="mst" id="rjlr_st"></div>
+  </div>
+</div>
+
+<!-- Request a loan with security (ISS-11): a Founder Member short of a savings coverage requirement -->
+<div class="modal-bg" id="m_secLoan" onclick="if(event.target===this)cm('m_secLoan')">
+  <div class="modal wide"><button class="x" onclick="cm('m_secLoan')">&times;</button>
+    <h3>Request for a Loan with Security</h3>
+    <p class="sub">Your request does not meet a savings coverage requirement of the constitution. You can offer an asset as security and ask the committee to waive that requirement. At least three committee administrators must approve the waiver; only then are your guarantors asked to consent, and two admins must still approve the loan.</p>
+    <div id="sl_summary"></div>
+    <div class="mgrid">
+      <div class="field"><label for="sl_type">Type of security</label><select id="sl_type" onchange="secTypeChanged()" aria-describedby="sl_type_err"><option value="">— select —</option><option>Land Title</option><option>Car Logbook</option><option>Equipment</option><option>Others</option></select><div class="ferr" id="sl_type_err" role="alert"></div></div>
+      <div class="field hidden" id="sl_otherwrap"><label for="sl_otherType">Specify the type</label><input id="sl_otherType" type="text" maxlength="100" aria-describedby="sl_otherType_err"><div class="ferr" id="sl_otherType_err" role="alert"></div></div>
+      <div class="field"><label for="sl_value">Estimated value (UGX)</label><input id="sl_value" type="number" min="0" step="1" aria-describedby="sl_value_err"><div class="ferr" id="sl_value_err" role="alert"></div></div>
+      <div class="field full"><label for="sl_description">Description</label><textarea id="sl_description" rows="2" maxlength="1000" placeholder="For example: plot number and location, or vehicle make and registration" aria-describedby="sl_description_err"></textarea><div class="ferr" id="sl_description_err" role="alert"></div></div>
+      <div class="field full"><label for="sl_ownership">Ownership details</label><textarea id="sl_ownership" rows="2" maxlength="500" placeholder="Whose name the asset is registered in, and any joint owners" aria-describedby="sl_ownership_err"></textarea><div class="ferr" id="sl_ownership_err" role="alert"></div></div>
+      <div class="field full"><label for="sl_documents">Supporting documents (optional)</label><textarea id="sl_documents" rows="2" placeholder="Links to scanned copies (for example Google Drive), one per line, starting with https://" aria-describedby="sl_documents_err"></textarea><div class="ferr" id="sl_documents_err" role="alert"></div></div>
+      <div class="field full"><label for="sl_justification">Why should the committee grant the waiver?</label><textarea id="sl_justification" rows="3" maxlength="1000" aria-describedby="sl_justification_err"></textarea><div class="ferr" id="sl_justification_err" role="alert"></div></div>
+    </div>
+    <p class="note">The value and ownership are taken as you declare them; the committee checks the security before deciding.</p>
+    <div class="mact"><button class="btn" onclick="backToReqLoan()">Back</button><button class="btn solid" id="sl_btn" onclick="submitSecuredLoan()">Submit for Waiver Approval</button></div>
+    <div class="mst" id="sl_st"></div>
+  </div>
+</div>
+
+<!-- Waiver details and decision (committee administrators) -->
+<div class="modal-bg" id="m_waiver" onclick="if(event.target===this)cm('m_waiver')">
+  <div class="modal wide"><button class="x" onclick="cm('m_waiver')">&times;</button>
+    <h3>Secured Loan Waiver</h3><p class="sub" id="wv_info"></p>
+    <div id="wv_body"></div>
+    <div class="mgrid" id="wv_form"><div class="field full"><label for="wv_comment">Comment (required to reject; sent to the applicant)</label><textarea id="wv_comment" rows="2" maxlength="500"></textarea></div></div>
+    <p class="note" id="wv_block"></p>
+    <div class="mact"><button class="btn" onclick="cm('m_waiver')">Close</button><button class="btn danger" id="wv_rej" onclick="decideWaiver('reject')">Reject waiver</button><button class="btn solid" id="wv_app" onclick="decideWaiver('approve')">Approve waiver</button></div>
+    <div class="mst" id="wv_st"></div>
   </div>
 </div>

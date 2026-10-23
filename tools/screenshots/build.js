@@ -38,6 +38,8 @@ const SHOTS = [
   ['13-audit-log.png', 'audit-log', 1280, 760],
   ['20-record-repayment.png', 'record-repayment', 1280, 760],
   ['21-reverse-repayment.png', 'reverse-repayment', 1280, 720],
+  ['22-secured-loan-request.png', 'secured-loan-request', 1280, 1180],
+  ['23-waiver-decision.png', 'waiver-decision', 1280, 1180],
   ['14-loan-insights-founder.png', 'loan-insights-founder', 1280, 980],
   ['15-loan-insights-trends.png', 'loan-insights-trends', 1280, 1000],
   ['16-loan-fund-entry.png', 'loan-fund-entry', 1280, 900],

@@ -26,7 +26,9 @@
       <div class="field"><label>Membership type</label><select id="em_mt"><option value="">— not set —</option><option>Founder Member</option><option>Delegate Member</option><option>Non-Member</option></select></div>
       <div class="field"><label>Status</label><select id="em_st"><option>Active</option><option>Inactive</option></select></div>
       <div class="field"><label>Date joined the club</label><input id="em_dj" type="date"></div>
+      <div class="field"><label for="em_cr">Committee role</label><select id="em_cr"><option value="">— none —</option><option>Finance Committee</option><option>Chairperson</option></select></div>
     </div>
+    <p class="note">Committee role: administrators in the Finance Committee or the Chairperson approve waivers for loans with security.</p>
     <p class="note">Loans count the 12-month saving period from the date joined (or the first recorded Principal deposit, if earlier). Changes are kept in the audit log.</p>
     <div class="mact"><button class="btn" onclick="cm('m_editMember')">Cancel</button><button class="btn solid" id="em_btn" onclick="submitEditMember()">Save</button></div>
     <div class="mst" id="em_st2"></div>

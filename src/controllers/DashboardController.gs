@@ -25,7 +25,7 @@ function getAdminDashboard() {
   const paidFineItems = fineItems.filter(f=>fineStatus(f)==='paid');
   const unpaidFines = unpaidFineItems.reduce((s,f)=>s+num(f['Amount (UGX)']),0);
   const paidFines = paidFineItems.reduce((s,f)=>s+num(f['Amount (UGX)']),0);
-  const pendingLoanReqs = loanReqs.filter(r=>String(r['RequestID']||'').trim()!==''&&String(r['Status']||'').trim()==='Pending').length;
+  const pendingLoanReqs = loanReqs.filter(r=>String(r['RequestID']||'').trim()!==''&&['Pending',REQ_PENDING_WAIVER].indexOf(String(r['Status']||'').trim())>-1).length;  // waivers wait on admins too
   const pendingWdReqs   = wdReqs.filter(r=>String(r['RequestID']||'').trim()!==''&&String(r['Status']||'').trim()==='Pending').length;
   // Savings this month, by type and by payment category (reversals posted this month net off)
   let deposits = 0, withdrawals = 0;

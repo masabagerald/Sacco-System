@@ -114,7 +114,12 @@ function renderLoanReqs(res){
   if(!res.ok)return;
   const tb=$('#loanReqTb');
   if(!res.requests.length){tb.innerHTML='<tr class="empty"><td colspan="6">No loan requests.</td></tr>';return;}
-  tb.innerHTML=res.requests.map(r=>'<tr><td>'+esc(r.requestId)+'</td><td class="r">'+money(r.amount)+'</td><td>'+esc(r.termLabel)+'<div class="note">Total due '+fmt(r.total)+'</div></td><td>'+esc(r.purpose)+'</td><td>'+badge(r.status,BMAP)+'</td><td>'+esc(r.decisionNotes)+'</td></tr>').join('');
+  tb.innerHTML=res.requests.map(r=>{
+    const w=r.waiver;
+    const wv=w?'<div class="note">Loan with security ('+esc(w.security)+'). Waiver: '+esc(w.status)+(w.status==='Pending Waiver Approval'||w.status==='Partially Approved'?' — '+w.approvals+' of '+w.required+' approvals':'')+'</div>'
+      +w.failed.map(f=>'<div class="note">Not met: '+esc(f)+'</div>').join(''):'';
+    return '<tr><td>'+esc(r.requestId)+'</td><td class="r">'+money(r.amount)+'</td><td>'+esc(r.termLabel)+'<div class="note">Total due '+fmt(r.total)+'</div></td><td>'+esc(r.purpose)+'</td><td>'+badge(r.status,BMAP)+wv+'</td><td>'+esc(r.decisionNotes)+'</td></tr>';
+  }).join('');
 }
 
 // ── ADMIN: LOAN REQUESTS ──────────────────────────────────────────────────────
@@ -186,14 +191,21 @@ function loadLoanReqAdmin(){
     if(!res.requests.length){tb.innerHTML='<tr class="empty"><td colspan="8">No requests.</td></tr>';return;}
     res.requests.forEach(r=>{LR_CACHE[r.requestId]=r;});
     tb.innerHTML=res.requests.map(r=>{
-      const lim=!r.savingsLimit?'<span class="note">No savings cap (Soft Loan)</span>':(r.withinLimit?'<span class="badge approved">Within limit</span>':'<span class="badge overdue">Over limit</span>');
-      const gl=r.guarantors.length?r.guarantors.map(g=>esc(g.name)+' ('+esc(g.memberNo)+') - '+esc(g.response)).join(', '):'None on file';
+      const w=r.waiver;
+      const lim=!r.savingsLimit?'<span class="note">No savings cap (Soft Loan)</span>'
+        :r.waivedLimit?'<span class="badge approved">Waived (secured loan)</span>'
+        :(r.withinLimit?'<span class="badge approved">Within limit</span>':'<span class="badge overdue">Over limit</span>');
+      const glist=r.guarantors.length?r.guarantors:(r.pendingGuarantors||[]);
+      const gl=glist.length?glist.map(g=>esc(g.name)+' ('+esc(g.memberNo)+') - '+esc(g.response)).join(', '):'None on file';
+      const sec=w?'<div class="note"><span class="badge partial">Loan with security</span> Waiver: '+esc(w.status)+' ('+w.approvals+' of '+w.required+' approvals)'
+        +(w.stillNeeded?' '+esc(w.stillNeeded):'')+'</div>':'';
       const ov=r.guarantorOverride?'<div class="note" style="color:var(--warn)">Guarantor restriction override: '+esc(r.guarantorOverride)+'</div>':'';
       const due=r.decisionOverdue?'<div class="note" style="color:var(--bad)">Decision overdue ('+r.daysPending+' days, limit 3)</div>'
         :(r.daysPending!==null?'<div class="note">Pending '+r.daysPending+' day(s)</div>':'');
       // Both guarantors consent first; only then can two different admins approve. ("Awaiting Guarantors"
       // is left over from the earlier any-order flow: both admins approved, the loan is issued at the last acceptance.)
       const awaiting=r.status==='Awaiting Guarantors';
+      const waiting=r.status==='Pending Waiver Approval';
       const open=r.status==='Pending'||r.status==='Partially Approved'||awaiting;
       const allAccepted=!r.guarantorsRequired||(r.guarantors.length===2&&r.guarantors.every(g=>g.response==='Accepted'));
       const why=ME.memberNo===r.initiatedBy?'You initiated this request — another admin must approve it.'
@@ -207,8 +219,12 @@ function loadLoanReqAdmin(){
       const approveBtn=!allAccepted?''
         :awaiting?'<button class="btn sm solid" onclick="openApproveLR(\''+r.requestId+'\')">Issue loan</button> '
         :'<button class="btn sm" onclick="openApproveLR(\''+r.requestId+'\')">Approve</button> ';
-      const acts=canAct?approveBtn+'<button class="btn sm danger" onclick="openRejectLR(\''+r.requestId+'\')">Reject</button>':already;
-      return '<tr><td>'+esc(r.requestId)+'</td><td>'+esc(r.memberName)+'<div class="note">'+esc(r.membershipType||'—')+' &middot; Guarantors: '+gl+'</div><div class="note">Initiated by '+esc(r.initiatedByName)+'</div>'+ov+approvals+'</td><td class="r">'+money(r.amount)+'<div class="note">Total '+fmt(r.total)+'</div></td><td>'+esc(r.termLabel)+'</td><td>'+esc(r.purpose)+'</td><td>'+lim+'</td><td>'+badge(r.status,BMAP)+due+'</td><td>'+acts+'</td></tr>';
+      const canDecide=w&&(!w.approveBlock||!w.rejectBlock);
+      const acts=waiting
+        ?'<button class="btn sm'+(canDecide?' solid':'')+'" onclick="openWaiver(\''+r.requestId+'\')">'+(canDecide?'Decide waiver':'Waiver details')+'</button>'
+        :(canAct?approveBtn+'<button class="btn sm danger" onclick="openRejectLR(\''+r.requestId+'\')">Reject</button>':already)
+          +(w?' <button class="btn sm" onclick="openWaiver(\''+r.requestId+'\')">Waiver details</button>':'');
+      return '<tr><td>'+esc(r.requestId)+'</td><td>'+esc(r.memberName)+'<div class="note">'+esc(r.membershipType||'—')+' &middot; Guarantors: '+gl+'</div><div class="note">Initiated by '+esc(r.initiatedByName)+'</div>'+sec+ov+(waiting?'':approvals)+'</td><td class="r">'+money(r.amount)+'<div class="note">Total '+fmt(r.total)+'</div></td><td>'+esc(r.termLabel)+'</td><td>'+esc(r.purpose)+'</td><td>'+lim+'</td><td>'+badge(r.status,BMAP)+due+'</td><td>'+acts+'</td></tr>';
     }).join('');
   });
 }
@@ -218,6 +234,7 @@ function openReqLoan(){
   $('#rl_am').value='';$('#rl_pu').value='';mst('rl_st','','');
   $('#rl_gt').innerHTML='';$('#rl_gtwrap').classList.add('hidden');
   $('#rl_q').innerHTML='';$('#rl_tmwrap').innerHTML='<p class="note">Loading&hellip;</p>';
+  $('#rl_cov').innerHTML='';COV={seq:0,timer:null,res:null};
   om('m_reqLoan');
   loadLoanProduct(null, ()=>{
     renderTermField('rl_tmwrap');
@@ -236,9 +253,113 @@ function submitReqLoan(){
   $('#rl_btn').disabled=true;mst('rl_st','','Submitting…');
   Api.requestLoan(am,tm,$('#rl_pu').value.trim(),gs, res=>{
     $('#rl_btn').disabled=false;
-    if(!res.ok)return mst('rl_st','err',res.error);
+    if(!res.ok){mst('rl_st','err',res.error);if(res.securedAvailable)loadCoverage();return;}
     mst('rl_st','ok','Request '+res.requestId+' submitted. Total due if approved: '+fmt(res.total)+'.');loadMyAccount();setTimeout(()=>cm('m_reqLoan'),1500);
   }, e=>{$('#rl_btn').disabled=false;mst('rl_st','err','Error: '+e.message);});
+}
+
+// ── savings coverage & loan with security (ISS-11) ────────────────────────────
+// The server checks the two coverage requirements (applicant cap, guarantors' 25%) as the member fills
+// in the form. If one fails, a Founder Member is offered "Request for a Loan with Security".
+let COV={seq:0,timer:null,res:null}, SEC_REQ=null;
+function queueCoverage(){clearTimeout(COV.timer);COV.timer=setTimeout(loadCoverage,400);}
+function loadCoverage(){
+  const am=n($('#rl_am').value), tm=termFieldValue('rl_tmwrap'), gs=pickedGuarantors('rl_gt');
+  if(!am||!LOAN_PRODUCT||LOAN_PRODUCT.product!=='member'){$('#rl_cov').innerHTML='';COV.res=null;return;}
+  const seq=++COV.seq;
+  Api.checkLoanCoverage(am,tm,gs,null,res=>{if(seq===COV.seq)renderCoverage(res);});
+}
+function renderCoverage(res){
+  COV.res=res.ok?res:null;
+  if(!res.ok){$('#rl_cov').innerHTML='';return;}
+  const pct=v=>Math.round(v*10)/10+'%';
+  const line=(ok,txt)=>'<div class="note" style="color:var('+(ok?'--good':'--bad')+')">'+(ok?'✓ ':'✗ ')+txt+'</div>';
+  let h='<label>Savings coverage</label>';
+  if(res.applicant)h+=line(res.applicant.ok,'Your Principal savings '+fmt(res.applicant.savings)+': loans up to '+fmt(res.applicant.maxLoan)+' ('+res.applicant.limitPct+'% of savings).');
+  res.guarantors.forEach(g=>{h+=line(g.ok,esc(g.name)+' ('+esc(g.memberNo)+'): savings cover '+pct(g.coveragePct)+' of the loan; '+g.requiredPct+'% needed.');});
+  if(res.failed.length&&res.securedAvailable)h+='<div class="lim-warn">This request does not meet the savings coverage required by the constitution. '
+    +(res.applicant&&!res.applicant.ok&&!res.failed.some(f=>/^Guarantor/.test(f))?'You can still submit it for the admins to consider a limit override, or ':'You can ')
+    +'offer an asset as security and ask the committee to waive the requirement.'
+    +'<div style="margin-top:8px"><button class="btn sm solid" onclick="openSecuredLoan()">Request for a Loan with Security</button></div></div>';
+  else if(res.failed.length)h+='<div class="lim-warn">This request does not meet the savings coverage required by the constitution.</div>';
+  $('#rl_cov').innerHTML=h;
+}
+function openSecuredLoan(){
+  const am=$('#rl_am').value, tm=termFieldValue('rl_tmwrap'), gs=pickedGuarantors('rl_gt');
+  if(!am||n(am)<=0)return mst('rl_st','err','Enter a valid amount.');
+  if(!tm)return mst('rl_st','err','Choose a repayment term.');
+  if(gs.length!==2)return mst('rl_st','err','Select exactly two guarantors first.');
+  const res=COV.res;
+  SEC_REQ={amount:am,term:tm,purpose:$('#rl_pu').value.trim(),guarantors:gs};
+  const names=gs.map(no=>{const el=document.querySelector('#rl_gt input[value="'+no+'"]');return el?el.parentNode.textContent.trim():no;});
+  $('#sl_summary').innerHTML='<table><tbody>'+quoteRow('Amount',fmt(am))+quoteRow('Guarantors',esc(names.join(', ')))+'</tbody></table>'
+    +(res&&res.failed.length?'<div class="lim-warn"><strong>Requirement not met</strong>'+res.failed.map(f=>'<div>'+esc(f)+'</div>').join('')+'</div>':'');
+  ['type','otherType','value','description','ownership','documents','justification'].forEach(f=>secFieldError(f,''));
+  mst('sl_st','','');$('#sl_btn').disabled=false;
+  cm('m_reqLoan');om('m_secLoan');
+}
+function secTypeChanged(){$('#sl_otherwrap').classList.toggle('hidden',$('#sl_type').value!=='Others');}
+function backToReqLoan(){cm('m_secLoan');om('m_reqLoan');}
+function secFieldError(f,msg){const e=$('#sl_'+f+'_err');if(e)e.textContent=msg||'';const i=$('#sl_'+f);if(i)i.classList.toggle('invalid',!!msg);}
+function submitSecuredLoan(){
+  if(!SEC_REQ)return;
+  const sec={type:$('#sl_type').value,otherType:$('#sl_otherType').value.trim(),description:$('#sl_description').value.trim(),
+    value:$('#sl_value').value,ownership:$('#sl_ownership').value.trim(),documents:$('#sl_documents').value,justification:$('#sl_justification').value.trim()};
+  // Quick checks here; the server checks everything again
+  const errs={};
+  if(!sec.type)errs.type='Choose the type of security.';
+  if(sec.type==='Others'&&!sec.otherType)errs.otherType='Specify the type of security.';
+  if(sec.description.length<5)errs.description='Describe the security.';
+  if(!(n(sec.value)>0))errs.value='Enter the estimated value.';
+  if(!sec.ownership)errs.ownership='Give the ownership details.';
+  if(sec.documents.split(/[\r\n]+/).map(x=>x.trim()).filter(Boolean).some(d=>!/^https:\/\/\S+$/i.test(d)))errs.documents='Each link must start with https://, one per line.';
+  if(!sec.justification)errs.justification='Explain why the waiver should be granted.';
+  ['type','otherType','value','description','ownership','documents','justification'].forEach(f=>secFieldError(f,errs[f]));
+  if(Object.keys(errs).length)return mst('sl_st','err','Please correct the highlighted fields.');
+  $('#sl_btn').disabled=true;mst('sl_st','','Submitting…');
+  Api.requestSecuredLoan(SEC_REQ.amount,SEC_REQ.term,SEC_REQ.purpose,SEC_REQ.guarantors,sec,res=>{
+    if(!res.ok){$('#sl_btn').disabled=false;if(res.field)secFieldError(res.field,res.error);return mst('sl_st','err',res.error);}
+    mst('sl_st','ok','Request '+res.requestId+' submitted for waiver approval. You will be emailed as the committee decides.');
+    loadMyAccount();setTimeout(()=>cm('m_secLoan'),2000);
+  },e=>{$('#sl_btn').disabled=false;mst('sl_st','err','Error: '+e.message);});
+}
+
+// ── waiver details & decision (committee administrators) ──────────────────────
+let WAIVER_REQ=null;
+function openWaiver(id){
+  const r=LR_CACHE[id]; if(!r||!r.waiver)return;
+  WAIVER_REQ=id; const w=r.waiver, s=w.security;
+  $('#wv_info').textContent=id+': '+r.memberName+' ('+(r.membershipType||'—')+') requests '+fmt(r.amount)+' over '+r.termLabel+'. Waiver: '+w.status+' ('+w.approvals+' of '+w.required+' approvals). '+(w.stillNeeded||'');
+  const row=(k,v)=>quoteRow(k,v);
+  $('#wv_body').innerHTML='<div class="lim-warn"><strong>Requirement not met</strong>'+w.failed.map(f=>'<div>'+esc(f)+'</div>').join('')+'</div>'
+    +'<table><tbody>'
+    +(w.loanCap?row('Applicant Principal savings',fmt(w.applicantSavings)+' (covers '+w.applicantCoveragePct+'% of the loan; cap '+fmt(w.loanCap)+')'):'')
+    +w.guarantorCoverage.map(g=>row('Guarantor '+esc(g.memberNo),esc(g.name)+': '+fmt(g.savings)+' ('+g.coveragePct+'%, needs '+g.requiredPct+'%)')).join('')
+    +row('Security',esc(s.type))+row('Description',esc(s.description))
+    +row('Estimated value',fmt(s.value)+' <span class="note">declared, not verified</span>')+row('Ownership',esc(s.ownership))
+    +row('Documents',s.documents.length?s.documents.map(d=>'<a href="'+esc(d)+'" target="_blank" rel="noopener">'+esc(d)+'</a>').join('<br>'):'None')
+    +row('Justification',esc(s.justification))+row('Submitted',esc(hdt(w.submittedAt)))
+    +'</tbody></table>'
+    +'<p class="note"><strong>Decisions</strong></p>'+(w.decisions.length?'<table><tbody>'+w.decisions.map(d=>'<tr><td>'+esc(hdt(d.at))+'</td><td>'+esc(d.name)+' ('+esc(d.adminNo)+', '+esc(d.role)+')</td><td>'+badge(d.decision,BMAP)+'</td><td>'+esc(d.comment)+'</td></tr>').join('')+'</tbody></table>':'<p class="note">None yet.</p>');
+  const open=r.status==='Pending Waiver Approval';
+  $('#wv_app').classList.toggle('hidden',!open||!!w.approveBlock);
+  $('#wv_rej').classList.toggle('hidden',!open||!!w.rejectBlock);
+  $('#wv_form').classList.toggle('hidden',!open||(!!w.approveBlock&&!!w.rejectBlock));
+  $('#wv_block').textContent=open&&w.approveBlock?w.approveBlock:'';
+  $('#wv_comment').value='';mst('wv_st','','');$('#wv_app').disabled=false;$('#wv_rej').disabled=false;
+  om('m_waiver');
+}
+function decideWaiver(kind){
+  const c=$('#wv_comment').value.trim();
+  if(kind==='reject'&&!c)return mst('wv_st','err','Enter the reason for rejecting. It is sent to the applicant.');
+  $('#wv_app').disabled=true;$('#wv_rej').disabled=true;mst('wv_st','','Saving…');
+  const done=res=>{
+    if(!res.ok){$('#wv_app').disabled=false;$('#wv_rej').disabled=false;return mst('wv_st','err',res.error);}
+    mst('wv_st','ok',res.stage==='approved'?'Waiver approved. The guarantors have been asked to consent.':res.stage==='rejected'?'Waiver rejected; the applicant has been told why.':'Approval recorded. '+(res.message||''));
+    loadLoanReqAdmin();loadAdmin();setTimeout(()=>cm('m_waiver'),1500);
+  };
+  const fail=e=>{$('#wv_app').disabled=false;$('#wv_rej').disabled=false;mst('wv_st','err','Error: '+e.message);};
+  if(kind==='approve')Api.approveLoanWaiver(WAIVER_REQ,c,done,fail); else Api.rejectLoanWaiver(WAIVER_REQ,c,done,fail);
 }
 
 // ── issue loan ────────────────────────────────────────────────────────────────

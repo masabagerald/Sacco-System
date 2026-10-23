@@ -6,7 +6,7 @@ function loadMembers(){
   Api.getAllMembersSummary(res=>{
     if(!res.ok)return; MEMBERS=res.members;if($('#stf_mb'))initSavingsFilter();
     res.members.forEach(m=>{MEMBER_CACHE[m.memberNo]=m;});
-    $('#membersTb').innerHTML=res.members.map(m=>'<tr><td>'+esc(m.memberNo)+'</td><td>'+esc(m.name)+'</td><td>'+esc(m.email)+'</td><td>'+badge(m.role,BMAP)+'</td><td>'+esc(m.membershipType||'—')+'</td><td>'+esc(m.dateJoined?hd(m.dateJoined):'—')+'</td><td>'+esc(m.status)+'</td><td class="r">'+Math.round(n(m.savingsBalance)).toLocaleString('en-US')+'</td><td><button class="btn sm" onclick="openEditMember(\''+esc(m.memberNo)+'\')">Edit</button></td></tr>').join('');
+    $('#membersTb').innerHTML=res.members.map(m=>'<tr><td>'+esc(m.memberNo)+'</td><td>'+esc(m.name)+'</td><td>'+esc(m.email)+'</td><td>'+badge(m.role,BMAP)+(m.committeeRole?'<div class="note">'+esc(m.committeeRole)+'</div>':'')+'</td><td>'+esc(m.membershipType||'—')+'</td><td>'+esc(m.dateJoined?hd(m.dateJoined):'—')+'</td><td>'+esc(m.status)+'</td><td class="r">'+Math.round(n(m.savingsBalance)).toLocaleString('en-US')+'</td><td><button class="btn sm" onclick="openEditMember(\''+esc(m.memberNo)+'\')">Edit</button></td></tr>').join('');
   });
 }
 function openEditMember(no){
@@ -16,13 +16,14 @@ function openEditMember(no){
   $('#em_mt').value=m.membershipType||'';
   $('#em_st').value=m.status==='Inactive'?'Inactive':'Active';
   $('#em_dj').value=m.dateJoined||'';
+  $('#em_cr').value=m.committeeRole||'';
   mst('em_st2','','');
   EDIT_MEMBER_NO=no;
   om('m_editMember');
 }
 function submitEditMember(){
   $('#em_btn').disabled=true;mst('em_st2','','Saving…');
-  Api.updateMember(EDIT_MEMBER_NO,$('#em_rl').value,$('#em_mt').value,$('#em_st').value,$('#em_dj').value, res=>{
+  Api.updateMember(EDIT_MEMBER_NO,$('#em_rl').value,$('#em_mt').value,$('#em_st').value,$('#em_dj').value,$('#em_cr').value, res=>{
     $('#em_btn').disabled=false;
     if(!res.ok)return mst('em_st2','err',res.error);
     mst('em_st2','ok','Saved.');loadAdmin();setTimeout(()=>cm('m_editMember'),700);

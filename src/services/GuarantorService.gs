@@ -29,7 +29,11 @@ function _liveGuaranteesOf(memberNo, excludeRequestId) {
 }
 
 // Checks the guarantor rules for a proposed set of guarantors. Returns {ok, error, guarantors}.
-function _guarantorChecks(applicantNo, amount, guarantorNos, excludeRequestId) {
+// coverageWaived: guarantor numbers whose 25% savings coverage was waived by an approved secured-loan
+// waiver (ISS-11). Only that one check is skipped for them; every other guarantor rule still applies.
+// A failure of the coverage check alone is marked coverageFailed, so the form can offer a secured loan.
+function _guarantorChecks(applicantNo, amount, guarantorNos, excludeRequestId, coverageWaived) {
+  const waived = (coverageWaived || []).map(g => String(g).trim());
   const applicant = String(applicantNo).trim();
   const list = [...new Set((guarantorNos||[]).map(g => String(g).trim()).filter(Boolean))];
   if (list.length !== GUARANTOR_COUNT) return { ok: false, error: 'Exactly ' + GUARANTOR_COUNT + ' guarantors are required (' + list.length + ' chosen). (Art. 4, Sec. 4)' };
@@ -43,8 +47,9 @@ function _guarantorChecks(applicantNo, amount, guarantorNos, excludeRequestId) {
     const running = _runningLoanOf(g);
     if (running) return { ok: false, error: 'Guarantor ' + g + ' has a running loan (' + running.loanId + ') and cannot guarantee anyone. (Art. 4, Sec. 6)' };
     if (_liveGuaranteesOf(g, excludeRequestId) > 0) return { ok: false, error: 'Guarantor ' + g + ' is already guaranteeing another loan. A member can guarantee only one member at a time. (Art. 4, Sec. 5)' };
+    if (waived.indexOf(g) > -1) continue;
     const sav = _principalBalance(g);
-    if (sav < needed) return { ok: false, error: 'Guarantor ' + g + ' has Principal savings of ' + fmtUGX(sav) + ' but needs at least ' + fmtUGX(needed) + ' (25% of the loan). (Art. 4, Sec. 3)' };
+    if (sav < needed) return { ok: false, coverageFailed: true, error: 'Guarantor ' + g + ' has Principal savings of ' + fmtUGX(sav) + ' but needs at least ' + fmtUGX(needed) + ' (25% of the loan). (Art. 4, Sec. 3)' };
   }
   return { ok: true, guarantors: list };
 }
@@ -140,9 +145,10 @@ function setupGuaranteeSchema() {
   addColumns(SH_LOANS, 'loanid', ['Loan Model', 'Processing Fee (UGX)', 'Term (days)', 'Interest Rate (%)', 'Due Date', 'Overdue Surcharge (UGX)', 'Last Notice']);
   addColumns(SH_LOAN_REQ, 'requestid', ['Repayment Term', 'Total Due', 'Initiated By', 'Approver 1', 'Approver 1 At', 'Approver 2', 'Approver 2 At', 'Guarantor Override', 'Limit Override']);
   addColumns(SH_SAVINGS, 'memberno', ['Payment Category', 'Surcharge Reason', 'Deposit Account', 'Reverses']);
-  addColumns(SH_MEMBERS, 'memberno', ['Membership Type', 'Date Joined']);
+  addColumns(SH_MEMBERS, 'memberno', ['Membership Type', 'Date Joined', 'Committee Role']);
   addColumns(SH_WD_REQ, 'requestid', ['Initiated By', 'Approver 1', 'Approver 1 At', 'Approver 2', 'Approver 2 At', 'Deposit Account']);
   setupFinanceSchema();  // Loan Fund Ledger, Investments, Investment Transactions
+  setupSecuredLoanSchema();  // Loan Waivers, Waiver Decisions (ISS-11)
 
   Logger.log('Guarantee schema ready.');
 }

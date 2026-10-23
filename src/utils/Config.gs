@@ -92,6 +92,27 @@ const OVERDUE_SURCHARGE_RATE = 0.10;       // 10% on principal+interest once the
 const OVERDUE_REMINDER_DAYS_BEFORE = 3;    // reminder 3 days before the due date
 const OVERDUE_MAX_DAILY_NOTICE_DAYS = 14;  // daily overdue notices stop after 2 weeks
 
+// ── SECURED LOANS & CONSTITUTIONAL WAIVERS (ISS-11) ───────────────────────────
+// A Founder Member who does not meet a savings coverage requirement (the applicant's loan cap,
+// LOAN_TO_SAVINGS_LIMIT, or a guarantor's GUARANTOR_SAVINGS_RATIO) may ask for a loan secured by an
+// asset. The waiver covers only the coverage requirements that failed; every other rule still applies.
+const SH_WAIVERS          = 'Loan Waivers';       // one row per secured-loan request: security and eligibility snapshot
+const SH_WAIVER_DECISIONS = 'Waiver Decisions';   // append-only: each administrator's approval or rejection
+const SECURED_LOAN_MEMBERSHIP_TYPES = ['Founder Member'];
+const SECURITY_TYPES = ['Land Title', 'Car Logbook', 'Equipment', 'Others'];
+// Committee role (Members sheet, "Committee Role"): which approval group an administrator belongs to.
+// Set per member by an admin; nobody is hardcoded. Only an active Admin with a committee role may decide a waiver.
+const COMMITTEE_ROLES = ['Finance Committee', 'Chairperson'];
+// Approvals a waiver needs: at least WAIVER_APPROVALS_REQUIRED different administrators, including at
+// least this many from each group. Each administrator counts once, for their own group.
+// BUSINESS DECISION TO CONFIRM: the split below (Chairperson 1 + Finance Committee 2) is an assumption.
+const WAIVER_APPROVALS_REQUIRED = 3;
+const WAIVER_ROLE_MINIMUMS = { 'Chairperson': 1, 'Finance Committee': 2 };
+// Waiver status (on the Loan Waivers row). The loan request itself is "Pending Waiver Approval" until the
+// waiver is approved, then "Pending" (the usual guarantor-consent and two-admin stage), or "Rejected".
+const WAIVER_STATUS = { PENDING: 'Pending Waiver Approval', PARTIAL: 'Partially Approved', APPROVED: 'Waiver Approved', REJECTED: 'Waiver Rejected' };
+const REQ_PENDING_WAIVER = 'Pending Waiver Approval';
+
 // ── LOAN INSIGHTS & INVESTMENT TRACKER ────────────────────────────────────────
 const SH_LOAN_FUND   = 'Loan Fund Ledger';
 const SH_INVESTMENTS = 'Investments';

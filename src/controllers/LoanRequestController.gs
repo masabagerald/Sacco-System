@@ -33,6 +33,29 @@ function _quoteFor(amount, spec) {
   return { total: t.total, interest: t.interest, label: spec.label };
 }
 
+// Writes a new Loan Requests row and returns { newId, q } (q: the quote, with the total due).
+// status: 'Pending' for a normal request, REQ_PENDING_WAIVER for a secured-loan request (ISS-11).
+function _writeLoanRequestRow(memberNo, initiatedBy, amount, spec, termInput, purpose, guarantors, status, guarantorOverride) {
+  const { sh, headers, hRow } = readSheet(SH_LOAN_REQ,'requestid');
+  if (ci(headers,'repayment term') < 0 || ci(headers,'initiated by') < 0)
+    throw new Error('Loan Requests sheet is missing a required column (Repayment Term or Initiated By). Run setupGuaranteeSchema() once from the script editor.');
+  if (guarantorOverride && ci(headers,'guarantor override') < 0)
+    throw new Error('Loan Requests sheet is missing the "Guarantor Override" column. Run setupGuaranteeSchema() once from the script editor.');
+  const newId = nextId(SH_LOAN_REQ,'requestid','R');
+  const row = emptyRow(sh, hRow, ci(headers,'memberno'));
+  const s=(c,v)=>{if(c>-1)sh.getRange(row,c+1).setValue(v);};
+  s(ci(headers,'requestid'),newId); s(ci(headers,'timestamp'),now_ts());
+  s(ci(headers,'memberno'),memberNo); s(ci(headers,'amount'),amount);
+  s(ci(headers,'repayment term'), spec.model === MEMBER_LOAN_MODEL ? String(spec.months) : termInput);
+  s(ci(headers,'purpose'),purpose||''); s(ci(headers,'status'),status);
+  s(ci(headers,'initiated by'), initiatedBy);
+  s(ci(headers,'guarantor 1'),guarantors[0]||''); s(ci(headers,'guarantor 2'),guarantors[1]||'');
+  if (guarantorOverride) s(ci(headers,'guarantor override'), guarantorOverride);
+  const q = _quoteFor(amount, spec);
+  s(ci(headers,'total due'),q.total);
+  return { newId, q };
+}
+
 // Creates a Pending loan request row. Used both when a member requests their own loan
 // (memberNo === initiatedBy) and when an admin issues one on a member's behalf (initiatedBy
 // is the admin -- who is then excluded from approving it, since they initiated it).
@@ -49,24 +72,13 @@ function _submitLoanRequest(memberNo, initiatedBy, initiatorName, amount, termIn
   const el = _loanEligibility(memberNo, membershipType, guarantorOverride); if (!el.ok) return el;
   const overrideUsed = guarantorOverride && _liveGuaranteesOf(memberNo, '') > 0;
   let gc = { ok: true, guarantors: [] };
-  if (spec.guarantorsRequired) { gc = _guarantorChecks(memberNo, amount, guarantorNos, ''); if (!gc.ok) return gc; }
-  const { sh, headers, hRow } = readSheet(SH_LOAN_REQ,'requestid');
-  if (ci(headers,'repayment term') < 0 || ci(headers,'initiated by') < 0)
-    throw new Error('Loan Requests sheet is missing a required column (Repayment Term or Initiated By). Run setupGuaranteeSchema() once from the script editor.');
-  if (overrideUsed && ci(headers,'guarantor override') < 0)
-    throw new Error('Loan Requests sheet is missing the "Guarantor Override" column. Run setupGuaranteeSchema() once from the script editor.');
-  const newId = nextId(SH_LOAN_REQ,'requestid','R');
-  const row = emptyRow(sh, hRow, ci(headers,'memberno'));
-  const s=(c,v)=>{if(c>-1)sh.getRange(row,c+1).setValue(v);};
-  s(ci(headers,'requestid'),newId); s(ci(headers,'timestamp'),now_ts());
-  s(ci(headers,'memberno'),memberNo); s(ci(headers,'amount'),amount);
-  s(ci(headers,'repayment term'), spec.model === MEMBER_LOAN_MODEL ? String(spec.months) : termInput);
-  s(ci(headers,'purpose'),purpose||''); s(ci(headers,'status'),'Pending');
-  s(ci(headers,'initiated by'), initiatedBy);
-  s(ci(headers,'guarantor 1'),gc.guarantors[0]||''); s(ci(headers,'guarantor 2'),gc.guarantors[1]||'');
-  if (overrideUsed) s(ci(headers,'guarantor override'), guarantorOverride);
-  const q = _quoteFor(amount, spec);
-  s(ci(headers,'total due'),q.total);
+  if (spec.guarantorsRequired) {
+    gc = _guarantorChecks(memberNo, amount, guarantorNos, '');
+    // A guarantor short of the 25% savings coverage: a Founder Member may ask for a loan with security instead
+    if (!gc.ok) return Object.assign(gc, { securedAvailable: !!gc.coverageFailed && SECURED_LOAN_MEMBERSHIP_TYPES.indexOf(membershipType) > -1 });
+  }
+  const { newId, q } = _writeLoanRequestRow(memberNo, initiatedBy, amount, spec, termInput, purpose, gc.guarantors, 'Pending',
+    overrideUsed ? guarantorOverride : '');
   const tokens = spec.guarantorsRequired ? _appendGuarantors(newId, '', memberNo, gc.guarantors) : [];
   if (spec.guarantorsRequired) _sendGuarantorRequests(newId, memberNo, amount, spec, tokens);
   _notifyAdmins('New Loan Request: '+newId,[
@@ -91,6 +103,7 @@ function requestLoan(amount, termInput, purpose, guarantorNos) {
 function getMyLoanRequests() {
   const auth = _caller(); if (!auth.ok) return auth;
   const { rows } = readSheet(SH_LOAN_REQ,'requestid');
+  const waivers = _waiversByRequest();
   return { ok: true, requests: rows
     .filter(r => String(r['MemberNo']||'').trim()===auth.member.memberNo)
     .map(r => {
@@ -99,9 +112,25 @@ function getMyLoanRequests() {
       return {requestId:r['RequestID'],amount:num(r['Amount (UGX)']),
         termLabel: spec ? spec.label : (r['Repayment Term']||''),
         total: num(r['Total Due']) || (spec ? _quoteFor(num(r['Amount (UGX)']), spec).total : 0),
-        purpose:r['Purpose']||'',status:r['Status']||'',decisionNotes:r['Decision Notes']||'',date:r['Timestamp']};
+        purpose:r['Purpose']||'',status:r['Status']||'',decisionNotes:r['Decision Notes']||'',date:r['Timestamp'],
+        waiver: waivers[String(r['RequestID']||'').trim()] ? _memberWaiverView(waivers[String(r['RequestID']||'').trim()]) : null};
     })
     .sort((a,b)=>String(b.date).localeCompare(String(a.date))) };
+}
+
+// { requestId: Loan Waivers row } for every secured-loan request
+function _waiversByRequest() {
+  const out = {};
+  if (!SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SH_WAIVERS)) return out;
+  readSheet(SH_WAIVERS, 'requestid').rows.forEach(w => { const id = String(w['RequestID']||'').trim(); if (id) out[id] = w; });
+  return out;
+}
+
+// What the applicant sees of their waiver: status, what was not met, approvals so far (not who)
+function _memberWaiverView(w) {
+  const p = _waiverProgress(_waiverDecisions(w['RequestID']));
+  return { status: String(w['Waiver Status']||''), failed: String(w['Failed Requirements']||'').split('\n').filter(Boolean),
+    security: _securityLabel(w), approvals: p.count, required: p.required };
 }
 
 function getLoanRequests() {
@@ -117,6 +146,8 @@ function getLoanRequests() {
   const { rows: allGuar } = readSheet(SH_GUARANTORS,'requestid');
   const respOf = {};
   allGuar.forEach(g => { respOf[String(g['RequestID']||'').trim()+'|'+String(g['GuarantorNo']||'').trim()] = String(g['Response']||'Pending').trim() || 'Pending'; });
+  const waivers = _waiversByRequest();
+  const viewer = _memberByNo(auth.member.memberNo);
   return { ok: true, requests: rows
     .filter(r=>String(r['RequestID']||'').trim()!=='')
     .map(r => {
@@ -128,7 +159,8 @@ function getLoanRequests() {
       const sr = _loanSpecFor(membershipType, r['Repayment Term']);
       const spec = sr.ok ? sr.spec : null;
       const lc = (spec && spec.savingsLimit) ? _checkLimit(memberNo,amount) : {withinLimit:true,savings:0,maxLoan:0};
-      const days = _isOpenRequest(r) ? _daysSince(r['Timestamp']) : null;
+      const w = waivers[id];
+      const days = (_isOpenRequest(r) || status === REQ_PENDING_WAIVER) ? _daysSince(r['Timestamp']) : null;
       const q = _quoteFor(amount, spec);
       const initiatedBy = String(r['Initiated By']||memberNo).trim();
       const approver1 = String(r['Approver 1']||'').trim();
@@ -139,6 +171,10 @@ function getLoanRequests() {
         guarantorOverride: String(r['Guarantor Override']||''), limitOverride: String(r['Limit Override']||''),
         purpose:r['Purpose']||'', status, decisionNotes:r['Decision Notes']||'',date:r['Timestamp'],
         withinLimit:lc.withinLimit,savings:lc.savings,maxLoan:lc.maxLoan,
+        secured: !!w, waiver: w ? _waiverView(w, r, viewer) : null,
+        waivedLimit: !!(w && String(w['Waiver Status']||'').trim() === WAIVER_STATUS.APPROVED && _waivedChecks(w).applicantLimit),
+        pendingGuarantors: status === REQ_PENDING_WAIVER ? [r['Guarantor 1'], r['Guarantor 2']].map(g => String(g||'').trim()).filter(Boolean)
+          .map(no => ({memberNo:no, name:nameOf[no]||no, response:'Not asked yet'})) : [],
         guarantors: (spec && spec.guarantorsRequired) ? (gmap[id]||[]).map(no => ({memberNo:no, name:nameOf[no]||no, response:respOf[id+'|'+no]||'Pending'})) : [],
         daysPending: days, decisionOverdue: days !== null && days > DECISION_WINDOW_DAYS,
         initiatedBy, initiatedByName: nameOf[initiatedBy]||initiatedBy,
@@ -163,6 +199,10 @@ function _approveLoanRequestLocked(auth, requestId, overrideReason) {
   const req = rows.find(r=>String(r['RequestID']||'').trim()===String(requestId).trim());
   if (!req) return {ok:false,error:'Request not found.'};
   overrideReason = String(overrideReason||'').trim();
+  // Secured-loan request (ISS-11): no loan approval until the committee has approved its waiver
+  if (String(req['Status']||'').trim() === REQ_PENDING_WAIVER) return {ok:false,error:_waiverPendingMessage(requestId)};
+  const waived = _approvedWaiverChecks(requestId);
+  if (waived && waived.error) return {ok:false,error:waived.error};
   if (String(req['Status']||'').trim() === AWAITING_GUARANTORS) {
     const me = auth.member.memberNo, member = String(req['MemberNo']||'').trim();
     if (me === String(req['Initiated By']||member).trim() || me === member) return {ok:false,error:'A different admin, who is neither the initiator nor the applicant, must issue this loan.'};
@@ -183,13 +223,14 @@ function _approveLoanRequestLocked(auth, requestId, overrideReason) {
   const el=_loanEligibility(req['MemberNo'], membershipType, guarantorOverride); if (!el.ok) return el;
   let gc = { ok: true, guarantors: [] };
   if (spec.guarantorsRequired) {
-    gc=_guarantorChecks(req['MemberNo'], amount, _guarantorMap()[String(requestId).trim()]||[], requestId);
+    gc=_guarantorChecks(req['MemberNo'], amount, _guarantorMap()[String(requestId).trim()]||[], requestId, waived ? waived.guarantors : []);
     if (!gc.ok) return gc;
     const gate = _guarantorGate(requestId); if (!gate.ok) return gate;
   }
-  // Limit override: given now, or by the other approving admin earlier (kept on the request)
+  // Limit override: given now, or by the other approving admin earlier (kept on the request).
+  // An approved secured-loan waiver of the applicant's coverage takes the place of an override.
   const storedOverride = String(req['Limit Override']||'').trim();
-  const lc = spec.savingsLimit ? _checkLimit(req['MemberNo'],amount) : {withinLimit:true,savings:0,maxLoan:0};
+  const lc = (spec.savingsLimit && !(waived && waived.applicantLimit)) ? _checkLimit(req['MemberNo'],amount) : {withinLimit:true,savings:0,maxLoan:0};
   if (!lc.withinLimit && !overrideReason && !storedOverride)
     return {ok:false,error:'Exceeds limit. Savings: '+fmtUGX(lc.savings)+', max: '+fmtUGX(lc.maxLoan)+'. Provide override reason.',limitCheck:lc};
   if (overrideReason) {
@@ -214,6 +255,13 @@ function _approveLoanRequestLocked(auth, requestId, overrideReason) {
   return _finalizeLoanRequestLocked(requestId, auth.member.memberNo);
 }
 
+// Why a secured-loan request cannot be approved yet: how many waiver approvals it has and still needs
+function _waiverPendingMessage(requestId) {
+  const p = _waiverProgress(_waiverDecisions(requestId));
+  return 'This secured-loan request is waiting for its waiver: ' + p.count + ' of ' + p.required + ' committee approvals. ' + p.stillNeeded
+    + ' Guarantors are asked to consent, and the loan can be approved, only after the waiver is approved.';
+}
+
 function _setLoanRequestCell(sh, headers, rowNum, name, value) {
   const c = ci(headers, name);
   if (c > -1) sh.getRange(rowNum, c + 1).setValue(value);
@@ -229,6 +277,8 @@ function _finalizeLoanRequestLocked(requestId, issuedBy) {
   if (!req || !_isOpenRequest(req)) return {ok:false,error:'Already decided.'};
   const approver1 = String(req['Approver 1']||'').trim(), approver2 = String(req['Approver 2']||'').trim();
   if (!approver1 || !approver2) return {ok:false,error:'This request does not have two admin approvals yet.'};
+  const waived = _approvedWaiverChecks(requestId);
+  if (waived && waived.error) return {ok:false,error:waived.error};
   const guarantorOverride = String(req['Guarantor Override']||'').trim();
   const overrideReason = String(req['Limit Override']||'').trim();
   const amount=num(req['Amount (UGX)']);
@@ -239,11 +289,11 @@ function _finalizeLoanRequestLocked(requestId, issuedBy) {
   const el=_loanEligibility(req['MemberNo'], membershipType, guarantorOverride); if (!el.ok) return el;
   let gc = { ok: true, guarantors: [] };
   if (spec.guarantorsRequired) {
-    gc=_guarantorChecks(req['MemberNo'], amount, _guarantorMap()[String(requestId).trim()]||[], requestId);
+    gc=_guarantorChecks(req['MemberNo'], amount, _guarantorMap()[String(requestId).trim()]||[], requestId, waived ? waived.guarantors : []);
     if (!gc.ok) return gc;
     const gate=_guarantorGate(requestId); if (!gate.ok) return gate;
   }
-  const lc = spec.savingsLimit ? _checkLimit(req['MemberNo'],amount) : {withinLimit:true,savings:0,maxLoan:0};
+  const lc = (spec.savingsLimit && !(waived && waived.applicantLimit)) ? _checkLimit(req['MemberNo'],amount) : {withinLimit:true,savings:0,maxLoan:0};
   if (!lc.withinLimit && !overrideReason)
     return {ok:false,error:'Exceeds limit. Savings: '+fmtUGX(lc.savings)+', max: '+fmtUGX(lc.maxLoan)+'. An approving admin must give an override reason.',limitCheck:lc};
 
@@ -269,6 +319,8 @@ function rejectLoanRequest(requestId, reason) {
   const { sh, headers, hRow, rows } = readSheet(SH_LOAN_REQ,'requestid');
   const req=rows.find(r=>String(r['RequestID']||'').trim()===String(requestId).trim());
   if (!req) return {ok:false,error:'Request not found.'};
+  // A secured-loan request still at the waiver stage is decided by the committee (rejectLoanWaiver)
+  if (String(req['Status']||'').trim() === REQ_PENDING_WAIVER) return {ok:false,error:'This secured-loan request is waiting for its waiver decision. A committee administrator rejects it with Reject waiver.'};
   if (!_isOpenRequest(req)) return {ok:false,error:'Already decided.'};
   _updateReqStatus(sh,headers,hRow,requestId,'Rejected',reason,auth.member.memberNo);
   const m=_memberByNo(req['MemberNo']);
