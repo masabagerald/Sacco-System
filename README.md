@@ -124,6 +124,8 @@ base64 -i logo.jpg | tr -d '\n' | pbcopy        # Linux: base64 -w0 logo.jpg
 
 Paste it between the quotes of `const CLUB_LOGO_B64 = '…';` (one long line).
 
+**`src/utils/Terms.gs`**: the **Terms of Use** (every user) and the **Administrator Confidentiality and Conduct Agreement** (admins) that each user must accept at first sign-in. The text is a template covering account security, confidentiality and non-disclosure, no manipulation of records, segregation of duties and personal data. **Have the club's committee or lawyer review it**, then edit it for the club. When the text changes later, raise the document's `version` (and `updated`); everyone it applies to is asked to accept the new version at their next sign-in.
+
 **`appsscript.json`**: set `"timeZone"` to the club's zone, for example `"Africa/Kampala"`, `"Africa/Nairobi"` or `"Africa/Dar_es_Salaam"`. It must match the spreadsheet's time zone (step 4). Dates, due dates and audit times use it. Leave the `"webapp"` section as it is.
 
 **`.clasp.json`**: replace `"scriptId"` with the Script ID from step 4.
@@ -189,6 +191,7 @@ Setup runs only once. It never deletes or changes existing rows, and the next vi
 
 1. Signed in as the System Administrator: **Members → + Add Member** for every member: name, the email they will sign in with, phone, role (Member or Admin), membership type and **date joined the club**. The 12-month saving rule for loans counts from that date.
 2. Make the club's officers **Admins** (role Admin). Have **at least three admins besides the System Administrator**: most approvals need two different admins who did not start the request, and waivers need three.
+   - At first sign-in every user, including the System Administrator, must accept the Terms of Use; admins also accept the Administrator Agreement. Until they do, the app refuses every request for them.
 3. Set the **committee roles** (Members → Edit → Committee role): at least the numbers in `WAIVER_ROLE_MINIMUMS` (by default one Chairperson and two Finance Committee members, all Admins). Without them, no loan with security can be approved.
 4. Enter opening balances: **Savings → Record Savings** for each member, with the real transaction date, account and payment category.
 5. Try one member account end to end: sign in, view savings, request a withdrawal; then approve it as two different admins.
@@ -252,6 +255,7 @@ Members sign in again on the new URL (sign-in sessions are not copied). Member n
 | Dates or times are a few hours off | The spreadsheet time zone (File → Settings) and `"timeZone"` in `appsscript.json` differ. Set both to the club's zone. |
 | *You registered this asset / You initiated this request…* | Working as intended: a different admin must approve. A club needs at least three active admins. |
 | A loan with security can't be approved | Set committee roles (Members → Edit) to meet `WAIVER_ROLE_MINIMUMS`. |
+| *Please read and accept the Terms of Use…* | The user hasn't accepted the current version of the terms (`src/utils/Terms.gs`). They sign in again and accept. Who accepted what, and when, is on the **Terms Acceptance** tab. |
 
 Every action an admin or member takes is in the **Audit log** (Admin menu) and on the **Audit Log** tab; errors are under **Executions** in the Apps Script editor.
 
@@ -269,6 +273,7 @@ All settings are constants at the top of `src/utils/Config.gs`, plus the logo in
 - `ASSET_TYPES`, `ASSET_CONDITIONS`, `ASSET_AVAILABILITY`, `ASSET_PAGE_SIZE`: asset register.
 - `INSIGHTS_MEMBERSHIP_TYPES`: who besides admins sees Loan Insights (aggregate only).
 - `OTP_EXPIRY_MS`: how long a sign-in code stays valid.
+- Terms of use: the texts and their versions are in `src/utils/Terms.gs`.
 - `SH_*`: tab names. Change them only before setting up a club; `setupNewClub` creates tabs with these names.
 
 All amounts are in UGX (`INVESTMENT_CURRENCY`); other currencies are not supported.
@@ -289,6 +294,7 @@ The app creates every tab below with its header row the first time it is opened 
 | `Loan Requests` | RequestID, Timestamp, MemberNo, Amount (UGX), Repayment Term, Purpose, Status, Decision Notes, Decided By, Initiated By, Guarantor 1/2, Total Due, Approver 1/2 (+ At), Guarantor Override, Limit Override |
 | `Withdrawal Requests` | RequestID, Timestamp, MemberNo, Amount (UGX), Reason, Status, Decision Notes, Decided By, Initiated By, Approver 1/2 (+ At), Deposit Account |
 | `Audit Log` | Timestamp, Action, Member (Affected), Performed By, Details, Reference ID. Append-only. |
+| `Terms Acceptance` | Timestamp, MemberNo, Email, Role, Document (`use` / `admin`), Title, Version, Decision (`Accepted` / `Declined`). Append-only: one row per document accepted or declined. |
 | `Guarantors` | one row per guarantor per request: consent, token, response time, decline reason |
 | `Guarantor Notifications` | one row per notice sent, so none is sent twice |
 | `Loan Fund Ledger`, `Investments`, `Investment Transactions` | loan-fund cash entries and the investment tracker |

@@ -2,7 +2,7 @@
 // ── LOGIN FLOW ──────────────────────────────────────────────────────────────────
 let DET_EMAIL='', OTP_EMAIL='';
 function showOnly(id){
-  ['s_loading','s_confirm','s_manual','s_otp','s_noreg'].forEach(s=>$('#'+s).classList.toggle('hidden',s!==id));
+  ['s_loading','s_confirm','s_manual','s_otp','s_noreg','s_terms'].forEach(s=>$('#'+s).classList.toggle('hidden',s!==id));
 }
 window.addEventListener('load',()=>{
   Api.tryAutoDetect(res=>{
@@ -14,7 +14,7 @@ function doConfirm(){
   $('#confirmErr').textContent='';
   Api.confirmAutoDetect(DET_EMAIL, res=>{
     if(!res.ok){res.notRegistered?($('#noregMsg').textContent=res.error,showOnly('s_noreg')):($('#confirmErr').textContent=res.error);return;}
-    ME=res.member;enterApp();
+    ME=res.member;afterSignIn();
   }, e=>$('#confirmErr').textContent='Error: '+e.message);
 }
 function showManual(){$('#manualEmail')&&($('#manualEmail').value='');$('#manualErr').textContent='';showOnly('s_manual');setTimeout(()=>$('#manualEmail')?.focus(),80);}
@@ -36,9 +36,64 @@ function doVerify(){
   Api.verifyOtp(OTP_EMAIL, code, res=>{
     $('#verifyBtn').disabled=false;
     if(!res.ok){if(res.expired){err.textContent=res.error;setTimeout(showManual,2000);}else err.textContent=res.error;return;}
-    ME=res.member;enterApp();
+    ME=res.member;afterSignIn();
   }, e=>{$('#verifyBtn').disabled=false;err.textContent='Error: '+e.message;});
 }
+// ── TERMS OF USE (after sign-in, until the current versions are accepted) ──────
+// The server refuses every request until they are accepted; this screen is how they are accepted.
+let TERMS=null;
+function afterSignIn(){
+  showOnly('s_loading');
+  Api.getTermsStatus(res=>{
+    if(!res.ok){showManual();$('#manualErr').textContent=res.error;return;}
+    ME=res.member;
+    if(!res.required)return enterApp();
+    TERMS=res;renderTermsGate(res);showOnly('s_terms');
+  },e=>{showManual();$('#manualErr').textContent='Error: '+e.message;});
+}
+// Called when the server refuses a request because new terms must be accepted (for example a new version)
+function showTermsAgain(){
+  if(!$('#s_terms').classList.contains('hidden'))return;
+  $('#appView').classList.add('hidden');$('#loginView').classList.remove('hidden');afterSignIn();
+}
+function termsDocHtml(d,withBox){
+  return '<div class="terms-doc"><h2>'+esc(d.title)+'</h2><p class="note">'+esc(d.appliesTo)+' · version '+esc(d.version)+', updated '+esc(hd(d.updated))
+    +(d.acceptedAt?' · you accepted it on '+esc(hdt(d.acceptedAt)):'')+'</p>'
+    +'<div class="terms-text"><p>'+esc(d.intro)+'</p>'+d.sections.map((s,i)=>'<h3>'+(i+1)+'. '+esc(s.heading)+'</h3><ul>'+s.points.map(p=>'<li>'+esc(p)+'</li>').join('')+'</ul>').join('')+'</div>'
+    +(withBox?'<label class="terms-check"><input type="checkbox" data-doc="'+esc(d.key)+'" data-version="'+esc(d.version)+'" onchange="termsTicked()"> '+esc(d.checkbox)+'</label>':'')+'</div>';
+}
+function renderTermsGate(res){
+  const pending=res.documents.filter(d=>!d.acceptedAt);
+  $('#termsIntro').textContent='Welcome, '+ME.name+'. Please read and accept the following to use the system.'
+    +(pending.length>1?' Tick both boxes to continue.':'');
+  $('#termsDocs').innerHTML=pending.map(d=>termsDocHtml(d,true)).join('');
+  $('#termsErr').textContent='';termsTicked();
+}
+function termsTicked(){
+  const boxes=[...document.querySelectorAll('#termsDocs input[type=checkbox]')];
+  $('#termsAcceptBtn').disabled=!boxes.length||boxes.some(b=>!b.checked);
+}
+function acceptTerms(){
+  const accepted={};document.querySelectorAll('#termsDocs input[type=checkbox]:checked').forEach(b=>{accepted[b.dataset.doc]=b.dataset.version;});
+  $('#termsAcceptBtn').disabled=true;$('#termsErr').textContent='';
+  Api.acceptTerms(accepted,res=>{
+    if(!res.ok){$('#termsErr').textContent=res.error;if(/updated/.test(res.error))afterSignIn();else termsTicked();return;}
+    ME=res.member;enterApp();
+  },e=>{termsTicked();$('#termsErr').textContent='Error: '+e.message;});
+}
+function declineTerms(){
+  $('#termsDeclineBtn').disabled=true;
+  Api.declineTerms(()=>{
+    $('#termsDeclineBtn').disabled=false;ME=null;showManual();
+    $('#manualErr').textContent='You declined the terms, so you have been signed out. You can sign in again and accept them at any time.';
+  },()=>{$('#termsDeclineBtn').disabled=false;showManual();});
+}
+// Read the accepted terms again (menu → Terms of use)
+function openTermsView(){
+  $('#tv_body').innerHTML='<p class="note">Loading&hellip;</p>';om('m_terms');
+  Api.getTermsStatus(res=>{$('#tv_body').innerHTML=res.ok?res.documents.map(d=>termsDocHtml(d,false)).join(''):'<p class="note">'+esc(res.error)+'</p>';});
+}
+
 document.addEventListener('keydown',e=>{
   if(e.key!=='Enter')return;
   if(!$('#s_confirm').classList.contains('hidden'))doConfirm();

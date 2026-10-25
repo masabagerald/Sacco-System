@@ -8,6 +8,13 @@ const HOST = 'Club.Host@Gmail.com';
 const host = HOST.toLowerCase();
 
 function freshClub({ g, fakes, val }) { fakes.hostAs(HOST); return { g, fakes, val }; }
+// Signs in and accepts the terms through the app, as a real first sign-in does
+function signInAndAccept(g, fakes, email) {
+  fakes.signInAs(email);
+  const docs = g._termsDocuments();
+  const r = g.acceptTerms({ use: docs.use.version, admin: docs.admin.version });
+  assert.ok(r.ok, 'accept terms: ' + JSON.stringify(r));
+}
 const ok = (r, label) => { assert.ok(r && r.ok, label + ': ' + JSON.stringify(r)); return r; };
 const fails = (r, re, label) => { assert.ok(r && !r.ok, label + ' should fail: ' + JSON.stringify(r)); if (re) assert.match(r.error, re, label); };
 
@@ -38,17 +45,17 @@ module.exports = {
   'the hosting account always stays an active Admin with no membership type'(c) {
     const { g, fakes } = freshClub(c);
     g.setupNewClub();
-    fakes.signInAs(host);
+    signInAndAccept(g, fakes, host);
     const first = ok(g.getAllMembersSummary(), 'members').members[0].memberNo;
     const other = ok(g.addMember('Second Admin', 'second@gmail.com', '', 'Admin', 'Founder Member', '2020-01-01'), 'add admin').memberNo;
-    fakes.signInAs('second@gmail.com');
+    signInAndAccept(g, fakes, 'second@gmail.com');
     fails(g.updateMember(first, 'Member', '', 'Active', ''), /must stay an Admin/, 'demote');
     fails(g.updateMember(first, 'Admin', '', 'Inactive', ''), /must stay Active/, 'deactivate');
     fails(g.updateMember(first, 'Admin', 'Founder Member', 'Active', ''), /no membership type/, 'give a membership type');
     ok(g.updateMember(first, 'Admin', '', 'Active', '', 'Finance Committee'), 'other details can still change');
     ok(g.updateMember(other, 'Member', 'Founder Member', 'Active', ''), 'ordinary members are not affected');
     // The hosting account signs in and uses the admin screens without a membership type
-    fakes.signInAs(host);
+    signInAndAccept(g, fakes, host);
     fails(g.addMember('Copy', HOST, '', 'Admin', '', ''), /already registered/, 'the hosting account cannot be added twice');
     ok(g.getAdminDashboard(), 'dashboard');
     ok(g.getLoanInsights({}), 'loan insights');
@@ -59,7 +66,7 @@ module.exports = {
   'the new club works: the admin adds members, records savings, and every area loads'(c) {
     const { g, fakes } = freshClub(c);
     g.doGet({ parameter: {} });
-    fakes.signInAs(host);
+    signInAndAccept(g, fakes, host);
     const b = ok(g.addMember('First Member', 'member@gmail.com', '0772 000 111', 'Member', 'Founder Member', '2020-01-01'), 'add member').memberNo;
     ok(g.recordSavings(b, 'Deposit', 50000, 'Principal', 'Monthly Premium', '', '', ''), 'deposit');
     ok(g.issueFine(b, 2000, 'Late'), 'surcharge');

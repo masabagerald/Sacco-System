@@ -14,8 +14,21 @@ function _storeSession(email) {
   Config.setUserProp('sacco_email', email);
 }
 
-// Guards every protected function — resolves caller from Google session or stored session
+// Guards every protected function: the signed-in member, who must also have accepted the current terms
+// (TermsService.gs). Until then every request is refused with termsRequired, whatever the page does.
 function _caller() {
+  const r = _signedInMember();
+  if (!r.ok) return r;
+  const missing = _termsMissing(r.member);
+  if (missing.length) {
+    const docs = _termsDocuments();
+    return { ok: false, termsRequired: true, error: 'Please read and accept the ' + missing.map(k => docs[k].title).join(' and ') + ' to continue.' };
+  }
+  return r;
+}
+
+// The signed-in member, from the Google session or the stored session (terms not checked)
+function _signedInMember() {
   let email = '';
   try { email = String(Session.getActiveUser().getEmail()||'').trim().toLowerCase(); } catch(e) {}
   if (!email) {

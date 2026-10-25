@@ -34,9 +34,29 @@ function seed({ g, fakes, val }) {
     'Initiated By', 'Guarantor 1', 'Guarantor 2', 'Total Due', 'Approver 1', 'Approver 1 At', 'Approver 2', 'Approver 2 At', 'Guarantor Override', 'Limit Override']]);
   fakes.addSheet(val('SH_GUARANTORS'), [val('GUARANTOR_HEADERS')]);
   const recs = (name, hint) => () => fakes.sheet(val(name)).records(hint);
-  return { g, fakes, val,
+  // Members in these tests have already accepted the current terms (Terms.gs): signing in records that
+  // straight on the Terms Acceptance tab, as for a member who accepted earlier. tests/terms.integration.js
+  // uses signInWithoutTerms to test the acceptance itself.
+  const signIn = fakes.signInAs;
+  fakes.signInAs = email => { signIn(email); acceptCurrentTerms({ g, fakes, val }, email); };
+  return { g, fakes, val, signInWithoutTerms: signIn,
     ledger: recs('SH_SAVINGS', 'memberno'), audit: recs('SH_AUDIT', 'timestamp'), wdReqs: recs('SH_WD_REQ', 'requestid'),
     loans: recs('SH_LOANS', 'loanid'), loanReqs: recs('SH_LOAN_REQ', 'requestid'), guarantors: recs('SH_GUARANTORS', 'requestid') };
+}
+
+// Records that the member with this email has accepted every current document that applies to their role
+function acceptCurrentTerms({ g, fakes, val }, email) {
+  const members = fakes.sheet(val('SH_MEMBERS'));
+  if (!members) return;
+  const m = members.records('memberno').find(r => String(r.Email).toLowerCase() === String(email).toLowerCase());
+  if (!m) return;
+  let sh = fakes.sheet(val('SH_TERMS'));
+  if (!sh) sh = fakes.addSheet(val('SH_TERMS'), [val('TERMS_HEADERS')]);
+  const docs = g._termsDocuments();
+  const keys = String(m.Role).toLowerCase() === 'admin' ? ['use', 'admin'] : ['use'];
+  const have = sh.records('memberno');
+  keys.filter(k => !have.some(r => r.MemberNo === m.MemberNo && r.Document === k && String(r.Version) === docs[k].version && r.Decision === 'Accepted'))
+    .forEach(k => sh.appendRow([g.now_ts(), m.MemberNo, m.Email, m.Role, k, docs[k].title, docs[k].version, 'Accepted']));
 }
 
 function ok(res, label) { assert.ok(res && res.ok, label + ': ' + JSON.stringify(res)); return res; }

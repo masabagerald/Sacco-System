@@ -2,7 +2,11 @@
 // ── SERVER CALL WRAPPERS (google.script.run) ──────────────────────────────────
 function callServer(fnName, args, onSuccess, onFailure) {
   let call = google.script.run;
-  if (onSuccess) call = call.withSuccessHandler(onSuccess);
+  // New terms to accept (e.g. a new version while signed in): show the terms page instead
+  if (onSuccess) call = call.withSuccessHandler(res => {
+    if (res && res.termsRequired && typeof showTermsAgain === 'function') return showTermsAgain();
+    onSuccess(res);
+  });
   if (onFailure) call = call.withFailureHandler(onFailure);
   call[fnName].apply(call, args);
 }
@@ -13,6 +17,9 @@ const Api = {
   sendOtp: (email, onSuccess, onFailure) => callServer('sendOtp', [email], onSuccess, onFailure),
   verifyOtp: (email, code, onSuccess, onFailure) => callServer('verifyOtp', [email, code], onSuccess, onFailure),
   logout: (onSuccess, onFailure) => callServer('logout', [], onSuccess, onFailure),
+  getTermsStatus: (onSuccess, onFailure) => callServer('getTermsStatus', [], onSuccess, onFailure),
+  acceptTerms: (accepted, onSuccess, onFailure) => callServer('acceptTerms', [accepted], onSuccess, onFailure),
+  declineTerms: (onSuccess, onFailure) => callServer('declineTerms', [], onSuccess, onFailure),
 
   getMySavings: (onSuccess) => callServer('getMySavings', [], onSuccess),
   getMyLoans: (onSuccess) => callServer('getMyLoans', [], onSuccess),

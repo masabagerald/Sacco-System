@@ -17,6 +17,15 @@
   </div>
 </div>
 
+<!-- Terms of use, read-only (menu → Terms of use) -->
+<div class="modal-bg" id="m_terms" onclick="if(event.target===this)cm('m_terms')">
+  <div class="modal wide"><button class="x" onclick="cm('m_terms')">&times;</button>
+    <h3>Terms of use</h3><p class="sub">The terms you accepted to use the system.</p>
+    <div id="tv_body"></div>
+    <div class="mact"><button class="btn" onclick="cm('m_terms')">Close</button></div>
+  </div>
+</div>
+
 <!-- Edit member -->
 <div class="modal-bg" id="m_editMember" onclick="if(event.target===this)cm('m_editMember')">
   <div class="modal"><button class="x" onclick="cm('m_editMember')">&times;</button>

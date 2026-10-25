@@ -59,6 +59,12 @@ You sign in with the email address the club has registered for you. There is no 
 > **Didn't get the code?** Check your spam folder, or click **resend code**.
 > **"Not Registered"?** The email you entered isn't on the club register, or your account is inactive. Contact the treasurer.
 
+**The first time you sign in**, the app shows the club's **Terms of Use**. Administrators also see the **Administrator Confidentiality and Conduct Agreement**, which covers keeping member information confidential and never changing records outside the proper steps. Read them, tick the box under each, and click **Accept and continue**. You can't use the app until you accept. If you click **Decline and sign out**, nothing is recorded against you except the decline, and you can sign in and accept later.
+
+If the club changes the terms, or you become an administrator, you are asked to accept the new version at your next sign-in. To read the terms again at any time, choose **Terms of use** in the menu.
+
+![The Terms of Use and the Administrator Agreement shown to an administrator at first sign-in, with the first box ticked](images/26-terms-of-use.png)
+
 To sign out, click **Sign out** at the top right. **Dark mode** next to it switches the colour scheme.
 
 ### Membership types

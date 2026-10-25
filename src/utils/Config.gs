@@ -59,6 +59,7 @@ const SH_GUARANTORS = 'Guarantors';
 const SH_GUARANTOR_NOTICES = 'Guarantor Notifications';
 const SH_WD_REQ    = 'Withdrawal Requests';
 const SH_AUDIT     = 'Audit Log';
+const SH_TERMS     = 'Terms Acceptance';   // who accepted which version of the terms (Terms.gs), append-only
 
 // ── PROPERTIES SERVICE WRAPPER ────────────────────────────────────────────────
 // Centralizes script/user property access so callers don't touch PropertiesService directly.

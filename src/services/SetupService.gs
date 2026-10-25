@@ -11,7 +11,7 @@
 // Existing tabs, rows and columns are never changed or removed, so it is safe to run again.
 
 // Raise when a release needs setup to run again on clubs that are already live (new tabs or columns).
-const SETUP_VERSION = '1';
+const SETUP_VERSION = '2';  // 2: Terms Acceptance tab
 const HOST_MEMBER_NAME = 'System Administrator';
 
 // The core tabs, with every column the app uses. A function, not a constant: Config.gs (the SH_* names)

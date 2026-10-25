@@ -150,6 +150,7 @@ function setupGuaranteeSchema() {
   setupFinanceSchema();  // Loan Fund Ledger, Investments, Investment Transactions
   setupSecuredLoanSchema();  // Loan Waivers, Waiver Decisions (ISS-11)
   setupAssetRegisterSchema();  // Assets, Asset Reviews, Asset History (ISS-12)
+  setupTermsSchema();          // Terms Acceptance
 
   Logger.log('Guarantee schema ready.');
 }

@@ -84,7 +84,8 @@ const NAV=[
     {id:'m-savings',label:'My savings',     icon:'▤', pane:'my',    anchor:'sec-my-savings', savers:true},
     {id:'m-fines',  label:'My surcharges',  icon:'⚑', pane:'my',    anchor:'sec-my-fines'},
     {id:'m-reports',label:'My statement',   icon:'▣', pane:'my',    anchor:'sec-my-reports'},
-    {id:'guide',    label:'User guide',     icon:'?', href:true}]},
+    {id:'guide',    label:'User guide',     icon:'?', href:true},
+    {id:'terms',    label:'Terms of use',   icon:'§', action:'terms'}]},
   {group:'Club', insights:true, items:[
     {id:'insights', label:'Loan insights',  icon:'◔', pane:'insights', anchor:null, badge:'rb-ins'}]},
   {group:'Admin', admin:true, items:[
@@ -142,6 +143,7 @@ function openGuide(){window.open(GUIDE_URL,'_blank');}
 function goSec(id){
   const it=navItems().find(x=>x.id===id); if(!it)return;
   if(it.href)return openGuide();
+  if(it.action==='terms')return openTermsView();   // defined in auth.js
   showTab(it.pane);
   setActive(id);
   if(it.anchor){const el=document.getElementById(it.anchor);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}

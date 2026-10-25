@@ -98,6 +98,11 @@
       set('#wv_comment', 'Title verified at the lands office; value confirmed by the valuer.');
     } },
 
+    'terms-of-use': { async run() {
+      ME = P.M002; afterSignIn(); await wait(400);
+      document.querySelector('#termsDocs input[data-doc="use"]').checked = true; termsTicked();
+    } },
+
     'asset-register': { as: P.M001, async run() {
       await wait(300); goSec('assets'); await wait(800);
     } },

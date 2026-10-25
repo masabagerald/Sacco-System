@@ -124,6 +124,9 @@
         totals: { outstandingBefore: 120000, amount: Number(amount) || 0, outstandingAfter: Math.max(0, 120000 - (Number(amount) || 0)) },
         overpayment: Math.max(0, (Number(amount) || 0) - 120000), similar: [], chargeChanged: false, reconciles: true, stateKey: '0|0|120000' };
     },
+    // Terms of use (real text from src/utils/Terms.gs): an admin signing in for the first time
+    getTermsStatus: () => ({ ok: true, member: ME, required: true,
+      documents: ['use', 'admin'].map(k => Object.assign({ key: k, acceptedAt: '' }, window.TERMS_DOCS[k])) }),
     // Asset Register (ISS-12)
     getAssets: () => {
       const A = (id, tag, type, description, make, model, serial, value, acquired, condition, availability, location, verification, extra) =>
