@@ -1,5 +1,9 @@
 // ── CONFIGURATION ─────────────────────────────────────────────────────────────
-const SACCO_NAME         = 'Mbale School of clinical officers Investment Club';
+// Club identity: change these (and CLUB_LOGO_B64 in Branding.gs) when setting the app up for a new club.
+// See README → "Setting up for a new club".
+const SACCO_NAME         = 'Mbale School of Clinical Officers Investment Club';  // web page titles, emails, PDFs
+const CLUB_SHORT_NAME    = 'MSIC';      // member numbers (MSIC-0001), export file names, "Exit from MSIC"
+const MEMBER_NO_PREFIX   = CLUB_SHORT_NAME + '-';
 const BRAND_COLOR        = '#143452'; // navy from the club seal
 const LOAN_TO_SAVINGS_LIMIT = 0.5; // max loan = this × member savings (Article 4, Section 2: 50%)
 const OTP_EXPIRY_MS      = 10 * 60 * 1000; // 10 minutes
@@ -50,7 +54,7 @@ const Config = {
 };
 
 // Reasons a member can give for a savings withdrawal request
-const WITHDRAWAL_REASONS = ['Exit from MSIC', 'Dividends', 'Welfare', 'Operations', 'Others'];
+const WITHDRAWAL_REASONS = ['Exit from ' + CLUB_SHORT_NAME, 'Dividends', 'Welfare', 'Operations', 'Others'];
 
 // Categories a deposit must be filed under
 const PAYMENT_CATEGORIES = ['Membership Fee', 'Annual Subscription Fee', 'Monthly Premium', 'Operations Fee', 'Welfare Fee', 'Surcharge'];

@@ -179,7 +179,7 @@ function exportAssetRegisterXlsx(filters) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
   const d = _assetExportData(filters); if (!d.ok) return d;
   const s = d.summary;
-  const fileName = 'MSIC_Asset_Register_' + today() + '.xlsx';
+  const fileName = CLUB_SHORT_NAME + '_Asset_Register_' + today() + '.xlsx';
   const blob = _xlsxBlob(fileName, 'Asset Register', [SACCO_NAME + ' - Asset Register', 'Generated ' + human_date(today()) + ' by ' + auth.member.name,
     'Filters: ' + d.filterText, s.count + ' assets: ' + s.verified + ' verified, ' + s.pending + ' pending verification, ' + s.rejected + ' rejected, ' + s.disposed + ' disposed.',
     'Verified value (held assets): ' + fmtUGX(s.verifiedValue) + '. Not yet verified: ' + fmtUGX(s.unverifiedValue) + '.'], d.header, d.rows, [6]);
@@ -209,7 +209,7 @@ function exportAssetRegisterPdf(filters) {
     }
   });
   auditLog('Asset Register Export', '', auth.member.memberNo, 'PDF export of ' + s.count + ' asset(s). Filters: ' + d.filterText + '.', '');
-  return { ok: true, fileName: 'MSIC_Asset_Register_' + today() + '.pdf', mimeType: 'application/pdf', base64: Utilities.base64Encode(blob.getBytes()), count: s.count };
+  return { ok: true, fileName: CLUB_SHORT_NAME + '_Asset_Register_' + today() + '.pdf', mimeType: 'application/pdf', base64: Utilities.base64Encode(blob.getBytes()), count: s.count };
 }
 
 function _assetSummaryText(a) {

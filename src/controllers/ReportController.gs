@@ -146,7 +146,7 @@ function generateAdminReportPdf() {
   });
 
   auditLog('Admin Report Export', '', auth.member.memberNo, 'Ledger PDF report downloaded.', '');
-  return { ok:true, fileName: 'MbaleSOCI_Ledger_Report_' + today() + '.pdf', base64: Utilities.base64Encode(blob.getBytes()) };
+  return { ok:true, fileName: CLUB_SHORT_NAME + '_Ledger_Report_' + today() + '.pdf', base64: Utilities.base64Encode(blob.getBytes()) };
 }
 
 function exportAdminCSV() {
@@ -157,7 +157,7 @@ function exportAdminCSV() {
   const { rows: savings } = readSheet(SH_SAVINGS,'memberno');
   const { rows: fines }   = readSheet(SH_FINES,'fineid');
   const lines = [];
-  lines.push('MBALE SCHOOL OF CLINICAL OFFICERS INVESTMENT CLUB — LEDGER EXPORT — '+human_date(today()));
+  lines.push(SACCO_NAME.toUpperCase()+' — LEDGER EXPORT — '+human_date(today()));
   lines.push('');
   lines.push('MEMBERS');
   lines.push(['MemberNo','Name','Email','Role','Status','Savings (UGX)','Active Loans','Outstanding (UGX)','Unpaid Surcharges (UGX)'].join(','));

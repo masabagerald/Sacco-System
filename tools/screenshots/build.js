@@ -71,8 +71,12 @@ function buildAppPage() {
     return html.replace(/<\?!=\s*include\('([^']+)'\)\s*\?>/g, (_, f) => include(f));
   };
   const read = f => fs.readFileSync(path.join(__dirname, f), 'utf8');
+  // Other template tags (<?= SACCO_NAME ?>, <?!= CLUB_LOGO_B64 ?>, ...) are evaluated against the server code
+  const srv = loadServer();
+  const escHtml = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   return include('src/webapp/index')
     .replace(/<\?!=\s*JSON\.stringify\(guideUrl\)\s*\?>/, JSON.stringify('#guide'))
+    .replace(/<\?(!?)=\s*([\s\S]*?)\s*\?>/g, (_, raw, expr) => raw ? String(srv.val(expr)) : escHtml(srv.val(expr)))
     .replace('<head>', '<head>\n<script>window.FINANCE_MOCK = ' + JSON.stringify(buildFinanceData(loadServer)).replace(/<\//g, '<\\/') + ';</script>\n<script>' + read('mock-data.js') + '</script>')
     .replace('</body>', '<script>' + read('scenes.js') + '</script>\n</body>');
 }

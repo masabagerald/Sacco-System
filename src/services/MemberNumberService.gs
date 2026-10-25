@@ -3,7 +3,7 @@
 // given once and never changes or gets reused. It carries no meaning (membership type and date joined
 // both change), so it never has to be rewritten. Numbers from before this format (M001, ...) are
 // converted by migrateMemberNumbers(), run once from the script editor.
-const MEMBER_NO_PREFIX = 'MSIC-';
+// MEMBER_NO_PREFIX is set in Config.gs from CLUB_SHORT_NAME
 const MEMBER_NO_DIGITS = 4;
 const LEGACY_MEMBER_NO = /^M([0-9]+)$/i;
 

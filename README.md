@@ -1,206 +1,373 @@
 # Kira SACCO System
 
-A Google Apps Script web app for running a small SACCO (savings and credit cooperative) on top of a Google Sheet. Members sign in with their Google account (or a one-time email code), view their savings, loans and fines, and submit loan/withdrawal requests. Admins record transactions, issue loans, approve or reject requests, and export ledger reports — all backed by a single Google Sheet as the database.
+A Google Apps Script web app for running a small SACCO (savings and credit cooperative) on top of a Google Sheet. Members sign in with their Google account (or a one-time email code), view their savings, loans and surcharges, and submit loan and withdrawal requests. Admins record transactions, approve requests, run the loan fund, investments and asset register, and export reports. A single Google Sheet is the database.
+
+**Contents**
+
+- [Features](#features)
+- [Setting up for a new club (from clone to live)](#setting-up-for-a-new-club-from-clone-to-live)
+- [Updating a club that is already live](#updating-a-club-that-is-already-live)
+- [Moving a club to a different Google account](#moving-a-club-to-a-different-google-account)
+- [Troubleshooting](#troubleshooting)
+- [Configuration reference](#configuration-reference)
+- [Sheet schema](#sheet-schema)
+- [Project structure](#project-structure)
+- [Tests](#tests)
+- [How it works](#how-it-works) (authentication, loans, Loan Insights, investments, upgrades)
 
 ## Features
 
-- **Sign-in without passwords** — auto-detects the signed-in Google account, or falls back to a 6-digit one-time code emailed to the member.
-- **Savings / deposit accounts** — each member's deposits are held in three accounts with separate balances: **Principal**, **Operations** and **Welfare**. Admins record contributions against an account (the payment category must belong to it) and can correct or reverse an entry; the original row is never edited — a reversal row (and, for a correction, a replacement row) is appended and the change is written to the audit log.
-- **Withdrawal requests** — Founder and Delegate Members request a withdrawal from a chosen account. **Principal** is individual savings, so the limit is the member's own Principal balance. **Operations** and **Welfare** are club pools (`POOLED_ACCOUNTS` in `Config.gs`): the limit is the club-wide balance of the account, whatever the member contributed. Both limits subtract requests still awaiting approval. Non-Members have no savings or withdrawals. Two different admins must approve, and neither may be the initiator or the account holder.
-- **Loans** — Founder/Delegate member loans (10%, minimum 2 months, UGX 5,000 fee, capped at 50% of Principal savings) and Non-Member Soft Loans (5% / 10% / 15% by term, UGX 10,000 fee, no savings cap). Every loan, for every membership type, needs exactly 2 Founder Member guarantors, each with Principal of at least 25% of the loan. Both must accept by email before any admin can approve (a decline needs a reason and stops the request); then two different admins approve, and the second approval issues the loan. Both guarantors are then emailed, for information only, about the loan's repayments (with the interest/surcharge/principal split), surcharges and fines, overdue status, reversals and clearance; notices stop once the loan is cleared, and each is logged on the `Guarantor Notifications` tab so none is sent twice. A member who is guaranteeing a running loan can borrow only if an admin proposes the loan with an override reason, which is recorded in the audit log. Neither approver may be the initiator or the applicant.
-- **Loans** — reducing-balance interest calculation, projected amortization schedule, loan-to-savings limit with admin override, repayment tracking.
-- **Loan & withdrawal requests** — members submit requests; admins approve (with limit checks) or reject with a reason.
-- **Fines** — issue, track, and mark as paid.
-- **Admin dashboard** — member/savings/loan/fine totals, pending requests, overdue loans, and Principal / Operations / Welfare tabs with cumulative contributions, withdrawals and balance per account (calculated from the ledger each time it loads).
-- **Loan Insights** — loan-fund cash, disbursements, repayments, interest, processing fees, penalties, outstanding and overdue balances, and borrower counts, by month or for any date range. Admins see everything, including per-loan rows and a cash-ledger trace. Founder Members (without the Admin role) get a read-only, aggregate-only view. Delegate Members and Non-Members are refused on the server.
-- **Investment Tracker** (admins) — unit trusts, fixed deposits, treasury bills/bonds and others: contributions, redemptions, income earned vs received, reinvested income, fees and taxes, manual valuations, and transfers to and from the loan fund.
-- **Audit log** — every state-changing action is recorded automatically.
-- **Reports** — per-member PDF statement (saved to Drive) and a full ledger CSV export.
-- **Scheduled jobs** — monthly statements, repayment reminders, and weekly spreadsheet backups via time-driven triggers.
-- **Email notifications** — members are emailed on savings changes, loan issuance/repayment, fines, and request decisions.
+- **Sign-in without passwords**: auto-detects the signed-in Google account, or falls back to a 6-digit one-time code emailed to the member.
+- **Savings / deposit accounts**: each member's deposits are held in three accounts with separate balances: **Principal**, **Operations** and **Welfare**. Corrections and reversals never edit a row; they append a reversal (and, for a correction, a replacement) and write to the audit log.
+- **Withdrawal requests**: Founder and Delegate Members withdraw from a chosen account. Principal is limited by the member's own balance; Operations and Welfare are club pools. Two different admins must approve.
+- **Loans**: Founder/Delegate member loans and Non-Member Soft Loans, each with exactly two consenting Founder Member guarantors and two different admin approvals. Guarantors are notified of repayments, surcharges, overdue status and clearance.
+- **Loans with security**: a Founder Member short of a savings coverage requirement can offer an asset as security; three committee administrators must approve the waiver.
+- **Repayments**: a breakdown of principal, interest, processing fee and surcharge before saving; reversals keep the original.
+- **Surcharges**, **admin dashboard**, **Loan Insights** (loan-fund cash, interest, fees, overdue, borrowers), **Investment Tracker**, **Asset Register** (independent verification, PDF/Excel export).
+- **Audit log** of every action, with date and time.
+- **Reports**: member PDF statements, ledger PDF and CSV.
+- **Scheduled jobs**: monthly statements and audit report, repayment reminders, due-date processing and weekly spreadsheet backups.
+- **Email notifications** to members, guarantors and admins.
+- **User guide** for members and admins, served by the app at `<app URL>?page=guide`.
 
-## Tech stack
+Tech: Google Apps Script (V8), `HtmlService` web app, Google Sheets as the data store, vanilla JS frontend calling the server through `google.script.run`, and [clasp](https://github.com/google/clasp) for local development and deployment.
 
-- Google Apps Script (V8 runtime), deployed as a web app via `HtmlService`.
-- Google Sheets as the data store (no external database).
-- Vanilla JS on the frontend, calling the server through `google.script.run`.
-- [clasp](https://github.com/google/clasp) for local development and deployment.
+---
+
+## Setting up for a new club (from clone to live)
+
+Each club gets its **own Google account, its own spreadsheet and its own copy of the script**. Nothing is shared between clubs. Allow about an hour for the first club.
+
+### 1. Decide which Google account will own the club
+
+The web app runs **as the account that deploys it**. That account:
+
+- owns the spreadsheet (all the club's data) and the Apps Script project,
+- sends every email (sign-in codes, notices, statements) from its Gmail,
+- stores the weekly backups and PDF statements in its Google Drive.
+
+Use a **dedicated account for the club** (for example `yourclub.sacco@gmail.com`, or an account on the club's Google Workspace), not your personal account. The club should know its password and recovery details. You can do the setup while signed in to that account, or have the club share the spreadsheet with you (see step 4).
+
+Email limits come from that account: a free Gmail account can email about **100 recipients a day**; Google Workspace about **1,500**. For a club of more than about 40 members, monthly statements on a free account may hit the limit; use Workspace or expect some emails to wait until the next day.
+
+### 2. Prepare your computer (once)
+
+| Tool | Needed for | Install |
+|---|---|---|
+| Git | getting the code | https://git-scm.com |
+| Node.js **22 or newer** | `clasp` and the test suite | https://nodejs.org |
+| clasp 3.x | pushing code to Apps Script and deploying | `npm install -g @google/clasp` |
+| Python 3 with Pillow | *optional*: rebuilding the in-app user guide | `pip install pillow` |
+| Google Chrome or Edge | *optional*: regenerating the user-guide screenshots | |
+
+Check: `node --version` (v22 or later) and `clasp --version` (3.x).
+
+### 3. Get the code and check it works
+
+```bash
+git clone <repository-url> sacco-system
+cd sacco-system
+npm install
+npm test          # every suite should pass, for example "86 passed, 0 failed"
+```
+
+Keep each club's settings on its own branch, so updates from `main` can be merged into every club later:
+
+```bash
+git checkout -b club/<shortname>      # for example club/msic
+```
+
+### 4. Create the club's spreadsheet and its Apps Script project
+
+Signed in **as the club's Google account**:
+
+1. Go to https://sheets.new to create a blank spreadsheet. Name it, for example *"Kampala Teachers SACCO – Database"*.
+2. **File → Settings**: set **Locale** (for example *Uganda*) and **Time zone** (for example *(GMT+03:00) Kampala*). Save.
+3. **Extensions → Apps Script**. A new script project opens, attached to this spreadsheet. Rename it (top left), for example *"Kampala Teachers SACCO"*.
+   - The project **must** be created from the spreadsheet like this. The code reads "the spreadsheet this script belongs to"; a standalone script from script.google.com will not work.
+4. In the Apps Script editor, click **Project Settings** (the gear icon):
+   - Tick **Show "appsscript.json" manifest file in editor**.
+   - Copy the **Script ID**. You need it in step 6.
+
+If someone else will do the technical setup, the club shares the spreadsheet with them as **Editor**; they can then open Extensions → Apps Script and push code. The **deployment in step 9 should still be done signed in as the club's account**, so the app runs and sends email as the club.
+
+### 5. Turn on the Apps Script API (once per Google account that uses clasp)
+
+Open https://script.google.com/home/usersettings while signed in as the account you will use with clasp, and switch **Google Apps Script API** to **On**. Without this, `clasp push` fails with *"User has not enabled the Apps Script API"*.
+
+### 6. Configure the club in the code
+
+Edit these files on the club's branch:
+
+**`src/utils/Config.gs`** (top of the file):
+
+| Setting | What to put |
+|---|---|
+| `SACCO_NAME` | Full club name. Shown on the sign-in page, page title, emails and PDFs. |
+| `CLUB_SHORT_NAME` | Short code, letters only, for example `KTS`. Member numbers become `KTS-0001`; export files are named `KTS_Asset_Register_…`. **Choose it before adding members**; member numbers never change once given. |
+| `BRAND_COLOR` | Main colour for emails and PDFs (hex, for example `#143452`). |
+| Loan rules | `LOAN_TO_SAVINGS_LIMIT`, `GUARANTOR_COUNT`, `GUARANTOR_SAVINGS_RATIO`, `MEMBER_LOAN_RATE`, `MEMBER_LOAN_MIN_MONTHS`, `MEMBER_LOAN_FEE`, `PROCESSING_FEE`, `LOAN_TERMS`, `OVERDUE_SURCHARGE_RATE`: set from the club's by-laws. |
+| Categories | `PAYMENT_CATEGORIES`, `SURCHARGE_REASONS`, `WITHDRAWAL_REASONS`, `MEMBERSHIP_TYPES`. |
+| Waivers | `WAIVER_APPROVALS_REQUIRED`, `WAIVER_ROLE_MINIMUMS` (who must approve a loan with security). |
+| Assets | `ASSET_TYPES`, `ASSET_CONDITIONS`, `ASSET_AVAILABILITY`. |
+
+**`src/utils/Branding.gs`**: the club's logo, `CLUB_LOGO_B64`, is a base64-encoded **JPEG**. It is used on the web page, in emails and in PDFs. Use a square image of about 256×256 pixels, under 50 KB. To produce the text:
+
+```powershell
+# Windows PowerShell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("logo.jpg")) | Set-Clipboard
+```
+```bash
+# macOS / Linux
+base64 -i logo.jpg | tr -d '\n' | pbcopy        # Linux: base64 -w0 logo.jpg
+```
+
+Paste it between the quotes of `const CLUB_LOGO_B64 = '…';` (one long line).
+
+**`appsscript.json`**: set `"timeZone"` to the club's zone, for example `"Africa/Kampala"`, `"Africa/Nairobi"` or `"Africa/Dar_es_Salaam"`. It must match the spreadsheet's time zone (step 4). Dates, due dates and audit times use it. Leave the `"webapp"` section as it is.
+
+**`.clasp.json`**: replace `"scriptId"` with the Script ID from step 4.
+
+Then commit on the club branch:
+
+```bash
+npm test
+git commit -am "Configure <club name>"
+```
+
+### 7. Push the code to the club's project
+
+```bash
+clasp logout                 # only if clasp is signed in to a different account
+clasp login                  # sign in as the account from step 5, in the browser that opens
+clasp push --force           # --force: overwrite the project's default manifest
+```
+
+`clasp push` uploads `appsscript.json` and everything under `src/` (see `.claspignore`); tests, tools and docs are not uploaded. Reload the Apps Script editor: you should see folders such as `src/controllers`, `src/services` and `src/webapp`. The default empty `Code.gs` can be deleted in the editor.
+
+### 8. Set up the spreadsheet and the scheduled jobs
+
+In the Apps Script editor:
+
+1. Open **`src/services/SetupService.gs`**, choose **`setupNewClub`** in the function list at the top, and click **Run**.
+2. Google asks for permission the first time. Choose the club's account, then **Advanced → Go to *(project name)* (unsafe) → Allow**. The warning appears because the script is private to the club and not published by Google; it is expected.
+   - The app asks for access to: the spreadsheet, Google Drive (backups and PDFs), Google Docs (building PDFs), sending email as the club, and running scheduled jobs.
+3. When it finishes, the **Execution log** shows *"Setup complete…"*. The spreadsheet now has every tab with its header row, and **you are member `<SHORT>-0001`, an Admin**. Put your real name in the **Full Name** cell on the **Members** tab.
+   - `setupNewClub` never deletes or changes existing rows, so it is safe to run again. You can delete the empty *Sheet1* tab.
+4. Open **`src/triggers/ScheduledJobs.gs`**, choose **`createAllTriggers`**, and **Run**. This schedules:
+
+   | Job | When |
+   |---|---|
+   | `processLoanDueDates`: due-date reminders, overdue surcharges | daily, 7 am |
+   | `sendRepaymentReminders` | daily 9 am, and on the 25th, 8 am |
+   | `sendMonthlyStatements` | 1st of the month, 7 am |
+   | `sendMonthlyAuditReport` | 1st of the month, 5 am |
+   | `backupSpreadsheet`: copy to a Drive folder, keeps 8 | Mondays, 6 am |
+
+   Check under **Triggers** (the alarm-clock icon). Running `createAllTriggers` again replaces them, so there are never duplicates.
+
+### 9. Deploy the web app
+
+Signed in **as the club's account**, in the Apps Script editor:
+
+1. **Deploy → New deployment**. Click the gear next to *Select type* and choose **Web app**.
+2. Description: for example `v1 – first release`.
+3. **Execute as: Me (the club's account)**.
+4. **Who has access: Anyone**. Members sign in inside the app, so they don't need any Google permissions. Choose *Anyone with Google account* only if every member has a Google account and you want Google to check that first.
+5. **Deploy**, then copy the **Web app URL** (it ends in `/exec`). This is the club's app; it never changes as long as you update this same deployment (see [Updating](#updating-a-club-that-is-already-live)).
+6. Note the **Deployment ID** as well (Deploy → Manage deployments). You need it to update the club later. You can also see it with `clasp list-deployments`.
+
+Alternatively, from your computer: `clasp deploy -d "v1 – first release"`, then `clasp list-deployments` to get the ID. Open the URL from `clasp list-deployments` in a browser once to confirm it works.
+
+### 10. Go live
+
+1. Open the web app URL in a private/incognito window. Enter the admin email from step 8; a sign-in code arrives from the club's Gmail. Sign in.
+2. **Members → + Add Member** for every member: name, the email they will sign in with, phone, role (Member or Admin), membership type and **date joined the club**. The 12-month saving rule for loans counts from that date.
+3. Set the **committee roles** (Members → Edit → Committee role): at least the numbers in `WAIVER_ROLE_MINIMUMS` (by default one Chairperson and two Finance Committee members, all Admins). Without them, no loan with security can be approved.
+4. Have **at least three admins**: most approvals need two different admins who did not start the request, and waivers need three.
+5. Enter opening balances: **Savings → Record Savings** for each member, with the real transaction date, account and payment category.
+6. Try one member account end to end: sign in, view savings, request a withdrawal; then approve it as two different admins.
+7. **User guide**: the app serves it at `<web app URL>?page=guide`. It is built from `docs/USER_GUIDE.md`, which describes the club this project was first built for (names, member numbers and screenshots). For a new club, edit `docs/USER_GUIDE.md` and rebuild it with `python tools/build-guide.py` (optionally regenerate screenshots first with `npm run screenshots`), then push and update the deployment.
+8. Share the web app URL with members (WhatsApp, email). Members never need access to the spreadsheet: **don't share the spreadsheet** with anyone except trusted administrators of the club account.
+
+The club is live.
+
+---
+
+## Updating a club that is already live
+
+From the club's branch:
+
+```bash
+git checkout club/<shortname>
+git merge main                    # bring in the latest changes; keep the club's own Config.gs, logo and .clasp.json
+npm test
+clasp push --force
+clasp deploy -i <DEPLOYMENT_ID> -d "Short description of the update"
+```
+
+- **Always pass `-i <DEPLOYMENT_ID>`**. It updates the existing deployment, so the URL stays the same. `clasp deploy` without `-i` creates a *new* deployment with a *new* URL. Find the ID with `clasp list-deployments`.
+- `clasp push` alone changes the code in the editor (and the `…/dev` test URL), not the live `/exec` app. The live app changes only when the deployment is updated.
+- If the update adds tabs or columns, run **`setupGuaranteeSchema`** once in the editor afterwards. It only adds what is missing and is safe to run any time. `setupNewClub` does the same and more.
+- If the update needs a new Google permission, the app may show *"Authorization required"* until someone runs any function (for example `setupGuaranteeSchema`) in the editor as the club's account and allows it.
+- In the editor you can also do it by hand: **Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy**.
+
+---
+
+## Moving a club to a different Google account
+
+To move an existing club (for example from your account to the club's own account):
+
+1. Signed in as the **new** account, open the spreadsheet (it must be shared with the new account) and choose **File → Make a copy**. Copying a spreadsheet also copies its attached Apps Script project, so the copy has all the data and all the code.
+2. Open the copy → **Extensions → Apps Script**. This is a new project with a **new Script ID**: put it in `.clasp.json` on the club's branch.
+3. Run **`setupGuaranteeSchema`** (it asks for permission for the new account), then **`createAllTriggers`**. Triggers are not copied with the spreadsheet.
+4. **Deploy → New deployment** as in step 9. The URL is new: send it to members.
+5. Turn off the old copy, so it stops sending emails and changing data: in the old project delete its triggers (**Triggers** page) and archive the old deployment (**Deploy → Manage deployments → Archive**). Keep the old spreadsheet as a read-only archive, or delete it once the new one is checked.
+
+Members sign in again on the new URL (sign-in sessions are not copied). Member numbers, balances, loans and the audit log are unchanged.
+
+---
+
+## Troubleshooting
+
+| Problem | Cause and fix |
+|---|---|
+| `clasp push`: *User has not enabled the Apps Script API* | Turn it on at https://script.google.com/home/usersettings for the account clasp is using (step 5). |
+| `clasp push`: *Manifest file has been updated. Do you want to push and overwrite?* | Use `clasp push --force`. |
+| `clasp push` succeeds but the editor shows nothing new | Wrong `scriptId` in `.clasp.json`, or clasp is signed in to another account (`clasp logout`, `clasp login`). |
+| The app says *Sheet "Members" not found* (or another tab) | Run `setupNewClub` in the editor (step 8). The script must belong to the spreadsheet (step 4). |
+| *Script function not found: doGet* | The code has not been pushed to this project, or the deployment is of an old version: push and update the deployment. |
+| The app still shows old behaviour after an update | `clasp push` does not update the live app. Run `clasp deploy -i <DEPLOYMENT_ID>`. |
+| *Authorization is required to perform that action* | A new permission is needed: run any function in the editor as the club's account and allow it. |
+| Members never receive sign-in codes | Check their spam folder; check the email on the Members tab (members sign in with exactly that address); check the club account's daily email limit. Problems are listed under **Executions** in the Apps Script editor. |
+| Members are not recognised automatically and always get a code | Normal for free Gmail accounts: Google only shares the visitor's email with apps in the same Workspace. The emailed code is the standard sign-in. |
+| Dates or times are a few hours off | The spreadsheet time zone (File → Settings) and `"timeZone"` in `appsscript.json` differ. Set both to the club's zone. |
+| *You registered this asset / You initiated this request…* | Working as intended: a different admin must approve. A club needs at least three active admins. |
+| A loan with security can't be approved | Set committee roles (Members → Edit) to meet `WAIVER_ROLE_MINIMUMS`. |
+
+Every action an admin or member takes is in the **Audit log** (Admin menu) and on the **Audit Log** tab; errors are under **Executions** in the Apps Script editor.
+
+---
+
+## Configuration reference
+
+All settings are constants at the top of `src/utils/Config.gs`, plus the logo in `src/utils/Branding.gs` and `"timeZone"` in `appsscript.json`. The main ones:
+
+- `SACCO_NAME`, `CLUB_SHORT_NAME`, `BRAND_COLOR`: club identity (see step 6). `MEMBER_NO_PREFIX` is derived from `CLUB_SHORT_NAME`.
+- `LOAN_TO_SAVINGS_LIMIT`: max member-loan principal as a multiple of the member's Principal savings (admins can override with a reason). `GUARANTOR_SAVINGS_RATIO`: each guarantor's Principal must be at least this share of the loan.
+- `MEMBER_LOAN_*`, `PROCESSING_FEE`, `LOAN_TERMS`, `OVERDUE_*`: loan products and overdue rules.
+- `REPAYMENT_ALLOCATION_ORDER`: how a repayment is split (fee → interest → penalty → principal).
+- `WAIVER_APPROVALS_REQUIRED`, `WAIVER_ROLE_MINIMUMS`, `COMMITTEE_ROLES`, `SECURITY_TYPES`: loans with security.
+- `ASSET_TYPES`, `ASSET_CONDITIONS`, `ASSET_AVAILABILITY`, `ASSET_PAGE_SIZE`: asset register.
+- `INSIGHTS_MEMBERSHIP_TYPES`: who besides admins sees Loan Insights (aggregate only).
+- `OTP_EXPIRY_MS`: how long a sign-in code stays valid.
+- `SH_*`: tab names. Change them only before setting up a club; `setupNewClub` creates tabs with these names.
+
+All amounts are in UGX (`INVESTMENT_CURRENCY`); other currencies are not supported.
+
+---
+
+## Sheet schema
+
+`setupNewClub` creates every tab below with its header row; you don't need to type them. Columns are matched by header text (case-insensitive; a header may have extra words after the name, for example `Amount (UGX)`), so column order doesn't matter and extra columns can be added freely. The header row can sit below a title.
+
+| Tab | Holds |
+|---|---|
+| `Members` | MemberNo (`<SHORT>-0001`, assigned automatically, never changed or reused), Full Name, Email, Phone, Role (`Member`/`Admin`), Membership Type, Date Joined, Status (`Active`/`Inactive`), Committee Role |
+| `Savings` | Date, Timestamp, MemberNo, Deposit Type, Amount (UGX), Recorded By, Reference, Notes, Payment Category, Surcharge Reason, Deposit Account, Reverses |
+| `Loans` | LoanID, Timestamp, MemberNo, Date Issued, Principal (UGX), Status, Issued By, Purpose, Override Reason, Loan Model, Processing Fee (UGX), Interest Rate (%), Term (months), Term (days), Due Date, Overdue Surcharge (UGX), Last Notice |
+| `Loan Repayments` | LoanID, Date, Timestamp, MemberNo, Amount (UGX), Recorded By, Notes, Reference, Reverses |
+| `Surcharge` | FineID, Timestamp, MemberNo, Date, Amount (UGX), Reason, Status (`Unpaid`/`Paid`), Recorded By |
+| `Loan Requests` | RequestID, Timestamp, MemberNo, Amount (UGX), Repayment Term, Purpose, Status, Decision Notes, Decided By, Initiated By, Guarantor 1/2, Total Due, Approver 1/2 (+ At), Guarantor Override, Limit Override |
+| `Withdrawal Requests` | RequestID, Timestamp, MemberNo, Amount (UGX), Reason, Status, Decision Notes, Decided By, Initiated By, Approver 1/2 (+ At), Deposit Account |
+| `Audit Log` | Timestamp, Action, Member (Affected), Performed By, Details, Reference ID. Append-only. |
+| `Guarantors` | one row per guarantor per request: consent, token, response time, decline reason |
+| `Guarantor Notifications` | one row per notice sent, so none is sent twice |
+| `Loan Fund Ledger`, `Investments`, `Investment Transactions` | loan-fund cash entries and the investment tracker |
+| `Loan Waivers`, `Waiver Decisions` | loans with security: security details, eligibility snapshot, each committee decision |
+| `Assets`, `Asset Reviews`, `Asset History` | asset register, every verification decision, every change with old and new values |
+
+IDs are generated per tab (`L001`, `R001`, `W001`, `F001`, `RPY-000001`, `AST-0001`, …).
+
+**Never delete or reorder rows by hand.** Corrections are made in the app (reversals, corrections, edits with a reason), which keeps the audit trail intact.
+
+---
 
 ## Project structure
 
 ```
 .
-├── appsscript.json              Apps Script manifest (timezone, webapp access, V8 runtime)
-├── .clasp.json                  clasp project config (script ID, file extensions)
-└── src/
-    ├── controllers/             Public functions called from the frontend via google.script.run
-    │   ├── LoanInsightsController.gs  Loan Insights, loan fund ledger trace, fund entries, approve/reject/reverse
-    │   ├── InvestmentController.gs    investment records, transactions, transfers, portfolio dashboard
-    │   ├── AuthController.gs        sign-in, OTP, session, logout
-    │   ├── SavingsController.gs     get/record savings
-    │   ├── LoanController.gs        get loans, issue loan, record repayment
-    │   ├── LoanRequestController.gs request/approve/reject loan requests
-    │   ├── WithdrawalController.gs  request/approve/reject withdrawals
-    │   ├── FineController.gs        issue fines, mark paid
-    │   ├── MemberController.gs      list/add members (admin)
-    │   ├── DashboardController.gs   admin dashboard summary, audit log viewer
-    │   └── ReportController.gs      member statement (PDF), admin CSV export
-    │
-    ├── services/                 Internal business logic and Sheet access — not called from the frontend
-    │   ├── SheetService.gs           generic sheet read/write helpers (readSheet, ci, nextId, ...)
-    │   ├── AuthService.gs            session/member lookup used by every controller
-    │   ├── AuditService.gs           auditLog()
-    │   ├── EmailService.gs           transactional email templates
-    │   ├── MemberService.gs          member lookup by number
-    │   ├── SavingsService.gs         savings balance calculation
-    │   ├── LoanService.gs            reducing-balance interest math, amortization schedule
-    │   └── RequestService.gs         shared approve/reject status updates
-    │
-    ├── models/                   Data shaping and validation for a single entity
-    │   ├── Member.gs                 makeMemberRecord(), validateNewMember()
-    │   ├── Loan.gs                    LOAN_STATUS enum, validateLoanIssue()
-    │   └── Repayment.gs               validateRepaymentAmount()
-    │
-    ├── utils/                    Small, dependency-free helpers
-    │   ├── Config.gs                 SACCO_NAME/sheet names/etc, PropertiesService wrapper
-    │   ├── DateUtils.gs              date formatting
-    │   ├── Formatters.gs             number/currency/HTML-escaping helpers
-    │   └── Validators.gs             validatePositiveAmount(), validateReason()
-    │
-    ├── triggers/
-    │   └── ScheduledJobs.gs          monthly statements, repayment reminders, weekly backup, createAllTriggers()
-    │
-    ├── tests/
-    │   └── LoanService.test.gs       runnable assertions against the pure loan-math functions
-    │
-    └── webapp/                   The frontend, served by doGet()
-        ├── doGet.gs                  entry point + include() template helper
-        ├── index.html                thin assembler: includes auth/app/modals/scripts
-        ├── css/styles.html
-        ├── services/
-        │   └── api.js.html           google.script.run wrappers used by every component script
-        └── components/            One folder per feature; *.html is markup, *.js.html is script
-            ├── auth/                 login screens
-            ├── app/                  shell: header, tab nav, nests each tab's components
-            ├── dashboard/             summary cards, overdue loans, audit log view
-            ├── loans/                 my loans / admin loan requests / loan modals
-            ├── savings/               savings history / admin withdrawals / savings modals
-            ├── fines/                 my fines / admin fines / fine modal
-            ├── members/               admin member list / add-member modal
-            └── reports/               statement + CSV export buttons
+├── appsscript.json            Apps Script manifest: time zone, V8, web app settings
+├── .clasp.json                clasp: the Script ID of the club's project (one per club)
+├── .claspignore               only appsscript.json and src/ are pushed
+├── src/
+│   ├── controllers/           functions the web page calls through google.script.run
+│   │                          (Auth, Dashboard, Savings, Withdrawal, Loan, LoanRequest, SecuredLoan,
+│   │                           Fine, Member, Report, LoanInsights, Investment, Asset)
+│   ├── services/              business rules and sheet access, not called from the page
+│   │                          (SheetService, AuthService, AuditService, EmailService, LoanService,
+│   │                           RepaymentService, GuarantorService, GuarantorNotificationService,
+│   │                           GuarantorWeb (guarantor email links), SecuredLoanService, AssetService,
+│   │                           LoanInsightsService, InvestmentService, ApprovalLedgerService,
+│   │                           MemberNumberService, SetupService (setupNewClub), ...)
+│   ├── models/                Member, Loan, Repayment shaping and validation
+│   ├── utils/                 Config.gs (all settings), Branding.gs (logo, PDF layout), dates, formatters, validators
+│   ├── triggers/              ScheduledJobs.gs: scheduled jobs and createAllTriggers()
+│   ├── tests/                 .gs test suites that can also run in the editor
+│   └── webapp/                the web page: doGet.gs, index.html, css, api.js, components/<feature>/,
+│                              guide/guide.html (built user guide)
+├── tests/                     Node test runner, in-memory Apps Script fakes, integration tests (not pushed)
+├── tools/                     build-guide.py (user guide), screenshots/ (guide screenshots) (not pushed)
+└── docs/                      USER_GUIDE.md and its images
 ```
 
-Because Apps Script has no import/export system, every `.gs`/`.js` file shares one global namespace — files are organized for readability, not for module boundaries. On the frontend, `.js.html` files must keep the `.html` extension because `HtmlService` can only serve `.html` files to the browser; `doGet.gs`'s `include()` helper evaluates each file as its own template, so components can nest other components (see `components/app/app.html`).
+Apps Script has no modules: every `.gs` file shares one global namespace, and files load in alphabetical order of their path, so a constant in `Config.gs` (in `utils/`) is not yet defined while files in `controllers/` or `services/` first load. Use constants inside functions, not at the top level of those files. Frontend `.js.html` files keep the `.html` extension because `HtmlService` only serves `.html`; `include()` in `doGet.gs` evaluates each file as a template, so components can nest and use `<?= SACCO_NAME ?>`.
 
-## Sheet schema
-
-The spreadsheet must have these tabs (exact names, set in `src/utils/Config.gs`). Column order doesn't matter — columns are matched by header text (case-insensitive, prefix match), so you can add extra columns freely.
-
-| Tab | Key columns |
-|---|---|
-| `Members` | MemberNo (`MSIC-0001`, `MSIC-0002`, …: assigned automatically, never changed or reused), Full Name, Email, Phone, Role (`Member`/`Admin`), Date Joined, Status (`Active`/...) |
-| `Savings` | Date, Timestamp, MemberNo, Deposit Type (`Deposit`/`Withdrawal`; the older name `Type` also works), Amount (UGX), Recorded By, Reference, Notes |
-| `Loans` | LoanID, Timestamp, MemberNo, Date Issued, Principal (UGX), Loan Model (`Flat` for new loans, blank for older reducing-balance loans), Processing Fee (UGX), Monthly Rate (%) and Term (months) (older loans only), Status, Issued By, Purpose, Override Reason |
-| `Guarantors` | Timestamp, RequestID, LoanID, ApplicantNo, GuarantorNo, Token, Response, Responded At, Decline Reason (one row per guarantor; LoanID is filled once the loan is issued) |
-| `Guarantor Notifications` | Timestamp, Event Key, LoanID, BorrowerNo, GuarantorNo, Event, Amount (UGX), Transaction Date, Remaining Balance (UGX), Sent To (one row per notice; a notice whose Event Key is already logged for that guarantor is not sent again) |
-| `Loan Repayments` | Date, Timestamp, LoanID, MemberNo, Total Amount Paid (or the older `Amount (UGX)`), Recorded By, Notes |
-| `Fines` | FineID, Timestamp, MemberNo, Date, Amount (UGX), Reason, Status (`Unpaid`/`Paid`), Recorded By |
-| `Loan Requests` | RequestID, Timestamp, MemberNo, Amount (UGX), Term (months), Purpose, Status, Decision Notes, Decided By |
-| `Withdrawal Requests` | RequestID, Timestamp, MemberNo, Amount (UGX), Reason, Status, Decision Notes, Decided By |
-| `Audit Log` | Timestamp, Action, Member (Affected), Performed By, Details, Reference ID |
-| `Loan Fund Ledger` | EntryID, Date, Entry Type (`Cash Injection` / `Other Outflow` / `Transfer from Investment` / `Transfer to Investment` / `Reversal`), Amount (UGX), Reference, Description, Investment ID, Linked Entry, Reverses, Status, Initiated By, Approver 1/2 (+ At), Decision Notes, Decided By |
-| `Investments` | InvestmentID, Name, Type, Provider, Currency (UGX), Start Date, Maturity Date, Account Reference, Status (`Active`/`Matured`/`Closed`), Notes, Document Link, Created By, Updated At/By |
-| `Investment Transactions` | TxID, InvestmentID, Date, Tx Type, Amount (UGX), Cost Source, Reference, Notes, Linked Entry, Reverses, Status, Initiated By, Approver 1/2 (+ At), Decision Notes, Decided By |
-
-The header row can sit below a title and description (row 4 in the current sheet). Run `setupGuaranteeSchema()` once from the Apps Script editor to create the `Guarantors` tab and add the new `Loans` columns. Loan rules (Article 4 of the SACCO by-laws) live in `src/utils/Config.gs`.
-
-New loans use a repayment term (1 week 5%, 2 weeks 10%, 3 weeks 15%, 1 month 15% interest) plus a UGX 10,000 processing fee, with one payment due on the due date. The term table is `LOAN_TERMS` in `src/utils/Config.gs`. `setupGuaranteeSchema()` adds the columns this needs: Loans gets Term (days), Interest Rate (%), Due Date; Loan Requests gets Repayment Term and Total Due.
-
-IDs are auto-generated per sheet (`L001`, `R001`, `W001`, `F001`, ...) by `nextId()` in `SheetService.gs`.
-
-## Setup
-
-1. Create a Google Sheet with the tabs and columns listed above.
-2. Install [clasp](https://github.com/google/clasp) and log in: `npm install -g @google/clasp && clasp login`.
-3. From this directory, push the project to the Apps Script project bound to your sheet (the script ID is already set in `.clasp.json`): `clasp push`.
-   - If you're starting fresh instead, open the sheet → Extensions → Apps Script, then `clasp clone <scriptId>` or paste the files in manually, keeping the folder paths (Apps Script displays `/` in a file name as a folder).
-4. In the Apps Script editor, run `createAllTriggers` once (from `src/triggers/ScheduledJobs.gs`) to schedule the monthly statement, repayment reminder, and weekly backup jobs. Authorize the requested permissions when prompted.
-5. Deploy → New deployment → Web app:
-   - Execute as: **Me**
-   - Who has access: **Anyone** (or restrict to your organization)
-6. Open the deployed `/exec` URL — that's the SACCO app.
-
-### Re-deploying after changes
-
-`clasp push`, then in the Apps Script editor: Deploy → Manage deployments → edit (pencil) → New version → Deploy. Pushing alone updates the code but not a published web app version.
-
-## Configuration
-
-Edit the constants at the top of `src/utils/Config.gs`:
-
-- `SACCO_NAME`, `BRAND_COLOR` — used in the UI and email templates.
-- `LOAN_TO_SAVINGS_LIMIT` — max loan principal as a multiple of the member's savings balance (admins can override per-loan with a reason).
-- `OTP_EXPIRY_MS` — how long a one-time sign-in code stays valid.
-- `SH_*` — the exact sheet tab names the app reads from.
-
-## Authentication
-
-1. The frontend silently probes `Session.getActiveUser()` (`tryAutoDetect`). If it matches a registered, active member, the user just confirms the detected email (`confirmAutoDetect`).
-2. Otherwise, the member enters their email, gets a 6-digit code by email (`sendOtp`), and verifies it (`verifyOtp`). The code is stored in script properties with an expiry and is single-use.
-3. Once verified, the session is remembered via user properties (`Config.setUserProp`) so the member doesn't have to re-verify every visit; `logout()` clears it.
-4. Every protected controller function calls `_caller()` / `_adminCaller()` (`AuthService.gs`) to resolve and authorize the current member before doing anything.
-
-## Testing
-
-`src/tests/LoanService.test.gs` contains real assertions against `_schedule()` and `_computeLoan()` — both are pure functions (only `Date`/`Math`, no Sheet access), so they can be exercised directly with in-memory fixtures. Run `runLoanServiceTests()` from the Apps Script editor; it throws on the first failing assertion and logs a PASS/FAIL line per check either way.
-
-## Notes
-
-- All amounts are stored and displayed in UGX.
-- The web app runs as the deploying user (`executeAs: USER_DEPLOYING` in `appsscript.json`), so it only needs the deployer's Sheet/Drive/Mail permissions — members never need direct access to the spreadsheet.
-- Email failures are swallowed (`EmailService.gs`) so a transaction still succeeds even if a notification can't be sent; audit log writes are similarly non-fatal.
-
-## Upgrading to deposit accounts
-
-After deploying, run `setupGuaranteeSchema()` once from the Apps Script editor. It adds any missing columns: `Deposit Account` and `Reverses` (**Savings**), `Deposit Account` (**Withdrawal Requests**), `Guarantor Override` (**Loan Requests**), `Last Notice` (**Loans**, which stops a retried daily job emailing twice) and `Decline Reason` (**Guarantors**), and creates the `Guarantor Notifications` tab (also created automatically the first time a notice is sent). It is safe to run again.
-
-**Loans with security (ISS-11).** `setupGuaranteeSchema()` (or `setupSecuredLoanSchema()`) adds a `Committee Role` column to **Members** and creates the **Loan Waivers** and **Waiver Decisions** tabs. Before the first secured request, set each deciding administrator's committee role (Members → Edit): at least one **Chairperson** and two **Finance Committee** members (`WAIVER_ROLE_MINIMUMS` and `WAIVER_APPROVALS_REQUIRED` in `Config.gs`). Rules and flow are described at the top of `src/services/SecuredLoanService.gs`.
-
-**Asset register (ISS-12).** `setupGuaranteeSchema()` (or `setupAssetRegisterSchema()`) creates the **Assets**, **Asset Reviews** and **Asset History** tabs; they are also created when the first asset is registered. Admins only. Rules: `src/services/AssetService.gs`. Excel exports are built with `Utilities.zip` (no extra OAuth scope); PDF exports reuse `_brandedPdf`.
-
-**Member numbers.** New members are numbered `MSIC-0001`, `MSIC-0002`, … (club prefix and serial; see `src/services/MemberNumberService.gs`). To convert older `M001`-style numbers, run `previewMemberNumberMigration()` from the Apps Script editor to see what would change, then `migrateMemberNumbers()` once. It rewrites every member-number column on every tab except the append-only **Audit Log**, which keeps the old numbers and gets one entry recording the mapping. Free-text notes are not changed. It is safe to run again.
-
-Existing rows are not changed. Rows without an account are placed by their payment category: Operations Fee → Operations, Welfare Fee → Welfare, everything else (including older withdrawals) → Principal. Each member's total savings therefore stays the same. Withdrawal requests made before this change draw on Principal.
+---
 
 ## Tests
 
-- `npm test` runs every suite locally under Node, with in-memory stand-ins for the Apps Script services (`tests/gas-fakes.js`). It covers the `.gs` suites in `src/tests/` and the controller-level tests in `tests/*.integration.js`.
-- The `.gs` suites can also be run from the Apps Script editor: `runDepositAccountTests()`, `runLoanServiceTests()`.
+- `npm test` runs every suite under Node, with in-memory stand-ins for the Apps Script services (`tests/gas-fakes.js`): the `.gs` suites in `src/tests/` and the integration tests in `tests/*.integration.js`, which call the real controllers against an in-memory spreadsheet. Run it before every push.
+- `tests/new-club.integration.js` checks that `setupNewClub` turns a blank spreadsheet into a working club.
+- `npm run screenshots` regenerates the user-guide screenshots (needs Chrome or Edge); `python tools/build-guide.py` rebuilds `src/webapp/guide/guide.html` from `docs/USER_GUIDE.md`.
 
-## Loan Insights and the Investment Tracker
+---
 
-Run `setupFinanceSchema()` once from the Apps Script editor (`setupGuaranteeSchema()` also runs it). It creates the `Loan Fund Ledger`, `Investments` and `Investment Transactions` tabs, or adds any missing columns. It is safe to run again and never changes existing rows.
+## How it works
 
-**How the figures are worked out.** Nothing is stored as a dashboard total. Every figure is calculated from the source sheets each time (`src/services/LoanInsightsService.gs`):
+### Authentication
 
-- **Loan-fund capital** is the club-wide **Principal** savings balance: deposits come in, withdrawals go out, and reversals are netted. Operations and Welfare are not loan capital.
-- **Available loan cash** = Principal savings net + approved cash injections + transfers from investments + repayments received − loans disbursed − approved other outflows − transfers to investments. Disbursements are already in this figure, so outstanding loans are not subtracted again.
-- **Repayment split.** Each repayment row stores a single total. For reporting it is split **fee → interest → penalty → principal** (`REPAYMENT_ALLOCATION_ORDER`). A charge can only take money paid on or after the day it was charged. An overpayment is held as a credit and applied to the next charge, such as an overdue surcharge.
-- **Charged vs collected.** Interest and fees are charged when the loan is issued; overdue surcharges and late penalties the day after they apply. "Charged" (owed) is reported separately from "collected" (cash). Penalties have their own line.
-- **Fund position** = cash + outstanding principal + interest + fees + penalties (less borrower credits). This is a receivables view, not cash.
-- **Overdue** at any date uses the same rules as the loan screens.
-- **Borrowers.** A client counts once per period. *New* means their first loan ever falls in the period.
-- **Trace.** The admin cash-ledger trace (`getLoanFundLedger`) lists every movement with a running balance. Its closing balance always equals available cash, and the tests check this.
+1. The page first asks the server who the visitor is (`tryAutoDetect`, using `Session.getActiveUser()`). If that email belongs to an active member, the member only confirms it.
+2. Otherwise the member enters their email, receives a 6-digit code (`sendOtp`) and enters it (`verifyOtp`). Codes are kept in script properties, expire after `OTP_EXPIRY_MS` and work once.
+3. The session is remembered in user properties, so members don't sign in on every visit; `logout()` clears it.
+4. Every server function calls `_caller()` / `_adminCaller()` (`AuthService.gs`) first, so permissions are checked on the server, never only in the page.
 
-**Approval and corrections.** Loan Fund Ledger entries and investment transactions start **Pending**. They count only after two different admins approve them, and neither may be the admin who proposed the entry; this uses the same `_approvalDutyError` rules as loans. An entry is never edited or deleted. A correction is a **Reversal** entry, which is approved the same way. Duplicates are refused: a reference can be reused only by a reversal, and an identical entry can't be proposed while one is still pending. An outflow cannot take available loan cash below zero (entries still awaiting approval are counted). A redemption cannot exceed the investment's recorded value. Every step goes to the audit log.
+The web app runs as the deploying account (`executeAs: USER_DEPLOYING`), so members never need access to the spreadsheet. Email failures don't block a transaction; they are skipped and the action is still saved and audited.
 
-**Investments** (`src/services/InvestmentService.gs`):
-- **Net invested** = contributions + reinvested income − redemptions − fees/taxes taken from the investment's balance.
-- **Value** = the latest manual valuation, carried forward by later flows. With no valuation, the investment is shown at cost.
-- **Income** = received + reinvested + accrued (earned not yet received). Earned and received settle against each other, so a return is counted once.
-- **Capital gain** = value − net invested. **Net return** = income − fees − taxes + capital gain.
-- **Transfers.** A transfer to or from the loan fund creates two linked entries, an investment redemption or contribution plus a loan-fund transfer. They are approved and reversed together and are never counted as income.
+### Loans and repayments
 
-**Repayment reversals.** Each Loan Repayments row has a reference (`RPY-000001`). An admin reverses a wrong repayment from Loans → Repayments, with a reason. This appends a row with the negative amount and `Reverses` set; the original row is never changed. Every total nets the pair off, a loan the repayment had cleared becomes Active again, and Loan Insights undoes exactly that payment's fee/interest/penalty/principal split from the reversal date. `setupFinanceSchema()` adds the Reference and Reverses columns and gives existing repayments references (only blank Reference cells are filled).
+Loan rules (Article 4 of the by-laws) are in `Config.gs` and `src/services/LoanService.gs`. Every loan needs exactly two Founder Member guarantors, each with Principal savings of at least `GUARANTOR_SAVINGS_RATIO` of the loan; both consent by email before two different admins approve, and the second approval issues the loan. Loans with security (`src/services/SecuredLoanService.gs`) add a three-administrator waiver stage before the guarantors are asked; only the coverage requirement that failed is waived.
 
-**Not supported yet** (shown as gaps rather than guessed at): loan write-offs or cancellations, currencies other than UGX, and uploading supporting documents (an https link can be stored instead).
+Each repayment row stores one total. It is split **fee → interest → penalty → principal** (`REPAYMENT_ALLOCATION_ORDER`); a charge only takes money paid on or after the day it was charged, and an overpayment is held as credit. The Record Repayment form shows this split before saving. A wrong repayment is reversed (a negative row with `Reverses` set); the original is never changed.
+
+### Loan Insights and the Investment Tracker
+
+Nothing is stored as a dashboard total: every figure is calculated from the source tabs each time (`src/services/LoanInsightsService.gs`).
+
+- **Loan-fund capital** is the club-wide Principal savings balance. **Available loan cash** = Principal savings net + approved cash injections + transfers from investments + repayments − loans disbursed − approved other outflows − transfers to investments.
+- **Charged vs collected**: interest and fees are charged when the loan is issued, surcharges and penalties when they apply; cash received is reported separately.
+- **Trace**: the admin cash-ledger trace lists every movement with a running balance, which always equals available cash.
+- Loan Fund Ledger entries and investment transactions count only after two different admins approve them; corrections are reversal entries.
+- **Investments** (`src/services/InvestmentService.gs`): net invested, value from the latest manual valuation, income (received, reinvested, accrued), capital gain and net return. Transfers to or from the loan fund are two linked entries approved together.
+
+### Asset register
+
+`src/services/AssetService.gs`. Admins only. Every new asset, and every material change (identity, value, condition, status, location, disposal), must be verified by a different admin; rejections need a reason. Disposed assets stay on the register. PDF and Excel exports use the list's filters; the Excel file is built with `Utilities.zip` (no extra permission needed).
+
+### Upgrading an older install
+
+For a spreadsheet created before these features, run **`setupGuaranteeSchema`** once in the editor after pushing. It adds every missing column and tab (deposit accounts, guarantors and notices, loan fund and investments, loans with security and committee roles, asset register) and gives existing repayments references. Existing rows are not changed: rows without a deposit account are placed by their payment category (Operations Fee → Operations, Welfare Fee → Welfare, everything else → Principal), so each member's total savings stays the same.
+
+**Member numbers.** Members are numbered `<CLUB_SHORT_NAME>-0001`, `-0002`, … (`src/services/MemberNumberService.gs`). For a spreadsheet with older `M001`-style numbers, run `previewMemberNumberMigration()` to see what would change, then `migrateMemberNumbers()` once. It rewrites member numbers on every tab except the append-only Audit Log, which keeps the old numbers and gets one entry recording the mapping. It is safe to run again.
+
+**Not supported yet**: loan write-offs or cancellations, currencies other than UGX, and file uploads (supporting documents are stored as https links, for example to Google Drive).
