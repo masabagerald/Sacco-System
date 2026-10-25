@@ -295,7 +295,7 @@ The app creates every tab below with its header row the first time it is opened 
 | `Loan Waivers`, `Waiver Decisions` | loans with security: security details, eligibility snapshot, each committee decision |
 | `Assets`, `Asset Reviews`, `Asset History` | asset register, every verification decision, every change with old and new values |
 
-IDs are generated per tab (`L001`, `R001`, `W001`, `F001`, `RPY-000001`, `AST-0001`, …).
+Every record gets a reference of the form `CODE-000001`: six digits, one counter per record type. The codes are in `REF_CODES` (`src/utils/Config.gs`): `LN` loans, `LRQ` loan requests, `WRQ` withdrawal requests, `SUR` surcharges, `RPY` repayments, `DEP` / `WDL` / `REV` savings deposits, withdrawals and reversals, `LFE` loan fund entries, `INV` investments, `IVT` investment transactions, `AST` assets. Clubs set up before this format keep their older references (`L007`, `R012`, `AST-0004`, …), which stay valid; new numbers continue after the highest existing one. Member numbers have their own format, `<CLUB_SHORT_NAME>-0001`.
 
 **Never delete or reorder rows by hand.** Corrections are made in the app (reversals, corrections, edits with a reason), which keeps the audit trail intact.
 

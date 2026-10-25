@@ -66,17 +66,32 @@ function emptyRow(sh, hRow, keyCol) {
   return data.length + 1;
 }
 
-// Auto-increment ID: e.g. nextId('Loans','loanid','L') → 'L004'
-function nextId(sheetName, headerHint, prefix) {
+// ── REFERENCE NUMBERS ─────────────────────────────────────────────────────────
+// kind: a key of REF_CODES (Config.gs). New references are CODE-000001; older ones (L007, AST-0003)
+// are still recognised and counted, so numbering carries on from them.
+
+function _formatRef(kind, n) { return REF_CODES[kind].code + '-' + String(n).padStart(REF_DIGITS, '0'); }
+
+// The serial number of a reference of this kind, in the current or the older format; 0 if it isn't one
+function _refSerial(kind, ref) {
+  const k = REF_CODES[kind], s = String(ref == null ? '' : ref).trim().toUpperCase();
+  const cur = s.match(new RegExp('^' + k.code + '-([0-9]+)$'));
+  if (cur) return parseInt(cur[1], 10);
+  if (!k.legacy || s.indexOf(k.legacy) !== 0) return 0;
+  const old = s.slice(k.legacy.length).match(/^([0-9]+)$/);
+  return old ? parseInt(old[1], 10) : 0;
+}
+
+// The next reference after the highest one among `refs`
+function _nextRef(kind, refs) {
+  return _formatRef(kind, refs.reduce((max, r) => Math.max(max, _refSerial(kind, r)), 0) + 1);
+}
+
+// Next reference for the ID column of a sheet, e.g. nextId(SH_LOANS, 'loanid', 'loan') -> 'LN-000008'
+function nextId(sheetName, headerHint, kind) {
   const { sh, headers, hRow } = readSheet(sheetName, headerHint);
   const c = ci(headers, headerHint);
-  const data = sh.getDataRange().getValues();
-  let max = 0;
-  for (let r = hRow + 1; r < data.length; r++) {
-    const m = String(data[r][c] || '').match(/(\d+)/);
-    if (m) max = Math.max(max, parseInt(m[1], 10));
-  }
-  return prefix + String(max + 1).padStart(3, '0');
+  return _nextRef(kind, sh.getDataRange().getValues().slice(hRow + 1).map(r => r[c]));
 }
 
 // Runs fn while holding the script lock (one writer at a time across all users).

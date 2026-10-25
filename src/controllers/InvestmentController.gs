@@ -48,9 +48,7 @@ function createInvestment(data) {
     if (missing || hRow < 0) throw new Error('The "' + SH_INVESTMENTS + '" tab is missing. Run setupFinanceSchema() once from the script editor.');
     if (rows.some(r => String(r['Name'] || '').trim().toLowerCase() === inv.name.toLowerCase() && String(r['Provider'] || '').trim().toLowerCase() === inv.provider.toLowerCase()))
       return { ok: false, error: 'An investment called "' + inv.name + '" with ' + inv.provider + ' already exists.' };
-    let max = 0;
-    rows.forEach(r => { const m = String(r['InvestmentID'] || '').match(/^INV([0-9]+)$/); if (m) max = Math.max(max, +m[1]); });
-    const id = 'INV' + String(max + 1).padStart(3, '0');
+    const id = _nextRef('investment', rows.map(r => r['InvestmentID']));
     _writeRow(sh, headers, emptyRow(sh, hRow, _hdrIdx(headers, 'InvestmentID')), { InvestmentID: id, Timestamp: now_ts(), Name: inv.name, Type: inv.type,
       Provider: inv.provider, Currency: inv.currency, 'Start Date': inv.startDate, 'Maturity Date': inv.maturityDate,
       'Account Reference': inv.accountRef, Status: inv.status, Notes: inv.notes, 'Document Link': inv.documentLink, 'Created By': auth.member.memberNo });

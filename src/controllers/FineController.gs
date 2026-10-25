@@ -17,7 +17,7 @@ function issueFine(memberNo, amount, reason) {
   const av = validatePositiveAmount(amount); if (!av.ok) return av;
   const rv = validateReason(reason); if (!rv.ok) return rv;
   const { sh, headers, hRow } = readSheet(SH_FINES,'fineid');
-  const newId=nextId(SH_FINES,'fineid','F');
+  const newId=nextId(SH_FINES,'fineid','surcharge');
   const row=emptyRow(sh,hRow,ci(headers,'memberno'));
   const s=(c,v)=>{if(c>-1)sh.getRange(row,c+1).setValue(v);};
   s(ci(headers,'fineid'),newId); s(ci(headers,'timestamp'),now_ts());

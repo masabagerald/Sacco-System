@@ -41,7 +41,7 @@ function _writeLoanRequestRow(memberNo, initiatedBy, amount, spec, termInput, pu
     throw new Error('Loan Requests sheet is missing a required column (Repayment Term or Initiated By). Run setupGuaranteeSchema() once from the script editor.');
   if (guarantorOverride && ci(headers,'guarantor override') < 0)
     throw new Error('Loan Requests sheet is missing the "Guarantor Override" column. Run setupGuaranteeSchema() once from the script editor.');
-  const newId = nextId(SH_LOAN_REQ,'requestid','R');
+  const newId = nextId(SH_LOAN_REQ,'requestid','loanRequest');
   const row = emptyRow(sh, hRow, ci(headers,'memberno'));
   const s=(c,v)=>{if(c>-1)sh.getRange(row,c+1).setValue(v);};
   s(ci(headers,'requestid'),newId); s(ci(headers,'timestamp'),now_ts());

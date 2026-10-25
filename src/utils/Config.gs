@@ -8,6 +8,25 @@ const BRAND_COLOR        = '#143452'; // navy from the club seal
 const LOAN_TO_SAVINGS_LIMIT = 0.5; // max loan = this × member savings (Article 4, Section 2: 50%)
 const OTP_EXPIRY_MS      = 10 * 60 * 1000; // 10 minutes
 
+// Reference numbers: CODE-000001. Every record type has its own code and counter; the next number
+// continues from the highest existing one, so references made before this format (L007, AST-0003, ...)
+// stay valid and are never reused. legacy: the prefix used before, so its numbers are counted too.
+const REF_DIGITS = 6;
+const REF_CODES = {
+  loan:         { code: 'LN',  legacy: 'L' },    // LN-000001   loans
+  loanRequest:  { code: 'LRQ', legacy: 'R' },    // LRQ-000001  loan requests
+  withdrawal:   { code: 'WRQ', legacy: 'W' },    // WRQ-000001  withdrawal requests
+  surcharge:    { code: 'SUR', legacy: 'F' },    // SUR-000001  surcharges
+  fundEntry:    { code: 'LFE', legacy: 'LF' },   // LFE-000001  loan fund ledger entries
+  investment:   { code: 'INV', legacy: 'INV' },  // INV-000001  investments
+  investmentTx: { code: 'IVT', legacy: 'IT' },   // IVT-000001  investment transactions
+  asset:        { code: 'AST', legacy: 'AST-' }, // AST-000001  assets
+  deposit:      { code: 'DEP' },                 // DEP-000001  savings deposits
+  savingsOut:   { code: 'WDL' },                 // WDL-000001  savings withdrawals
+  reversal:     { code: 'REV' },                 // REV-000001  savings reversals
+  repayment:    { code: 'RPY' }                  // RPY-000001  loan repayments
+};
+
 // Loan rules (Article 4 of the SACCO by-laws)
 const FLAT_INTEREST_RATE         = 0.10;  // Sec 10: 10% flat on principal, charged on transfer
 const PROCESSING_FEE             = 10000; // processing fee on every loan (UGX), added to the debt

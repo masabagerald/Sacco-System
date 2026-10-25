@@ -78,7 +78,7 @@
 
     'record-repayment': { as: P.M001, async run() {
       await wait(300); goSec('loans'); await wait(700); focusOn(panelOf('#activeLoansTb'));
-      openRepay('L015', 120000); set('#rp_am', '50000'); set('#rp_dt', '2026-10-14'); set('#rp_nt', 'Mobile money, ref MM-88213');
+      openRepay('LN-000015', 120000); set('#rp_am', '50000'); set('#rp_dt', '2026-10-14'); set('#rp_nt', 'Mobile money, ref MM-88213');
       loadRepayPreview(); await wait(300);
     } },
 
@@ -94,7 +94,7 @@
     } },
 
     'waiver-decision': { as: P.M001, async run() {
-      await wait(300); goSec('loans'); await wait(800); focusOn(panelOf('#loanReqAdminTb')); openWaiver('R025');
+      await wait(300); goSec('loans'); await wait(800); focusOn(panelOf('#loanReqAdminTb')); openWaiver('LRQ-000025');
       set('#wv_comment', 'Title verified at the lands office; value confirmed by the valuer.');
     } },
 
@@ -103,13 +103,13 @@
     } },
 
     'asset-review': { as: P.M001, async run() {
-      await wait(300); goSec('assets'); await wait(800); openAssetView('AST-0004'); await wait(300);
+      await wait(300); goSec('assets'); await wait(800); openAssetView('AST-000004'); await wait(300);
       set('#av_comment', 'Checked the projector and the receipt in the club office.');
     } },
 
     'reverse-repayment': { as: P.M001, async run() {
       await wait(300); goSec('loans'); await wait(700); focusOn(panelOf('#repaymentsTb'));
-      openRevRepay('RPY-000046'); set('#rr_rs', 'Recorded against L014 by mistake; the payment was for L012');
+      openRevRepay('RPY-000046'); set('#rr_rs', 'Recorded against LN-000014 by mistake; the payment was for LN-000012');
     } },
 
     // Loan Insights as a Founder Member (Peter, not an admin): club totals only
@@ -139,7 +139,7 @@
 
     'investment-transfer': { as: P.M001, async run() {
       await wait(300); goSec('investments'); await wait(800); focusOn(panelOf('#iv_tb'));
-      openInvTr('INV001'); set('#tr_dir', 'toLoanFund'); set('#tr_am', '300000'); set('#tr_rf', 'TRF-9'); set('#tr_nt', 'Top up the loan float');
+      openInvTr('INV-000001'); set('#tr_dir', 'toLoanFund'); set('#tr_am', '300000'); set('#tr_rf', 'TRF-9'); set('#tr_nt', 'Top up the loan float');
     } }
   };
 

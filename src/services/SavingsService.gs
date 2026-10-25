@@ -162,13 +162,7 @@ function _checkSavingsTxs(rows, txs) {
 
 // Auto-generated savings reference: DEP-000001, WDL-000001, REV-000001 (reversals).
 function _nextSavingsRef(rows, type) {
-  const prefix = type === TX_DEPOSIT ? 'DEP' : type === TX_WITHDRAWAL ? 'WDL' : 'REV';
-  let max = 0;
-  rows.forEach(r => {
-    const m = String(r['Reference'] || '').trim().match(new RegExp('^' + prefix + '-([0-9]+)$'));
-    if (m) max = Math.max(max, parseInt(m[1], 10));
-  });
-  return prefix + '-' + String(max + 1).padStart(6, '0');
+  return _nextRef(type === TX_DEPOSIT ? 'deposit' : type === TX_WITHDRAWAL ? 'savingsOut' : 'reversal', rows.map(r => r['Reference']));
 }
 
 // Appends ledger rows under the script lock, re-checking the ledger rules against the latest rows

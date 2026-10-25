@@ -45,7 +45,7 @@ module.exports = {
     assert.strictEqual(ctx.assets().length, 0, 'nothing saved');
 
     const res = ok(g.registerAsset(LAPTOP), 'valid asset');
-    eq([res.assetId, res.verification], ['AST-0001', 'Pending Verification'], 'new assets start pending');
+    eq([res.assetId, res.verification], ['AST-000001', 'Pending Verification'], 'new assets start pending');
     const row = ctx.assets()[0];
     eq([row['Value (UGX)'], row['Created By'], row['Submitted By'], row.Version, row['Verified By']], [2450000, 'M001', 'M001', 1, ''], 'UGX value, creator recorded');
     ok(g.registerAsset(asset({ tag: '', serial: '', type: 'Other', otherType: 'Projector', description: 'Hall projector' })), 'Other with its type');
@@ -54,8 +54,8 @@ module.exports = {
     ok(g.registerAsset(asset({ tag: 'MSIC-IT-009', serial: 'SN-9', availability: 'Disposed Off', disposalDate: '2026-01-10',
       disposedTo: 'St Jude School', recipientContact: '0772 123 456' })), 'registered as already disposed');
     assert.strictEqual(ctx.assets().find(a => a['Asset Tag'] === 'MSIC-IT-009')['Recipient Contact'], '+256772123456', 'contact normalised');
-    assert.ok(ctx.audit().some(a => a.Action === 'Asset Registered' && a['Reference ID'] === 'AST-0001'));
-    assert.ok(ctx.audit().some(a => a.Action === 'Asset Submitted for Verification' && a['Reference ID'] === 'AST-0001'));
+    assert.ok(ctx.audit().some(a => a.Action === 'Asset Registered' && a['Reference ID'] === 'AST-000001'));
+    assert.ok(ctx.audit().some(a => a.Action === 'Asset Submitted for Verification' && a['Reference ID'] === 'AST-000001'));
   },
 
   'asset tags and serial numbers are unique, whatever the case'(c) {
@@ -63,12 +63,12 @@ module.exports = {
     ctx.as(ALICE);
     ok(g.registerAsset(LAPTOP), 'first');
     const t = g.registerAsset(asset({ tag: ' msic-it-001 ', serial: 'OTHER' }));
-    assert.ok(!t.ok && t.field === 'tag' && /already used by AST-0001/.test(t.error), JSON.stringify(t));
+    assert.ok(!t.ok && t.field === 'tag' && /already used by AST-000001/.test(t.error), JSON.stringify(t));
     const s = g.registerAsset(asset({ tag: 'NEW-1', serial: 'dl5420-77x1' }));
     assert.ok(!s.ok && s.field === 'serial', JSON.stringify(s));
     const b = ok(g.registerAsset(asset({ tag: 'NEW-1', serial: 'NEW-SN' })), 'second').assetId;
     ctx.as(BOB);
-    fails(g.updateAsset(b, asset({ tag: 'MSIC-IT-001', serial: 'NEW-SN' }), 'typo'), /already used by AST-0001/, 'an edit cannot take another asset\'s tag');
+    fails(g.updateAsset(b, asset({ tag: 'MSIC-IT-001', serial: 'NEW-SN' }), 'typo'), /already used by AST-000001/, 'an edit cannot take another asset\'s tag');
   },
 
   'a different admin verifies; the creator and members cannot; rejection needs a reason and keeps history'(c) {

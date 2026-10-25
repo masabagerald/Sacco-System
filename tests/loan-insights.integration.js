@@ -138,7 +138,7 @@ module.exports = {
     fails(g.getLoanFundLedger({}), /Admin access required/, 'founder ledger');
     fails(g.getLoanFundEntries(), /Admin access required/, 'founder fund entries');
     fails(g.proposeLoanFundEntry('Cash Injection', 1000, '', '', 'x'), /Admin access required/, 'founder proposing');
-    fails(g.approveFinanceEntry('LF001'), /Admin access required/, 'founder approving');
+    fails(g.approveFinanceEntry('LFE-000001'), /Admin access required/, 'founder approving');
 
     for (const [who, label] of [[EVE, 'delegate'], [NAN, 'non-member']]) {
       fakes.signInAs(who);

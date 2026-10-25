@@ -36,7 +36,7 @@ function requestWithdrawal(amount, reason, otherText, account) {
     const avail = _withdrawalAvailable(savRows, reqs, memberNo, account);
     if (amount > avail) return {ok:false,error:'Amount exceeds the available '+(pooled?'club ':'')+account+' balance ('+fmtUGX(Math.max(avail,0))
       +(avail < bal ? ', after requests still awaiting approval' : '')+').'};
-    const newId=nextId(SH_WD_REQ,'requestid','W');
+    const newId=nextId(SH_WD_REQ,'requestid','withdrawal');
     const row=emptyRow(sh,hRow,ci(headers,'memberno'));
     const s=(c,v)=>{if(c>-1)sh.getRange(row,c+1).setValue(v);};
     s(ci(headers,'requestid'),newId); s(ci(headers,'timestamp'),now_ts());

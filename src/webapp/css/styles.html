@@ -74,6 +74,7 @@ td.r{text-align:right;font-family:"IBM Plex Mono",monospace;white-space:nowrap}
 td.g{color:var(--good)} td.b{color:var(--bad)}
 tr:hover td{background:var(--hover)}
 .empty td{text-align:center;color:var(--dim);padding:16px;font-style:italic}
+.panel td:first-child{white-space:nowrap}   /* references (LRQ-000025) and dates stay on one line */
 
 .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.2px;white-space:nowrap}
 .badge.active{background:rgba(46,125,79,.12);color:var(--good)}

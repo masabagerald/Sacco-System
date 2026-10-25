@@ -17,15 +17,14 @@ const INVESTMENT_HEADERS = ['InvestmentID', 'Timestamp', 'Name', 'Type', 'Provid
 // this object is built -- it is read only when a function asks for it.
 const APPROVAL_LEDGERS = {
   fund: { get sheet() { return SH_LOAN_FUND; }, hint: 'entryid', id: 'EntryID', type: 'Entry Type', notes: 'Description', inv: 'Investment ID',
-    prefix: 'LF', label: 'Loan fund entry', headers: LOAN_FUND_HEADERS },
+    ref: 'fundEntry', label: 'Loan fund entry', headers: LOAN_FUND_HEADERS },
   inv:  { get sheet() { return SH_INV_TX; }, hint: 'txid', id: 'TxID', type: 'Tx Type', notes: 'Notes', inv: 'InvestmentID',
-    prefix: 'IT', label: 'Investment transaction', headers: INV_TX_HEADERS }
+    ref: 'investmentTx', label: 'Investment transaction', headers: INV_TX_HEADERS }
 };
 
-// 'fund' for LF001, 'inv' for IT001, '' otherwise
+// 'fund' for LFE-000001 (or the older LF001), 'inv' for IVT-000001 (or IT001), '' otherwise
 function _ledgerKeyOf(id) {
-  const m = String(id || '').trim().match(/^([A-Z]+)[0-9]+$/);
-  return (m && Object.keys(APPROVAL_LEDGERS).find(k => APPROVAL_LEDGERS[k].prefix === m[1])) || '';
+  return Object.keys(APPROVAL_LEDGERS).find(k => _refSerial(APPROVAL_LEDGERS[k].ref, id) > 0) || '';
 }
 
 // Rows of a sheet that may not exist yet (before the setup has been run): empty instead of an error
@@ -57,11 +56,7 @@ function _writeRow(sh, headers, rowNum, obj) {
   sh.getRange(rowNum, 1, 1, headers.length).setValues([arr]);
 }
 
-function _nextLedgerId(rows, L) {
-  let max = 0;
-  rows.forEach(r => { const m = String(r[L.id] || '').trim().match(new RegExp('^' + L.prefix + '([0-9]+)$')); if (m) max = Math.max(max, parseInt(m[1], 10)); });
-  return L.prefix + String(max + 1).padStart(3, '0');
-}
+function _nextLedgerId(rows, L) { return _nextRef(L.ref, rows.map(r => r[L.id])); }
 
 // Appends entries (Pending). entries: [{ ledger: 'fund'|'inv', fields: {...} }]. With link=true the
 // two entries reference each other in "Linked Entry". Caller holds the script lock. Returns the ids.

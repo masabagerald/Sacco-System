@@ -13,11 +13,11 @@ function setup(c) {
   ctx.approve = id => { ctx.fakes.signInAs(BOB); ok(ctx.g.approveFinanceEntry(id), 'first ' + id); ctx.fakes.signInAs(CAROL); ok(ctx.g.approveFinanceEntry(id), 'final ' + id); ctx.fakes.signInAs(ALICE); };
   ctx.propose = (...a) => { ctx.fakes.signInAs(ALICE); const r = ok(ctx.g.proposeInvestmentTx(...a), 'propose ' + a[1]); ctx.approve(r.txId); return r.txId; };
   ctx.dash = f => { ctx.fakes.signInAs(ALICE); return ok(ctx.g.getInvestmentDashboard(f || {}), 'dashboard'); };
-  ctx.inv = (f, id) => ctx.dash(f).investments.find(i => i.id === (id || 'INV001'));
+  ctx.inv = (f, id) => ctx.dash(f).investments.find(i => i.id === (id || 'INV-000001'));
   return ctx;
 }
 
-// INV001 unit trust: 1,000,000 on 10 Jan 2025; 20,000 earned (Feb), the same 20,000 received (Mar);
+// INV-000001 unit trust: 1,000,000 on 10 Jan 2025; 20,000 earned (Feb), the same 20,000 received (Mar);
 // valued at 1,050,000 on 31 Mar; a 5,000 fee taken from the balance and 1,000 tax paid separately (Apr).
 function portfolio(ctx) {
   const { g, fakes } = ctx;
@@ -26,11 +26,11 @@ function portfolio(ctx) {
     accountRef: '12345678', initialAmount: 1000000, reference: 'UT-1' }), 'create');
   assert.ok(c.txId, 'initial investment proposed with the record');
   ctx.approve(c.txId);
-  ctx.propose('INV001', 'Income Earned', 20000, '2025-02-28', '', 'February return', '');
-  ctx.propose('INV001', 'Income Received', 20000, '2025-03-05', 'STMT-03', 'Paid out', '');
-  ctx.propose('INV001', 'Valuation', 1050000, '2025-03-31', '', 'Statement value', '');
-  ctx.propose('INV001', 'Fee', 5000, '2025-04-10', '', 'Management fee', 'Investment balance');
-  ctx.propose('INV001', 'Tax', 1000, '2025-04-10', '', 'WHT', 'Paid separately');
+  ctx.propose('INV-000001', 'Income Earned', 20000, '2025-02-28', '', 'February return', '');
+  ctx.propose('INV-000001', 'Income Received', 20000, '2025-03-05', 'STMT-03', 'Paid out', '');
+  ctx.propose('INV-000001', 'Valuation', 1050000, '2025-03-31', '', 'Statement value', '');
+  ctx.propose('INV-000001', 'Fee', 5000, '2025-04-10', '', 'Management fee', 'Investment balance');
+  ctx.propose('INV-000001', 'Tax', 1000, '2025-04-10', '', 'WHT', 'Paid separately');
 }
 
 // Principal savings so the loan fund has cash
@@ -63,7 +63,7 @@ module.exports = {
     const months = Object.fromEntries(Array.from(d.months).map(m => [m.month, m]));
     assert.deepStrictEqual([months['2025-02'].incomeEarned, months['2025-03'].incomeReceived], [20000, 20000]);
     assert.strictEqual(d.investments[0].accountRef, '•••• 5678', 'account numbers are masked in lists');
-    assert.strictEqual(ok(ctx.g.getInvestment('INV001'), 'detail').investment.accountRef, '12345678');
+    assert.strictEqual(ok(ctx.g.getInvestment('INV-000001'), 'detail').investment.accountRef, '12345678');
   },
 
   'a transfer to the loan fund is a redemption plus an injection, approved together, never income'(c) {
@@ -72,8 +72,8 @@ module.exports = {
     const cashNow = () => { fakes.signInAs(ALICE); return g.getLoanInsights({}).closing.availableCash; };
     const before = { cash: cashNow(), inv: ctx.inv({}).figures };
     fakes.signInAs(ALICE);
-    fails(g.proposeInvestmentTransfer('toLoanFund', 'INV001', 1045001, '2025-05-02', '', ''), /more than the investment's current recorded value/, 'over value');
-    const t = ok(g.proposeInvestmentTransfer('toLoanFund', 'INV001', 300000, '2025-05-02', 'TRF-1', 'Top up loan float'), 'transfer');
+    fails(g.proposeInvestmentTransfer('toLoanFund', 'INV-000001', 1045001, '2025-05-02', '', ''), /more than the investment's current recorded value/, 'over value');
+    const t = ok(g.proposeInvestmentTransfer('toLoanFund', 'INV-000001', 300000, '2025-05-02', 'TRF-1', 'Top up loan float'), 'transfer');
     assert.ok(t.fundEntryId, 'a linked loan fund entry is created');
     fakes.signInAs(BOB); ok(g.approveFinanceEntry(t.txId), 'first via the investment side');
     fakes.signInAs(CAROL); ok(g.approveFinanceEntry(t.fundEntryId), 'final via the loan fund side');
@@ -100,9 +100,9 @@ module.exports = {
     const ctx = setup(c), { g, fakes } = ctx;
     portfolio(ctx); fundCash(ctx, 100000);
     fakes.signInAs(ALICE);
-    fails(g.proposeInvestmentTransfer('fromLoanFund', 'INV001', 100001, '', '', ''), /Not enough available loan cash/, 'over cash');
-    const t = ok(g.proposeInvestmentTransfer('fromLoanFund', 'INV001', 60000, '', '', ''), 'transfer');
-    fails(g.proposeInvestmentTransfer('fromLoanFund', 'INV001', 50000, '', '', ''), /after entries awaiting approval/, 'pending transfer counts');
+    fails(g.proposeInvestmentTransfer('fromLoanFund', 'INV-000001', 100001, '', '', ''), /Not enough available loan cash/, 'over cash');
+    const t = ok(g.proposeInvestmentTransfer('fromLoanFund', 'INV-000001', 60000, '', '', ''), 'transfer');
+    fails(g.proposeInvestmentTransfer('fromLoanFund', 'INV-000001', 50000, '', '', ''), /after entries awaiting approval/, 'pending transfer counts');
     ctx.approve(t.txId);
     const f = ctx.inv({}).figures;
     assert.deepStrictEqual([f.transfersFromLoanFund, f.netInvested], [60000, 995000 + 60000]);
@@ -114,12 +114,12 @@ module.exports = {
     const ctx = setup(c), { g, fakes } = ctx;
     portfolio(ctx);
     fakes.signInAs(ALICE);
-    fails(g.proposeInvestmentTx('INV001', 'Initial Investment', 5, '', '', '', ''), /already has an initial investment/, 'second initial');
-    fails(g.proposeInvestmentTx('INV001', 'Fee', 5, '', '', '', ''), /deducted from the investment balance or paid separately/, 'fee source');
+    fails(g.proposeInvestmentTx('INV-000001', 'Initial Investment', 5, '', '', '', ''), /already has an initial investment/, 'second initial');
+    fails(g.proposeInvestmentTx('INV-000001', 'Fee', 5, '', '', '', ''), /deducted from the investment balance or paid separately/, 'fee source');
     fails(g.proposeInvestmentTx('INV999', 'Fee', 5, '', '', '', 'Paid separately'), /Investment not found/, 'unknown investment');
-    fails(g.proposeInvestmentTx('INV001', 'Income Received', 5, '2999-01-01', '', '', ''), /future/, 'future date');
-    const id = ok(g.proposeInvestmentTx('INV001', 'Additional Contribution', 50000, '2025-06-01', 'DEP-9', '', ''), 'propose').txId;
-    fails(g.proposeInvestmentTx('INV001', 'Additional Contribution', 50000, '2025-06-01', 'DEP-9', '', ''), /already used/, 'duplicate');
+    fails(g.proposeInvestmentTx('INV-000001', 'Income Received', 5, '2999-01-01', '', '', ''), /future/, 'future date');
+    const id = ok(g.proposeInvestmentTx('INV-000001', 'Additional Contribution', 50000, '2025-06-01', 'DEP-9', '', ''), 'propose').txId;
+    fails(g.proposeInvestmentTx('INV-000001', 'Additional Contribution', 50000, '2025-06-01', 'DEP-9', '', ''), /already used/, 'duplicate');
     const before = ctx.inv({}).figures.netInvested;
     fails(g.approveFinanceEntry(id), /You initiated this request/, 'proposer');
     fakes.signInAs(BOB); ok(g.approveFinanceEntry(id), 'first');
@@ -142,9 +142,9 @@ module.exports = {
     assert.deepStrictEqual([f.valued, f.value, f.capitalGain], [false, f.netInvested, 0], 'back to cost');
 
     fakes.signInAs(ALICE);
-    const data = Object.assign(ok(g.getInvestment('INV001'), 'get').investment, { status: 'Matured', accountRef: '87654321' });
-    fails(g.updateInvestment('INV001', data, ''), /reason/, 'no reason');
-    ok(g.updateInvestment('INV001', data, 'Fund matured'), 'update');
+    const data = Object.assign(ok(g.getInvestment('INV-000001'), 'get').investment, { status: 'Matured', accountRef: '87654321' });
+    fails(g.updateInvestment('INV-000001', data, ''), /reason/, 'no reason');
+    ok(g.updateInvestment('INV-000001', data, 'Fund matured'), 'update');
     const a = ctx.audit().find(x => x.Action === 'Investment Updated');
     assert.ok(/Status: "Active" -> "Matured"/.test(a.Details) && /•••• 5678.*•••• 4321/.test(a.Details) && !/87654321/.test(a.Details), a.Details);
   },
@@ -165,11 +165,11 @@ module.exports = {
     portfolio(ctx);
     fakes.signInAs(DAN);                                 // Founder Member: Loan Insights yes, investments no
     fails(g.getInvestmentDashboard({}), /Admin access required/, 'dashboard');
-    fails(g.getInvestment('INV001'), /Admin access required/, 'detail');
+    fails(g.getInvestment('INV-000001'), /Admin access required/, 'detail');
     fails(g.getInvestmentTransactions(''), /Admin access required/, 'transactions');
     fails(g.createInvestment({ name: 'x' }), /Admin access required/, 'create');
-    fails(g.proposeInvestmentTx('INV001', 'Fee', 5, '', '', '', 'Paid separately'), /Admin access required/, 'propose');
-    fails(g.proposeInvestmentTransfer('toLoanFund', 'INV001', 5, '', '', ''), /Admin access required/, 'transfer');
+    fails(g.proposeInvestmentTx('INV-000001', 'Fee', 5, '', '', '', 'Paid separately'), /Admin access required/, 'propose');
+    fails(g.proposeInvestmentTransfer('toLoanFund', 'INV-000001', 5, '', '', ''), /Admin access required/, 'transfer');
     ok(g.getLoanInsights({}), 'Loan Insights still allowed');
   }
 };

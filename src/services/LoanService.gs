@@ -274,7 +274,7 @@ function _createLoanRow(memberNo, principal, purpose, issuedBy, overrideReason, 
   const needed = ['loan model','processing fee','interest rate','due date'];
   if (needed.some(n => ci(headers, n) < 0))
     throw new Error('Loans sheet is missing one of these columns: Loan Model, Processing Fee (UGX), Interest Rate (%), Due Date. Run setupGuaranteeSchema() once from the script editor.');
-  const newId = nextId(SH_LOANS,'loanid','L');
+  const newId = nextId(SH_LOANS,'loanid','loan');
   const row = emptyRow(sh, hRow, ci(headers,'loanid'));
   const s = (c,v) => { if(c>-1) sh.getRange(row,c+1).setValue(v); };
   const issued = new Date();

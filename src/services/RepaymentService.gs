@@ -3,11 +3,7 @@
 // a row with the negative amount and "Reverses" set to the original's reference, so every total that
 // sums the rows (loan balances, dashboard, statements, Loan Insights) nets the pair off.
 
-function _nextRepaymentRef(rows) {
-  let max = 0;
-  rows.forEach(r => { const m = String(r['Reference']||'').trim().match(/^RPY-([0-9]+)$/); if (m) max = Math.max(max, parseInt(m[1], 10)); });
-  return 'RPY-' + String(max + 1).padStart(6, '0');
-}
+function _nextRepaymentRef(rows) { return _nextRef('repayment', rows.map(r => r['Reference'])); }
 
 // Appends one row. tx: { date, loanId, memberNo, amount, recordedBy, notes, reverses }. Caller holds the
 // script lock. Returns the new reference ('' on a sheet that has no Reference column yet).

@@ -125,11 +125,7 @@ function _assetChanges(row, a) {
     .filter(c => c.before !== c.after);
 }
 
-function _nextAssetId(rows) {
-  let max = 0;
-  rows.forEach(r => { const m = String(r['AssetID'] || '').match(/^AST-([0-9]+)$/); if (m) max = Math.max(max, +m[1]); });
-  return 'AST-' + String(max + 1).padStart(4, '0');
-}
+function _nextAssetId(rows) { return _nextRef('asset', rows.map(r => r['AssetID'])); }
 
 // ── Views, filters, history ───────────────────────────────────────────────────
 
@@ -173,7 +169,7 @@ function _filterAssets(views, f) {
     (!f.from || a.dateAcquired >= f.from) && (!f.to || a.dateAcquired <= f.to) &&
     (!f.verification || a.verification === f.verification) &&
     (!f.disposal || (f.disposal === 'disposed' ? a.disposed : !a.disposed)))
-    .sort((x, y) => x.id.localeCompare(y.id));
+    .sort((x, y) => _refSerial('asset', x.id) - _refSerial('asset', y.id) || x.id.localeCompare(y.id));  // by number: AST-0009 before AST-000010
 }
 
 // Totals for a list. Only verified assets count towards the register's verified value.
