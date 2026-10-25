@@ -89,7 +89,7 @@ Signed in **as the club's Google account**:
    - Tick **Show "appsscript.json" manifest file in editor**.
    - Copy the **Script ID**. You need it in step 6.
 
-If someone else will do the technical setup, the club shares the spreadsheet with them as **Editor**; they can then open Extensions → Apps Script and push code. The **deployment in step 9 should still be done signed in as the club's account**, so the app runs and sends email as the club.
+If someone else will do the technical setup, the club shares the spreadsheet with them as **Editor**; they can then open Extensions → Apps Script and push code. The **deployment in step 8 should still be done signed in as the club's account**, so the app runs and sends email as the club.
 
 ### 5. Turn on the Apps Script API (once per Google account that uses clasp)
 
@@ -145,28 +145,7 @@ clasp push --force           # --force: overwrite the project's default manifest
 
 `clasp push` uploads `appsscript.json` and everything under `src/` (see `.claspignore`); tests, tools and docs are not uploaded. Reload the Apps Script editor: you should see folders such as `src/controllers`, `src/services` and `src/webapp`. The default empty `Code.gs` can be deleted in the editor.
 
-### 8. Set up the spreadsheet and the scheduled jobs
-
-In the Apps Script editor:
-
-1. Open **`src/services/SetupService.gs`**, choose **`setupNewClub`** in the function list at the top, and click **Run**.
-2. Google asks for permission the first time. Choose the club's account, then **Advanced → Go to *(project name)* (unsafe) → Allow**. The warning appears because the script is private to the club and not published by Google; it is expected.
-   - The app asks for access to: the spreadsheet, Google Drive (backups and PDFs), Google Docs (building PDFs), sending email as the club, and running scheduled jobs.
-3. When it finishes, the **Execution log** shows *"Setup complete…"*. The spreadsheet now has every tab with its header row, and **you are member `<SHORT>-0001`, an Admin**. Put your real name in the **Full Name** cell on the **Members** tab.
-   - `setupNewClub` never deletes or changes existing rows, so it is safe to run again. You can delete the empty *Sheet1* tab.
-4. Open **`src/triggers/ScheduledJobs.gs`**, choose **`createAllTriggers`**, and **Run**. This schedules:
-
-   | Job | When |
-   |---|---|
-   | `processLoanDueDates`: due-date reminders, overdue surcharges | daily, 7 am |
-   | `sendRepaymentReminders` | daily 9 am, and on the 25th, 8 am |
-   | `sendMonthlyStatements` | 1st of the month, 7 am |
-   | `sendMonthlyAuditReport` | 1st of the month, 5 am |
-   | `backupSpreadsheet`: copy to a Drive folder, keeps 8 | Mondays, 6 am |
-
-   Check under **Triggers** (the alarm-clock icon). Running `createAllTriggers` again replaces them, so there are never duplicates.
-
-### 9. Deploy the web app
+### 8. Deploy the web app (and allow its permissions)
 
 Signed in **as the club's account**, in the Apps Script editor:
 
@@ -174,21 +153,47 @@ Signed in **as the club's account**, in the Apps Script editor:
 2. Description: for example `v1 – first release`.
 3. **Execute as: Me (the club's account)**.
 4. **Who has access: Anyone**. Members sign in inside the app, so they don't need any Google permissions. Choose *Anyone with Google account* only if every member has a Google account and you want Google to check that first.
-5. **Deploy**, then copy the **Web app URL** (it ends in `/exec`). This is the club's app; it never changes as long as you update this same deployment (see [Updating](#updating-a-club-that-is-already-live)).
-6. Note the **Deployment ID** as well (Deploy → Manage deployments). You need it to update the club later. You can also see it with `clasp list-deployments`.
+5. Click **Deploy**. Google asks the club's account to allow the app's permissions: choose the account, then **Advanced → Go to *(project name)* (unsafe) → Allow**. The warning appears because the script is private to the club and not published by Google; it is expected.
+   - The app asks for access to: the spreadsheet, Google Drive (backups and PDFs), Google Docs (building PDFs), sending email as the club, and running scheduled jobs.
+6. Copy the **Web app URL** (it ends in `/exec`). This is the club's app; it never changes as long as you update this same deployment (see [Updating](#updating-a-club-that-is-already-live)).
+7. Note the **Deployment ID** (Deploy → Manage deployments, or `clasp list-deployments`). You need it to update the club later.
 
-Alternatively, from your computer: `clasp deploy -d "v1 – first release"`, then `clasp list-deployments` to get the ID. Open the URL from `clasp list-deployments` in a browser once to confirm it works.
+Do this first deployment in the editor, not with `clasp deploy`: `clasp deploy` can't show Google's permission screen, and until the permissions are allowed the app only shows *"Authorization required"*.
+
+### 9. Open the app: the database sets itself up
+
+Open the web app URL. **The first time the app is opened, it sets up the spreadsheet by itself** (it takes a few seconds):
+
+- creates every tab with its header row (Members, Savings, Loans, Loan Repayments, Surcharge, Loan Requests, Withdrawal Requests, Audit Log, Guarantors, Loan Fund Ledger, Investments, Loan Waivers, Assets, and the rest; see [Sheet schema](#sheet-schema));
+- schedules the automatic jobs:
+
+  | Job | When |
+  |---|---|
+  | `processLoanDueDates`: due-date reminders, overdue surcharges | daily, 7 am |
+  | `sendRepaymentReminders` | daily 9 am, and on the 25th, 8 am |
+  | `sendMonthlyStatements` | 1st of the month, 7 am |
+  | `sendMonthlyAuditReport` | 1st of the month, 5 am |
+  | `backupSpreadsheet`: copy to a Drive folder, keeps 8 | Mondays, 6 am |
+
+- adds **the hosting account (the club's Google account) as the first member**: `<SHORT>-0001`, **System Administrator**, an **Admin with no membership type**.
+
+The hosting account is an administrator only. It runs the app, so the app keeps it an active Admin: it can't be changed to an ordinary Member, made Inactive, or given a membership type. It has no savings or loans of its own. The club's officers are added as their own members in step 10, with their own emails.
+
+Then sign in: enter the **club account's email address**; a sign-in code arrives in that account's Gmail.
+
+Setup runs only once. It never deletes or changes existing rows, and the next visits skip it. To check it, open the spreadsheet (new tabs, *Club Set Up* on the **Audit Log** tab) and the Apps Script editor (**Triggers**, the alarm-clock icon). You can delete the empty *Sheet1* tab.
+
+**Running setup by hand instead.** In the Apps Script editor, open `src/services/SetupService.gs`, choose **`setupNewClub`** and click **Run**; the **Execution log** shows *"Setup complete…"*. This does exactly the same and is safe to run again. Use it if you want the spreadsheet ready before anyone opens the app, or to check for errors. `createAllTriggers` (in `src/triggers/ScheduledJobs.gs`) recreates the scheduled jobs on its own.
 
 ### 10. Go live
 
-1. Open the web app URL in a private/incognito window. Enter the admin email from step 8; a sign-in code arrives from the club's Gmail. Sign in.
-2. **Members → + Add Member** for every member: name, the email they will sign in with, phone, role (Member or Admin), membership type and **date joined the club**. The 12-month saving rule for loans counts from that date.
+1. Signed in as the System Administrator: **Members → + Add Member** for every member: name, the email they will sign in with, phone, role (Member or Admin), membership type and **date joined the club**. The 12-month saving rule for loans counts from that date.
+2. Make the club's officers **Admins** (role Admin). Have **at least three admins besides the System Administrator**: most approvals need two different admins who did not start the request, and waivers need three.
 3. Set the **committee roles** (Members → Edit → Committee role): at least the numbers in `WAIVER_ROLE_MINIMUMS` (by default one Chairperson and two Finance Committee members, all Admins). Without them, no loan with security can be approved.
-4. Have **at least three admins**: most approvals need two different admins who did not start the request, and waivers need three.
-5. Enter opening balances: **Savings → Record Savings** for each member, with the real transaction date, account and payment category.
-6. Try one member account end to end: sign in, view savings, request a withdrawal; then approve it as two different admins.
-7. **User guide**: the app serves it at `<web app URL>?page=guide`. It is built from `docs/USER_GUIDE.md`, which describes the club this project was first built for (names, member numbers and screenshots). For a new club, edit `docs/USER_GUIDE.md` and rebuild it with `python tools/build-guide.py` (optionally regenerate screenshots first with `npm run screenshots`), then push and update the deployment.
-8. Share the web app URL with members (WhatsApp, email). Members never need access to the spreadsheet: **don't share the spreadsheet** with anyone except trusted administrators of the club account.
+4. Enter opening balances: **Savings → Record Savings** for each member, with the real transaction date, account and payment category.
+5. Try one member account end to end: sign in, view savings, request a withdrawal; then approve it as two different admins.
+6. **User guide**: the app serves it at `<web app URL>?page=guide`. It is built from `docs/USER_GUIDE.md`, which describes the club this project was first built for (names, member numbers and screenshots). For a new club, edit `docs/USER_GUIDE.md` and rebuild it with `python tools/build-guide.py` (optionally regenerate screenshots first with `npm run screenshots`), then push and update the deployment.
+7. Share the web app URL with members (WhatsApp, email). Members never need access to the spreadsheet: **don't share the spreadsheet** with anyone except trusted administrators of the club account.
 
 The club is live.
 
@@ -208,8 +213,8 @@ clasp deploy -i <DEPLOYMENT_ID> -d "Short description of the update"
 
 - **Always pass `-i <DEPLOYMENT_ID>`**. It updates the existing deployment, so the URL stays the same. `clasp deploy` without `-i` creates a *new* deployment with a *new* URL. Find the ID with `clasp list-deployments`.
 - `clasp push` alone changes the code in the editor (and the `…/dev` test URL), not the live `/exec` app. The live app changes only when the deployment is updated.
-- If the update adds tabs or columns, run **`setupGuaranteeSchema`** once in the editor afterwards. It only adds what is missing and is safe to run any time. `setupNewClub` does the same and more.
-- If the update needs a new Google permission, the app may show *"Authorization required"* until someone runs any function (for example `setupGuaranteeSchema`) in the editor as the club's account and allows it.
+- If an update adds tabs or columns, it raises `SETUP_VERSION` in `src/services/SetupService.gs`, and the first visit after deploying runs setup again automatically (adding only what is missing). You can also run `setupNewClub` in the editor yourself; it is safe any time.
+- If the update needs a new Google permission, the app may show *"Authorization required"* until someone runs any function (for example `setupNewClub`) in the editor as the club's account and allows it.
 - In the editor you can also do it by hand: **Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy**.
 
 ---
@@ -220,9 +225,10 @@ To move an existing club (for example from your account to the club's own accoun
 
 1. Signed in as the **new** account, open the spreadsheet (it must be shared with the new account) and choose **File → Make a copy**. Copying a spreadsheet also copies its attached Apps Script project, so the copy has all the data and all the code.
 2. Open the copy → **Extensions → Apps Script**. This is a new project with a **new Script ID**: put it in `.clasp.json` on the club's branch.
-3. Run **`setupGuaranteeSchema`** (it asks for permission for the new account), then **`createAllTriggers`**. Triggers are not copied with the spreadsheet.
-4. **Deploy → New deployment** as in step 9. The URL is new: send it to members.
-5. Turn off the old copy, so it stops sending emails and changing data: in the old project delete its triggers (**Triggers** page) and archive the old deployment (**Deploy → Manage deployments → Archive**). Keep the old spreadsheet as a read-only archive, or delete it once the new one is checked.
+3. Run **`createAllTriggers`** in the editor (it asks for permission for the new account). Triggers are not copied with the spreadsheet.
+4. **Deploy → New deployment** as in step 8. The URL is new: send it to members.
+5. Add the new account as a member if it isn't one yet (the old hosting account's member row stays as it was). Setup adds the hosting account automatically only to an empty Members tab.
+6. Turn off the old copy, so it stops sending emails and changing data: in the old project delete its triggers (**Triggers** page) and archive the old deployment (**Deploy → Manage deployments → Archive**). Keep the old spreadsheet as a read-only archive, or delete it once the new one is checked.
 
 Members sign in again on the new URL (sign-in sessions are not copied). Member numbers, balances, loans and the audit log are unchanged.
 
@@ -235,7 +241,9 @@ Members sign in again on the new URL (sign-in sessions are not copied). Member n
 | `clasp push`: *User has not enabled the Apps Script API* | Turn it on at https://script.google.com/home/usersettings for the account clasp is using (step 5). |
 | `clasp push`: *Manifest file has been updated. Do you want to push and overwrite?* | Use `clasp push --force`. |
 | `clasp push` succeeds but the editor shows nothing new | Wrong `scriptId` in `.clasp.json`, or clasp is signed in to another account (`clasp logout`, `clasp login`). |
-| The app says *Sheet "Members" not found* (or another tab) | Run `setupNewClub` in the editor (step 8). The script must belong to the spreadsheet (step 4). |
+| The app says *Sheet "Members" not found* (or another tab) | Automatic setup did not finish: run `setupNewClub` in the editor to see the error (step 9). The script must belong to the spreadsheet (step 4). |
+| *Authorization required* on the first visit | The app's permissions haven't been allowed yet: deploy from the editor (step 8), or run `setupNewClub` in the editor and allow. |
+| *This is the hosting account… It must stay an Admin* | The hosting account (System Administrator) runs the app and can't be demoted, deactivated or given a membership type. |
 | *Script function not found: doGet* | The code has not been pushed to this project, or the deployment is of an old version: push and update the deployment. |
 | The app still shows old behaviour after an update | `clasp push` does not update the live app. Run `clasp deploy -i <DEPLOYMENT_ID>`. |
 | *Authorization is required to perform that action* | A new permission is needed: run any function in the editor as the club's account and allow it. |
@@ -269,7 +277,7 @@ All amounts are in UGX (`INVESTMENT_CURRENCY`); other currencies are not support
 
 ## Sheet schema
 
-`setupNewClub` creates every tab below with its header row; you don't need to type them. Columns are matched by header text (case-insensitive; a header may have extra words after the name, for example `Amount (UGX)`), so column order doesn't matter and extra columns can be added freely. The header row can sit below a title.
+The app creates every tab below with its header row the first time it is opened (or when `setupNewClub` is run); you don't need to type them. Columns are matched by header text (case-insensitive; a header may have extra words after the name, for example `Amount (UGX)`), so column order doesn't matter and extra columns can be added freely. The header row can sit below a title.
 
 | Tab | Holds |
 |---|---|
@@ -309,7 +317,7 @@ IDs are generated per tab (`L001`, `R001`, `W001`, `F001`, `RPY-000001`, `AST-00
 │   │                           RepaymentService, GuarantorService, GuarantorNotificationService,
 │   │                           GuarantorWeb (guarantor email links), SecuredLoanService, AssetService,
 │   │                           LoanInsightsService, InvestmentService, ApprovalLedgerService,
-│   │                           MemberNumberService, SetupService (setupNewClub), ...)
+│   │                           MemberNumberService, SetupService (first-visit setup, setupNewClub), ...)
 │   ├── models/                Member, Loan, Repayment shaping and validation
 │   ├── utils/                 Config.gs (all settings), Branding.gs (logo, PDF layout), dates, formatters, validators
 │   ├── triggers/              ScheduledJobs.gs: scheduled jobs and createAllTriggers()
@@ -328,7 +336,7 @@ Apps Script has no modules: every `.gs` file shares one global namespace, and fi
 ## Tests
 
 - `npm test` runs every suite under Node, with in-memory stand-ins for the Apps Script services (`tests/gas-fakes.js`): the `.gs` suites in `src/tests/` and the integration tests in `tests/*.integration.js`, which call the real controllers against an in-memory spreadsheet. Run it before every push.
-- `tests/new-club.integration.js` checks that `setupNewClub` turns a blank spreadsheet into a working club.
+- `tests/new-club.integration.js` checks that the first visit turns a blank spreadsheet into a working club, with the hosting account as System Administrator, and that a live club is left unchanged.
 - `npm run screenshots` regenerates the user-guide screenshots (needs Chrome or Edge); `python tools/build-guide.py` rebuilds `src/webapp/guide/guide.html` from `docs/USER_GUIDE.md`.
 
 ---
@@ -366,7 +374,7 @@ Nothing is stored as a dashboard total: every figure is calculated from the sour
 
 ### Upgrading an older install
 
-For a spreadsheet created before these features, run **`setupGuaranteeSchema`** once in the editor after pushing. It adds every missing column and tab (deposit accounts, guarantors and notices, loan fund and investments, loans with security and committee roles, asset register) and gives existing repayments references. Existing rows are not changed: rows without a deposit account are placed by their payment category (Operations Fee → Operations, Welfare Fee → Welfare, everything else → Principal), so each member's total savings stays the same.
+For a spreadsheet created before these features, nothing needs to be run by hand: the first visit after deploying runs setup, which adds every missing column and tab (deposit accounts, guarantors and notices, loan fund and investments, loans with security and committee roles, asset register) and gives existing repayments references. Existing rows are not changed: rows without a deposit account are placed by their payment category (Operations Fee → Operations, Welfare Fee → Welfare, everything else → Principal), so each member's total savings stays the same.
 
 **Member numbers.** Members are numbered `<CLUB_SHORT_NAME>-0001`, `-0002`, … (`src/services/MemberNumberService.gs`). For a spreadsheet with older `M001`-style numbers, run `previewMemberNumberMigration()` to see what would change, then `migrateMemberNumbers()` once. It rewrites member numbers on every tab except the append-only Audit Log, which keeps the old numbers and gets one entry recording the mapping. It is safe to run again.
 

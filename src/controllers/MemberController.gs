@@ -61,6 +61,7 @@ function updateMember(memberNo, role, membershipType, status, dateJoined, commit
   const { sh, headers, rows } = readSheet(SH_MEMBERS,'memberno');
   const row = rows.find(r => String(r['MemberNo']||'').trim() === memberNo);
   if (!row) return {ok:false,error:'Member not found.'};
+  const hostErr = _hostMemberError(row, role, membershipType, status); if (hostErr) return {ok:false,error:hostErr};
   let joinedNote = '';
   if (String(dateJoined == null ? '' : dateJoined).trim()) {  // blank leaves the date unchanged
     const jv = validateDateJoined(dateJoined); if (!jv.ok) return jv;

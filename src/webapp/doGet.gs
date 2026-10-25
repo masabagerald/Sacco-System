@@ -6,6 +6,9 @@ function doGet(e) {
   if (p.g) return _guarantorHandle(p.g, p.decide, p.confirm, p.reason);
   // User guide: public, so the link works before signing in (built by tools/build-guide.py)
   if (p.page === 'guide') return _guidePage();
+  // First visit after deploying: the spreadsheet sets itself up (tabs, scheduled jobs, the hosting account
+  // as first admin). Afterwards this is one property lookup. See SetupService.gs.
+  _ensureSetUp();
   const t = HtmlService.createTemplateFromFile('src/webapp/index');
   t.guideUrl = _webAppUrl() + '?page=guide';
   return t

@@ -86,6 +86,8 @@ function createGasFakes() {
   const emails = [];
   const props = {};
   let currentUser = '';
+  let hostUser = '';            // the account the web app runs as (Session.getEffectiveUser)
+  const triggers = [];
 
   const spreadsheet = {
     getSheetByName: name => sheets[name] || null,
@@ -100,9 +102,17 @@ function createGasFakes() {
       newBlob: (data, type, name) => ({ data: String(data), type, name, getBytes: () => Array.from(Buffer.from(String(data), 'utf8')), getName: () => name }),
       zip: (blobs, name) => { const bytes = zipStore(blobs.map(b => [b.name, Buffer.from(b.data, 'utf8')])); return { name, files: blobs, getBytes: () => Array.from(bytes) }; },
       base64Encode: bytes => Buffer.from(bytes).toString('base64') },
-    ScriptApp: { getService: () => ({ getUrl: () => 'https://script.example/exec' }) },
-    HtmlService: { createHtmlOutput: html => ({ html, setTitle() { return this; }, addMetaTag() { return this; }, getContent() { return html; } }) },
-    Session: { getActiveUser: () => ({ getEmail: () => currentUser }), getScriptTimeZone: () => 'Africa/Nairobi' },
+    ScriptApp: { getService: () => ({ getUrl: () => 'https://script.example/exec' }),
+      // Time-driven triggers: each newTrigger(fn)...create() is recorded in `triggers`
+      getProjectTriggers: () => triggers.slice(),
+      deleteTrigger: t => { const i = triggers.indexOf(t); if (i > -1) triggers.splice(i, 1); },
+      WeekDay: { MONDAY: 'MONDAY' },
+      newTrigger: fn => { const t = { fn, schedule: [] }; const b = new Proxy({}, { get: (_, k) => k === 'create'
+        ? () => { triggers.push(t); return t; } : (...a) => { t.schedule.push(k + '(' + a.join(',') + ')'); return b; } }); return b; } },
+    HtmlService: { createHtmlOutput: html => ({ html, setTitle() { return this; }, addMetaTag() { return this; }, getContent() { return html; } }),
+      createTemplateFromFile: file => ({ file, evaluate() { return { file, setTitle() { return this; }, addMetaTag() { return this; } }; } }) },
+    Session: { getActiveUser: () => ({ getEmail: () => currentUser }), getEffectiveUser: () => ({ getEmail: () => hostUser }),
+      getScriptTimeZone: () => 'Africa/Nairobi' },
     LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
     PropertiesService: {
       getScriptProperties: () => ({ getProperty: k => props[k] || null, setProperty: (k, v) => { props[k] = v; }, deleteProperty: k => { delete props[k]; } }),
@@ -122,7 +132,9 @@ function createGasFakes() {
     },
     addSheet(name, rows) { sheets[name] = new FakeSheet(name, rows); return sheets[name]; },
     sheet: name => sheets[name],
-    signInAs(email) { currentUser = email; }
+    signInAs(email) { currentUser = email; },
+    hostAs(email) { hostUser = email; },
+    triggers
   };
 }
 
