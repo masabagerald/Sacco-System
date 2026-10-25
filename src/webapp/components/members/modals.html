@@ -22,7 +22,31 @@
   <div class="modal wide"><button class="x" onclick="cm('m_terms')">&times;</button>
     <h3>Terms of use</h3><p class="sub">The terms you accepted to use the system.</p>
     <div id="tv_body"></div>
-    <div class="mact"><button class="btn" onclick="cm('m_terms')">Close</button></div>
+    <div class="mact"><button class="btn hidden" id="tv_edit" onclick="openTermsEditor()">Edit terms</button><button class="btn" onclick="cm('m_terms')">Close</button></div>
+  </div>
+</div>
+
+<!-- Edit and publish the terms (admins) -->
+<div class="modal-bg" id="m_termsEdit" onclick="if(event.target===this)cm('m_termsEdit')">
+  <div class="modal wide"><button class="x" onclick="cm('m_termsEdit')">&times;</button>
+    <h3>Edit Terms</h3>
+    <p class="sub">Publishing creates a new version. Everyone it applies to must read and accept it at their next sign-in, and can't use the app until they do. Every version is kept.</p>
+    <div class="tabs" id="te_tabs"></div>
+    <p class="note" id="te_info"></p>
+    <div class="mgrid">
+      <div class="field full"><label for="te_title">Title</label><input id="te_title" type="text" maxlength="150"><div class="ferr" id="te_title_err"></div></div>
+      <div class="field full"><label for="te_checkbox">Tickbox wording</label><input id="te_checkbox" type="text" maxlength="250"><div class="ferr" id="te_checkbox_err"></div></div>
+      <div class="field full"><label for="te_text">Text</label>
+        <textarea id="te_text" rows="16" class="te-text" spellcheck="true"></textarea>
+        <p class="note">Start with an introduction paragraph. Then for each section: a line starting with <code>## </code> for the heading, and one line starting with <code>- </code> for each point.</p>
+        <div class="ferr" id="te_text_err"></div></div>
+      <div class="field full"><label for="te_summary">What changed (required, kept with the version and in the audit log)</label><input id="te_summary" type="text" maxlength="500"><div class="ferr" id="te_summary_err"></div></div>
+    </div>
+    <label class="terms-check"><input type="checkbox" id="te_confirm" onchange="$('#te_pub').disabled=!this.checked"> <span id="te_confirm_lbl"></span></label>
+    <div id="te_preview" class="hidden"></div>
+    <div id="te_history"></div>
+    <div class="mact"><button class="btn" onclick="cm('m_termsEdit')">Cancel</button><button class="btn" onclick="previewTerms()">Preview</button><button class="btn solid" id="te_pub" onclick="publishTermsEdit()" disabled>Publish new version</button></div>
+    <div class="mst" id="te_st"></div>
   </div>
 </div>
 

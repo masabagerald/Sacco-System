@@ -1,14 +1,14 @@
-// ── TERMS OF USE & ADMINISTRATOR AGREEMENT ────────────────────────────────────
-// The text every user must accept before using the app (see TermsService.gs). Edit it for each club and
-// have it reviewed by the club's committee or lawyer: this is a starting template, not legal advice.
-//
-// To change a document: edit its text, raise its `version` and set `updated`. Everyone it applies to is
-// asked to accept the new version at their next sign-in. Earlier acceptances stay on record.
+// ── TERMS OF USE & ADMINISTRATOR AGREEMENT: STARTING TEXT ─────────────────────
+// The first version of the text every user must accept before using the app (see TermsService.gs).
+// Admins change the terms in the app (menu → Terms of use → Edit): each publish is a new version, kept on
+// the Terms Versions tab, and everyone it applies to accepts it at their next sign-in. The text here is
+// only used until the first version is published in the app. Have it reviewed by the club's committee or
+// lawyer: this is a starting template, not legal advice.
 //   use:   Terms of Use               -- every user (members and administrators)
 //   admin: Administrator Agreement    -- users with the Admin role, in addition to the Terms of Use
 // A function, not a constant, so SACCO_NAME (Config.gs) is read when it is called.
 
-function _termsDocuments() {
+function _defaultTermsDocuments() {
   const club = SACCO_NAME;
   return {
     use: {

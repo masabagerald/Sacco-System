@@ -43,6 +43,7 @@ const SHOTS = [
   ['24-asset-register.png', 'asset-register', 1280, 980],
   ['25-asset-review.png', 'asset-review', 1280, 1240],
   ['26-terms-of-use.png', 'terms-of-use', 1280, 1240],
+  ['27-edit-terms.png', 'edit-terms', 1280, 1400],
   ['14-loan-insights-founder.png', 'loan-insights-founder', 1280, 980],
   ['15-loan-insights-trends.png', 'loan-insights-trends', 1280, 1000],
   ['16-loan-fund-entry.png', 'loan-fund-entry', 1280, 900],
@@ -78,7 +79,7 @@ function buildAppPage() {
   return include('src/webapp/index')
     .replace(/<\?!=\s*JSON\.stringify\(guideUrl\)\s*\?>/, JSON.stringify('#guide'))
     .replace(/<\?(!?)=\s*([\s\S]*?)\s*\?>/g, (_, raw, expr) => raw ? String(srv.val(expr)) : escHtml(srv.val(expr)))
-    .replace('<head>', '<head>\n<script>window.TERMS_DOCS = ' + JSON.stringify(srv.val('_termsDocuments()')) + ';</script>\n<script>window.FINANCE_MOCK = ' + JSON.stringify(buildFinanceData(loadServer)).replace(/<\//g, '<\\/') + ';</script>\n<script>' + read('mock-data.js') + '</script>')
+    .replace('<head>', '<head>\n<script>window.TERMS_DOCS = ' + JSON.stringify(srv.val('_termsDocuments()')) + ';window.TERMS_TEXT = ' + JSON.stringify({ use: srv.val('_termsToText(_termsDocuments().use)'), admin: srv.val('_termsToText(_termsDocuments().admin)') }) + ';</script>\n<script>window.FINANCE_MOCK = ' + JSON.stringify(buildFinanceData(loadServer)).replace(/<\//g, '<\\/') + ';</script>\n<script>' + read('mock-data.js') + '</script>')
     .replace('</body>', '<script>' + read('scenes.js') + '</script>\n</body>');
 }
 

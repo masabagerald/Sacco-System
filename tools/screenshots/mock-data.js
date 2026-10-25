@@ -127,6 +127,9 @@
     // Terms of use (real text from src/utils/Terms.gs): an admin signing in for the first time
     getTermsStatus: () => ({ ok: true, member: ME, required: true,
       documents: ['use', 'admin'].map(k => Object.assign({ key: k, acceptedAt: '' }, window.TERMS_DOCS[k])) }),
+    getTermsForEditing: () => ({ ok: true, documents: ['use', 'admin'].map(k => Object.assign({}, window.TERMS_DOCS[k], { key: k, text: window.TERMS_TEXT[k],
+      acceptedCount: k === 'use' ? 41 : 6, appliesCount: k === 'use' ? 44 : 6, version: k === 'use' ? '2' : '1', updated: k === 'use' ? '2026-11-02' : window.TERMS_DOCS[k].updated,
+      history: k === 'use' ? [{ version: '2', at: '2026-11-02 09:14:07', by: 'M001', summary: 'Added the rule on sharing sign-in codes' }] : [] })) }),
     // Asset Register (ISS-12)
     getAssets: () => {
       const A = (id, tag, type, description, make, model, serial, value, acquired, condition, availability, location, verification, extra) =>

@@ -103,6 +103,13 @@
       document.querySelector('#termsDocs input[data-doc="use"]').checked = true; termsTicked();
     } },
 
+    'edit-terms': { as: P.M001, async run() {
+      await wait(400); openTermsEditor(); await wait(400);
+      set('#te_summary', 'Added a section on members\' meetings');
+      const t = document.querySelector('#te_text'); t.value += '\n\n## Meetings\n- Members attend the annual general meeting or send apologies.';
+      document.querySelector('#te_confirm').checked = true; document.querySelector('#te_pub').disabled = false;
+    } },
+
     'asset-register': { as: P.M001, async run() {
       await wait(300); goSec('assets'); await wait(800);
     } },

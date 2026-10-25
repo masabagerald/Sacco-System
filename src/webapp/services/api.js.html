@@ -20,6 +20,9 @@ const Api = {
   getTermsStatus: (onSuccess, onFailure) => callServer('getTermsStatus', [], onSuccess, onFailure),
   acceptTerms: (accepted, onSuccess, onFailure) => callServer('acceptTerms', [accepted], onSuccess, onFailure),
   declineTerms: (onSuccess, onFailure) => callServer('declineTerms', [], onSuccess, onFailure),
+  getTermsForEditing: (onSuccess, onFailure) => callServer('getTermsForEditing', [], onSuccess, onFailure),
+  publishTerms: (key, title, checkbox, text, summary, onSuccess, onFailure) =>
+    callServer('publishTerms', [key, title, checkbox, text, summary], onSuccess, onFailure),
 
   getMySavings: (onSuccess) => callServer('getMySavings', [], onSuccess),
   getMyLoans: (onSuccess) => callServer('getMyLoans', [], onSuccess),

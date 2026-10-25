@@ -28,6 +28,57 @@ function acceptTerms(accepted) {
   return { ok: true, member: r.member };
 }
 
+// ── Admins: edit and publish the terms ──
+
+// Each document as text for the editor, with its version history and how many users have accepted it
+function getTermsForEditing() {
+  const auth = _adminCaller(); if (!auth.ok) return auth;
+  const docs = _termsDocuments(), versions = _termsVersions();
+  const members = readSheet(SH_MEMBERS, 'memberno').rows.filter(m => String(m['MemberNo'] || '').trim() && String(m['Status'] || '').trim().toLowerCase() === 'active');
+  const accepted = {};
+  if (SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SH_TERMS))
+    readSheet(SH_TERMS, 'memberno').rows.filter(r => String(r['Decision'] || '').trim() === 'Accepted')
+      .forEach(r => { accepted[String(r['Document']).trim() + '|' + String(r['Version']).trim() + '|' + String(r['MemberNo']).trim()] = true; });
+  return { ok: true, documents: TERMS_DOC_KEYS.map(k => {
+    const d = docs[k];
+    const applies = members.filter(m => k === 'use' || String(m['Role'] || '').trim().toLowerCase() === 'admin');
+    return { key: k, title: d.title, appliesTo: d.appliesTo, checkbox: d.checkbox, version: d.version, updated: d.updated, text: _termsToText(d),
+      acceptedCount: applies.filter(m => accepted[k + '|' + d.version + '|' + String(m['MemberNo']).trim()]).length, appliesCount: applies.length,
+      history: versions.filter(v => v.key === k).map(v => ({ version: v.version, at: v.at, by: v.by, summary: v.summary })).reverse() };
+  }) };
+}
+
+// Publishes a new version of a document. Everyone it applies to must accept it at their next sign-in (and
+// any request they make before that is refused until they do). summary: what changed, kept with the version.
+function publishTerms(key, title, checkbox, text, summary) {
+  const auth = _adminCaller(); if (!auth.ok) return auth;
+  key = String(key || '').trim();
+  if (TERMS_DOC_KEYS.indexOf(key) < 0) return { ok: false, error: 'Unknown document.' };
+  title = String(title || '').trim(); checkbox = String(checkbox || '').trim(); text = String(text || '').replace(/\r/g, '').trim();
+  summary = String(summary || '').trim();
+  if (!title || title.length > 150) return { ok: false, field: 'title', error: 'Enter a title (up to 150 characters).' };
+  if (!checkbox || checkbox.length > 250) return { ok: false, field: 'checkbox', error: 'Enter the tickbox wording (up to 250 characters).' };
+  if (text.length > 30000) return { ok: false, field: 'text', error: 'The text is too long (30,000 characters at most).' };
+  const parsed = _termsFromText(text);
+  if (!parsed.intro || !parsed.sections.length || parsed.sections.some(s => !s.points.length))
+    return { ok: false, field: 'text', error: 'Start with an introduction, then at least one "## Heading" with "- " points under every heading.' };
+  if (!summary) return { ok: false, field: 'summary', error: 'Describe what changed. It is kept with the version and in the audit log.' };
+  return _withScriptLock(() => {
+    const cur = _termsDocuments()[key];
+    if (cur.title === title && cur.checkbox === checkbox && _termsToText(cur) === _termsToText(Object.assign({}, cur, parsed)))
+      return { ok: false, error: 'Nothing has changed, so no new version was published.' };
+    const version = String(Math.max(num(cur.version), ..._termsVersions().filter(v => v.key === key).map(v => num(v.version))) + 1);
+    setupTermsSchema();
+    // A leading = + - @ would make Sheets read the cell as a formula: store such values as plain text
+    const plain = v => /^[=+\-@]/.test(v) ? "'" + v : v;
+    _appendByHeaders(SH_TERMS_VERSIONS, 'document', { 'Timestamp': now_ts(), 'Document': key, 'Version': version, 'Title': plain(title),
+      'Checkbox': plain(checkbox), 'Text': plain(_termsToText(Object.assign({}, cur, parsed))), 'Change Summary': plain(summary), 'Published By': auth.member.memberNo });
+    auditLog('Terms Updated', '', auth.member.memberNo, title + ': version ' + cur.version + ' -> ' + version + ' published. '
+      + (key === 'use' ? 'Every user' : 'Every administrator') + ' must accept it at their next sign-in. Changes: ' + summary, key + ' v' + version);
+    return { ok: true, key, version };
+  });
+}
+
 // The user declines: recorded, and the session is ended. They can come back and accept later.
 function declineTerms() {
   const r = _signedInMember(); if (!r.ok) return r;

@@ -124,7 +124,7 @@ base64 -i logo.jpg | tr -d '\n' | pbcopy        # Linux: base64 -w0 logo.jpg
 
 Paste it between the quotes of `const CLUB_LOGO_B64 = '…';` (one long line).
 
-**`src/utils/Terms.gs`**: the **Terms of Use** (every user) and the **Administrator Confidentiality and Conduct Agreement** (admins) that each user must accept at first sign-in. The text is a template covering account security, confidentiality and non-disclosure, no manipulation of records, segregation of duties and personal data. **Have the club's committee or lawyer review it**, then edit it for the club. When the text changes later, raise the document's `version` (and `updated`); everyone it applies to is asked to accept the new version at their next sign-in.
+**`src/utils/Terms.gs`**: the starting text of the **Terms of Use** (every user) and the **Administrator Confidentiality and Conduct Agreement** (admins) that each user must accept at first sign-in. It is a template covering account security, confidentiality and non-disclosure, no manipulation of records, segregation of duties and personal data. **Have the club's committee or lawyer review it.** After go-live, admins change the terms in the app (menu → **Terms of use** → **Edit terms**): each publish is a new version, and everyone it applies to accepts it at their next sign-in. You can also edit this file before the first deployment so the club starts with its own text.
 
 **`appsscript.json`**: set `"timeZone"` to the club's zone, for example `"Africa/Kampala"`, `"Africa/Nairobi"` or `"Africa/Dar_es_Salaam"`. It must match the spreadsheet's time zone (step 4). Dates, due dates and audit times use it. Leave the `"webapp"` section as it is.
 
@@ -274,7 +274,7 @@ All settings are constants at the top of `src/utils/Config.gs`, plus the logo in
 - `ASSET_TYPES`, `ASSET_CONDITIONS`, `ASSET_AVAILABILITY`, `ASSET_PAGE_SIZE`: asset register.
 - `INSIGHTS_MEMBERSHIP_TYPES`: who besides admins sees Loan Insights (aggregate only).
 - `OTP_EXPIRY_MS`: how long a sign-in code stays valid.
-- Terms of use: the texts and their versions are in `src/utils/Terms.gs`.
+- Terms of use: the starting texts are in `src/utils/Terms.gs`; versions published in the app are on the **Terms Versions** tab.
 - `SH_*`: tab names. Change them only before setting up a club; `setupNewClub` creates tabs with these names.
 
 All amounts are in UGX (`INVESTMENT_CURRENCY`); other currencies are not supported.
@@ -296,6 +296,7 @@ The app creates every tab below with its header row the first time it is opened 
 | `Withdrawal Requests` | RequestID, Timestamp, MemberNo, Amount (UGX), Reason, Status, Decision Notes, Decided By, Initiated By, Approver 1/2 (+ At), Deposit Account |
 | `Audit Log` | Timestamp, Action, Member (Affected), Performed By, Details, Reference ID. Append-only. |
 | `Terms Acceptance` | Timestamp, MemberNo, Email, Role, Document (`use` / `admin`), Title, Version, Decision (`Accepted` / `Declined`). Append-only: one row per document accepted or declined. |
+| `Terms Versions` | Timestamp, Document, Version, Title, Checkbox, Text, Change Summary, Published By. Append-only: every version an admin published, with its full text. |
 | `Guarantors` | one row per guarantor per request: consent, token, response time, decline reason |
 | `Guarantor Notifications` | one row per notice sent, so none is sent twice |
 | `Loan Fund Ledger`, `Investments`, `Investment Transactions` | loan-fund cash entries and the investment tracker |

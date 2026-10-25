@@ -91,7 +91,65 @@ function declineTerms(){
 // Read the accepted terms again (menu → Terms of use)
 function openTermsView(){
   $('#tv_body').innerHTML='<p class="note">Loading&hellip;</p>';om('m_terms');
+  $('#tv_edit').classList.toggle('hidden',!isAdminUser());
   Api.getTermsStatus(res=>{$('#tv_body').innerHTML=res.ok?res.documents.map(d=>termsDocHtml(d,false)).join(''):'<p class="note">'+esc(res.error)+'</p>';});
+}
+
+// ── Admins: edit and publish the terms ──
+// Same reading of the text as the server (_termsFromText in TermsService.gs), for the preview
+function termsFromText(text){
+  const intro=[],sections=[];let cur=null,last=null;
+  String(text||'').replace(/\r/g,'').split('\n').forEach(raw=>{
+    const line=raw.trim();
+    if(!line){last=null;return;}
+    const h=line.match(/^#{1,3}\s*(.+)$/);
+    if(h){cur={heading:h[1].trim(),points:[]};sections.push(cur);last=null;return;}
+    const p=line.match(/^[-*•]\s*(.+)$/);
+    if(p&&cur){cur.points.push(p[1].trim());last={arr:cur.points,i:cur.points.length-1};return;}
+    if(last){last.arr[last.i]+=' '+line;return;}
+    if(!cur){intro.push(line);return;}
+    cur.points.push(line);last={arr:cur.points,i:cur.points.length-1};
+  });
+  return {intro:intro.join(' '),sections};
+}
+let TE={docs:[],key:'use'};
+function openTermsEditor(){
+  cm('m_terms');mst('te_st','','Loading…');om('m_termsEdit');
+  Api.getTermsForEditing(res=>{
+    if(!res.ok)return mst('te_st','err',res.error);
+    TE.docs=res.documents;mst('te_st','','');
+    $('#te_tabs').innerHTML=res.documents.map(d=>'<button class="tab" data-k="'+esc(d.key)+'" onclick="showTermsDoc(\''+esc(d.key)+'\')">'+esc(d.title)+'</button>').join('');
+    showTermsDoc(TE.key);
+  },e=>mst('te_st','err','Error: '+e.message));
+}
+function showTermsDoc(key){
+  const d=TE.docs.find(x=>x.key===key);if(!d)return;TE.key=key;
+  document.querySelectorAll('#te_tabs .tab').forEach(b=>b.classList.toggle('on',b.dataset.k===key));
+  $('#te_info').textContent=d.appliesTo+'. Current version '+d.version+', '+(d.history.length?'published '+hd(d.updated):'the starting text')
+    +'. Accepted by '+d.acceptedCount+' of '+d.appliesCount+' active '+(key==='admin'?'administrators':'users')+'.';
+  $('#te_title').value=d.title;$('#te_checkbox').value=d.checkbox;$('#te_text').value=d.text;$('#te_summary').value='';
+  $('#te_confirm').checked=false;$('#te_pub').disabled=true;
+  $('#te_confirm_lbl').textContent='I understand that '+(key==='admin'?'every administrator':'every member and administrator')+' must accept the new version before they can use the app again.';
+  ['title','checkbox','text','summary'].forEach(f=>{$('#te_'+f+'_err').textContent='';});
+  $('#te_preview').classList.add('hidden');mst('te_st','','');
+  $('#te_history').innerHTML='<p class="note"><strong>Versions published</strong></p>'+(d.history.length
+    ?'<table><tbody>'+d.history.map(h=>'<tr><td>v'+esc(h.version)+'</td><td style="white-space:nowrap">'+esc(hdt(h.at))+'</td><td>'+esc(h.by)+'</td><td>'+esc(h.summary)+'</td></tr>').join('')+'</tbody></table>'
+    :'<p class="note">None yet: the starting text (version 1) is in use.</p>');
+}
+function previewTerms(){
+  const d=TE.docs.find(x=>x.key===TE.key),p=termsFromText($('#te_text').value);
+  $('#te_preview').innerHTML='<p class="note"><strong>Preview</strong> (how members will see it)</p>'
+    +termsDocHtml({key:d.key,title:$('#te_title').value,appliesTo:d.appliesTo,version:'(new)',updated:todayISO(),intro:p.intro,sections:p.sections,checkbox:$('#te_checkbox').value},true);
+  $('#te_preview').classList.remove('hidden');
+}
+function publishTermsEdit(){
+  ['title','checkbox','text','summary'].forEach(f=>{$('#te_'+f+'_err').textContent='';});
+  $('#te_pub').disabled=true;mst('te_st','','Publishing…');
+  Api.publishTerms(TE.key,$('#te_title').value,$('#te_checkbox').value,$('#te_text').value,$('#te_summary').value,res=>{
+    if(!res.ok){$('#te_pub').disabled=!$('#te_confirm').checked;if(res.field)$('#te_'+res.field+'_err').textContent=res.error;return mst('te_st','err',res.error);}
+    mst('te_st','ok','Version '+res.version+' published. Users will be asked to accept it at their next sign-in.');
+    setTimeout(()=>{cm('m_termsEdit');showTermsAgain();},1800);   // the publishing admin accepts it too
+  },e=>{$('#te_pub').disabled=false;mst('te_st','err','Error: '+e.message);});
 }
 
 document.addEventListener('keydown',e=>{

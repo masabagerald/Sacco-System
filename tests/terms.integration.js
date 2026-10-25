@@ -86,5 +86,69 @@ module.exports = {
     fails(g.acceptTerms({ use: '1' }), /not registered/, 'not a member');
     fakes.signInAs('');
     fails(g.getTermsStatus(), /Session expired/, 'not signed in');
+  },
+
+  'the editing text format keeps every heading and point of the starting text'(c) {
+    const { g } = setup(c);
+    const defaults = g._defaultTermsDocuments();
+    ['use', 'admin'].forEach(k => {
+      const d = defaults[k], back = g._termsFromText(g._termsToText(d));
+      eq([back.intro, back.sections], [d.intro, d.sections], k + ' round trip');
+    });
+    const p = g._termsFromText('Intro line one\ncontinues here.\n\n## First\n- point a\n  wraps on\n* point b\n\n# Second\nplain line as a point');
+    eq(p, { intro: 'Intro line one continues here.', sections: [{ heading: 'First', points: ['point a wraps on', 'point b'] },
+      { heading: 'Second', points: ['plain line as a point'] }] });
+  },
+
+  'an admin publishes new terms: everyone it applies to accepts again at next sign-in'(c) {
+    const ctx = setup(c), { g, fakes, val } = ctx;
+    ctx.fakes.signInAs(DAN);                       // Dan accepted version 1 (fixture)
+    ctx.fakes.signInAs(ALICE);
+    const ed = ok(g.getTermsForEditing(), 'editor');
+    const use = ed.documents.find(d => d.key === 'use');
+    eq([use.version, use.history.length], ['1', 0], 'starting text, nothing published yet');
+    assert.ok(/^These terms apply/.test(use.text) && /\n## Your account\n- /.test(use.text), 'editable text');
+
+    // Checks
+    fails(g.publishTerms('use', use.title, use.checkbox, use.text + '\n- extra', ''), /Describe what changed/, 'summary required');
+    fails(g.publishTerms('use', use.title, use.checkbox, use.text, 'No change'), /Nothing has changed/, 'nothing changed');
+    fails(g.publishTerms('use', use.title, use.checkbox, 'Just an intro, no headings', 'x'), /at least one "## Heading"/, 'needs headings');
+    fails(g.publishTerms('use', '', use.checkbox, use.text, 'x'), /title/, 'needs a title');
+    fails(g.publishTerms('other', 'T', 'C', use.text, 'x'), /Unknown document/);
+    ctx.fakes.signInAs(DAN);
+    fails(g.publishTerms('use', use.title, use.checkbox, use.text + '\n- extra', 'x'), /Admin access required/, 'members cannot publish');
+    fails(g.getTermsForEditing(), /Admin access required/);
+
+    // Publish version 2 of the Terms of Use
+    ctx.fakes.signInAs(ALICE);
+    const text2 = use.text + '\n\n## Meetings\n- Members attend the annual general meeting.';
+    const pub = ok(g.publishTerms('use', use.title, use.checkbox, text2, 'Added a section on meetings'), 'publish');
+    eq([pub.version], ['2']);
+    const row = fakes.sheet(val('SH_TERMS_VERSIONS')).records('document')[0];
+    eq([row.Document, row.Version, row['Change Summary'], row['Published By']], ['use', '2', 'Added a section on meetings', 'M001']);
+    assert.ok(ctx.audit().some(a => a.Action === 'Terms Updated' && /version 1 -> 2/.test(a.Details) && /meetings/.test(a.Details)));
+
+    // Everyone must accept version 2: members and admins, including the admin who published it
+    ctx.signInWithoutTerms(DAN);
+    fails(g.getMySavings(), /accept the Terms of Use/, 'Dan is asked again');
+    const st = ok(g.getTermsStatus(), 'status');
+    const d = st.documents.find(x => x.key === 'use');
+    eq([st.required, d.version, d.sections[d.sections.length - 1].heading], [true, '2', 'Meetings'], 'the new text is shown');
+    ok(g.acceptTerms({ use: '2' }), 'Dan accepts version 2');
+    ok(g.getMySavings(), 'Dan continues');
+    ctx.signInWithoutTerms(ALICE);
+    fails(g.getAdminDashboard(), /accept the Terms of Use/, 'the publishing admin accepts too');
+    ok(g.acceptTerms({ use: '2' }), 'Alice accepts');
+    const after = ok(g.getTermsForEditing(), 'editor after').documents.find(x => x.key === 'use');
+    eq([after.version, after.acceptedCount, after.history.map(h => h.version)], ['2', 2, ['2']], 'Dan and Alice have accepted version 2');
+
+    // The Administrator Agreement applies to admins only
+    const adm = ok(g.getTermsForEditing(), 'editor').documents.find(x => x.key === 'admin');
+    ok(g.publishTerms('admin', adm.title, adm.checkbox, adm.text + '\n- Never share exported files on WhatsApp.', 'WhatsApp rule'), 'publish admin v2');
+    ctx.signInWithoutTerms(DAN);
+    ok(g.getMySavings(), 'members are not affected');
+    ctx.signInWithoutTerms(BOB);
+    fails(g.getAdminDashboard(), /Administrator Confidentiality and Conduct Agreement/, 'admins are asked to accept the new agreement');
+    eq(ctx.terms().filter(r => r.MemberNo === 'M004').map(r => r.Version), ['1', '2'], 'earlier acceptances stay on record');
   }
 };

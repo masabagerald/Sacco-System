@@ -461,6 +461,20 @@ The member is emailed the new outstanding balance, and the repayment is recorded
 
 The 10% overdue surcharge on single-due-date loans is applied **automatically** the day after the due date. You don't need to issue it.
 
+### Updating the terms of use
+
+Admins can change the **Terms of Use** and the **Administrator Confidentiality and Conduct Agreement** in the app:
+
+1. Open **Terms of use** in the menu and click **Edit terms**.
+2. Choose the document. The window shows its current version, how many users have accepted it, and every version published so far.
+3. Edit the title, the wording of the tickbox and the text. Start the text with an introduction paragraph; then, for each section, a line starting with `## ` for the heading and one line starting with `- ` for each point. Click **Preview** to see it as members will.
+4. Describe **what changed**. This is required, and is kept with the version and in the audit log.
+5. Tick the box to confirm, and click **Publish new version**.
+
+![Edit Terms: the Terms of Use open for editing, with a new section added, a change summary and the versions published so far](images/27-edit-terms.png)
+
+Publishing creates a new version straight away. **Everyone it applies to** (every user for the Terms of Use, every admin for the Administrator Agreement) must read and accept it at their next sign-in, or the next time they do something in the app, and can't continue until they do. That includes you. Earlier versions and everyone's earlier acceptances stay on record on the **Terms Versions** and **Terms Acceptance** tabs.
+
 ### Reports and the audit log
 
 - **Reports**: **Download Ledger PDF** (a formatted report) or **Download Ledger CSV** (for a spreadsheet). Both include members, loans, savings transactions with their accounts, and surcharges.
