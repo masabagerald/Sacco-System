@@ -149,6 +149,7 @@ function setupGuaranteeSchema() {
   addColumns(SH_WD_REQ, 'requestid', ['Initiated By', 'Approver 1', 'Approver 1 At', 'Approver 2', 'Approver 2 At', 'Deposit Account']);
   setupFinanceSchema();  // Loan Fund Ledger, Investments, Investment Transactions
   setupSecuredLoanSchema();  // Loan Waivers, Waiver Decisions (ISS-11)
+  setupAssetRegisterSchema();  // Assets, Asset Reviews, Asset History (ISS-12)
 
   Logger.log('Guarantee schema ready.');
 }

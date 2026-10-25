@@ -124,6 +124,33 @@
         totals: { outstandingBefore: 120000, amount: Number(amount) || 0, outstandingAfter: Math.max(0, 120000 - (Number(amount) || 0)) },
         overpayment: Math.max(0, (Number(amount) || 0) - 120000), similar: [], chargeChanged: false, reconciles: true, stateKey: '0|0|120000' };
     },
+    // Asset Register (ISS-12)
+    getAssets: () => {
+      const A = (id, tag, type, description, make, model, serial, value, acquired, condition, availability, location, verification, extra) =>
+        Object.assign({ id, tag, type, typeLabel: type, description, make, model, serial, value, dateAcquired: acquired, condition, availability, location,
+          disposalDate: '', disposedTo: '', recipientContact: '', verification, version: 1, disposed: availability === 'Disposed Off', canReview: false }, extra || {});
+      const assets = [
+        A('AST-0001', 'MSIC-IT-001', 'Computers', 'Treasurer\'s laptop', 'Dell', 'Latitude 5420', 'DL5420-77X1', 2450000, '2025-03-14', 'Functional', 'In Use', 'Treasurer\'s office', 'Verified'),
+        A('AST-0002', 'MSIC-IT-002', 'Printers', 'Office printer and scanner', 'HP', 'LaserJet M428', 'HPM428-1190', 1350000, '2025-03-14', 'Non-functional', 'Unavailable', 'Club office', 'Verified', { version: 2 }),
+        A('AST-0003', 'MSIC-F-001', 'Furniture', 'Conference table and 12 chairs', '', '', '', 1800000, '2024-11-02', 'Functional', 'Available', 'Meeting hall', 'Verified'),
+        A('AST-0004', 'MSIC-EQ-001', 'Equipment', 'Projector for meetings', 'Epson', 'EB-X51', 'EPX51-3302', 2100000, '2026-10-20', 'Functional', 'Available', 'Club office', 'Pending Verification', { canReview: true }),
+        A('AST-0005', 'MSIC-IT-000', 'Computers', 'Old desktop computer', 'Lenovo', 'ThinkCentre M70', 'LNV-M70-88', 900000, '2021-02-10', 'Non-functional', 'Disposed Off', 'Club office', 'Verified',
+          { disposalDate: '2026-08-15', disposedTo: 'St Jude Primary School', recipientContact: '+256772123456', version: 3 }),
+        A('AST-0006', '', 'Other', 'Generator (2.5 kVA)', 'Honda', 'EU22i', '', 3200000, '2026-09-30', 'Functional', 'Available', 'Store room', 'Rejected', { typeLabel: 'Other: Generator' })];
+      return { ok: true, ready: true, assets, page: 1, pages: 1, pageSize: 25, total: assets.length,
+        summary: { count: 6, verified: 4, pending: 1, rejected: 1, disposed: 1, verifiedValue: 5600000, unverifiedValue: 5300000 },
+        options: { types: ['Computers', 'Printers', 'Furniture', 'Vehicles', 'Equipment', 'Other'], conditions: ['Functional', 'Non-functional'],
+          availability: ['Available', 'In Use', 'Unavailable', 'Disposed Off'], verification: ['Pending Verification', 'Verified', 'Rejected'] } };
+    },
+    getAsset: () => ({ ok: true, reviewBlock: '',
+      asset: { id: 'AST-0004', tag: 'MSIC-EQ-001', type: 'Equipment', otherType: '', typeLabel: 'Equipment', description: 'Projector for meetings', make: 'Epson', model: 'EB-X51',
+        serial: 'EPX51-3302', value: 2100000, dateAcquired: '2026-10-20', condition: 'Functional', availability: 'Available', location: 'Club office',
+        disposalDate: '', disposedTo: '', recipientContact: '', documents: ['https://drive.google.com/file/d/1xProjectorReceipt/view'], notes: 'Receipt no. 4471 from Mbale Office Supplies',
+        verification: 'Pending Verification', version: 1, createdBy: 'M003', createdByName: name('M003'), createdAt: '2026-10-20 15:12:08',
+        submittedBy: 'M003', submittedByName: name('M003'), submittedAt: '2026-10-20 15:12:08', verifiedBy: '', verifiedByName: '', verifiedAt: '', disposed: false },
+      reviews: [],
+      history: [{ at: '2026-10-20 15:12:08', version: 1, action: 'Registered', by: 'M003', byName: name('M003'), field: '', before: '',
+        after: 'Equipment "Projector for meetings", tag MSIC-EQ-001, Epson EB-X51, S/N EPX51-3302, value UGX 2,100,000, acquired 2026-10-20, Functional, Available, at Club office', reason: '' }] }),
     getRepayments: () => ({ ok: true, ready: true, repayments: [
       { reference: 'RPY-000047', date: '2026-10-13', loanId: 'L012', memberNo: 'M005', name: name('M005'), amount: 50000, notes: 'Cash, receipt 4471', recordedBy: 'M002', reverses: '', reversedBy: '' },
       { reference: 'RPY-000046', date: '2026-10-12', loanId: 'L014', memberNo: 'M004', name: name('M004'), amount: 120000, notes: 'Mobile money, ref MM-87120', recordedBy: 'M001', reverses: '', reversedBy: '' },

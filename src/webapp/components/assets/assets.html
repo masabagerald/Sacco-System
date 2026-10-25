@@ -1,0 +1,41 @@
+<!-- Asset Register (admins only; the server enforces it) -->
+<div class="panel">
+  <div class="ph">
+    <div><h2>Asset Register</h2><p class="sub">The club's own assets. Every new asset, and every change to its identity, value, condition, status, location or disposal, must be verified by a different administrator. Disposed assets stay on the register.</p></div>
+    <div class="btn-row">
+      <button class="btn sm" onclick="loadAssets()">Refresh</button>
+      <button class="btn sm" id="as_pdf" onclick="exportAssets('pdf')">Export PDF</button>
+      <button class="btn sm" id="as_xlsx" onclick="exportAssets('xlsx')">Export Excel</button>
+      <button class="btn sm solid" onclick="openAssetForm('')">+ Register asset</button>
+    </div>
+  </div>
+  <div class="as-filters">
+    <div class="field"><label for="asf_q">Search</label><input id="asf_q" type="search" placeholder="ID, tag, serial, make, model or description"></div>
+    <div class="field"><label for="asf_type">Type</label><select id="asf_type"><option value="">All</option></select></div>
+    <div class="field"><label for="asf_condition">Condition</label><select id="asf_condition"><option value="">All</option></select></div>
+    <div class="field"><label for="asf_availability">Status</label><select id="asf_availability"><option value="">All</option></select></div>
+    <div class="field"><label for="asf_location">Location</label><input id="asf_location" type="search"></div>
+    <div class="field"><label for="asf_from">Acquired from</label><input id="asf_from" type="date"></div>
+    <div class="field"><label for="asf_to">Acquired to</label><input id="asf_to" type="date"></div>
+    <div class="field"><label for="asf_verification">Verification</label><select id="asf_verification"><option value="">All</option></select></div>
+    <div class="field"><label for="asf_disposal">Disposal</label><select id="asf_disposal"><option value="">All</option><option value="held">Not disposed</option><option value="disposed">Disposed</option></select></div>
+  </div>
+  <div class="btn-row"><button class="btn sm solid" onclick="applyAssetFilters()">Apply filters</button><button class="btn sm" onclick="clearAssetFilters()">Clear</button></div>
+  <div class="err" id="as_err"></div>
+</div>
+
+<div id="as_body" class="loadable">
+  <div class="cards">
+    <div class="card"><div class="lbl">Assets (filtered)</div><div class="val mono" id="as_count">–</div><div class="meta" id="as_countm"></div></div>
+    <div class="card"><div class="lbl">Verified value</div><div class="val mono g" id="as_vval">–</div><div class="meta">Verified assets still held</div></div>
+    <div class="card"><div class="lbl">Not yet verified</div><div class="val mono warn" id="as_uval">–</div><div class="meta" id="as_uvalm"></div></div>
+  </div>
+  <div class="panel">
+    <div class="tscroll"><table><thead><tr><th>Asset</th><th>Description</th><th>Type</th><th class="r">Value (UGX)</th><th>Acquired</th><th>Location</th><th>Condition / status</th><th>Verification</th><th></th></tr></thead>
+    <tbody id="as_tb"><tr class="empty"><td colspan="9">Loading&hellip;</td></tr></tbody></table></div>
+    <div class="btn-row" style="justify-content:space-between;align-items:center;margin-top:10px">
+      <span class="note" id="as_pageinfo"></span>
+      <span class="btn-row"><button class="btn sm" id="as_prev" onclick="assetPage(-1)">Previous</button><button class="btn sm" id="as_next" onclick="assetPage(1)">Next</button></span>
+    </div>
+  </div>
+</div>

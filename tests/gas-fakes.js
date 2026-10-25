@@ -56,6 +56,30 @@ function formatDate(d, tz, fmt) {
   })[t]);
 }
 
+// A real ZIP archive (stored, not compressed) like Utilities.zip makes, so tests can open an .xlsx
+function zipStore(entries) {
+  const zlib = require('zlib');
+  const local = [], central = [];
+  let offset = 0;
+  entries.forEach(([name, data]) => {
+    const n = Buffer.from(name, 'utf8'), crc = zlib.crc32(data);
+    const h = Buffer.alloc(30);
+    h.writeUInt32LE(0x04034b50, 0); h.writeUInt16LE(20, 4); h.writeUInt16LE(0x0800, 6); h.writeUInt16LE(0, 8);
+    h.writeUInt32LE(crc >>> 0, 14); h.writeUInt32LE(data.length, 18); h.writeUInt32LE(data.length, 22); h.writeUInt16LE(n.length, 26);
+    local.push(h, n, data);
+    const c = Buffer.alloc(46);
+    c.writeUInt32LE(0x02014b50, 0); c.writeUInt16LE(20, 4); c.writeUInt16LE(20, 6); c.writeUInt16LE(0x0800, 8);
+    c.writeUInt32LE(crc >>> 0, 16); c.writeUInt32LE(data.length, 20); c.writeUInt32LE(data.length, 24); c.writeUInt16LE(n.length, 28);
+    c.writeUInt32LE(offset, 42);
+    central.push(c, n);
+    offset += 30 + n.length + data.length;
+  });
+  const cd = Buffer.concat(central), end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(entries.length, 8); end.writeUInt16LE(entries.length, 10);
+  end.writeUInt32LE(cd.length, 12); end.writeUInt32LE(offset, 16);
+  return Buffer.concat(local.concat([cd, end]));
+}
+
 function createGasFakes() {
   const sheets = {};
   const logs = [];
@@ -72,7 +96,10 @@ function createGasFakes() {
 
   const globals = {
     SpreadsheetApp: { getActiveSpreadsheet: () => spreadsheet },
-    Utilities: { formatDate, getUuid: () => crypto.randomUUID() },
+    Utilities: { formatDate, getUuid: () => crypto.randomUUID(),
+      newBlob: (data, type, name) => ({ data: String(data), type, name, getBytes: () => Array.from(Buffer.from(String(data), 'utf8')), getName: () => name }),
+      zip: (blobs, name) => { const bytes = zipStore(blobs.map(b => [b.name, Buffer.from(b.data, 'utf8')])); return { name, files: blobs, getBytes: () => Array.from(bytes) }; },
+      base64Encode: bytes => Buffer.from(bytes).toString('base64') },
     ScriptApp: { getService: () => ({ getUrl: () => 'https://script.example/exec' }) },
     HtmlService: { createHtmlOutput: html => ({ html, setTitle() { return this; }, addMetaTag() { return this; }, getContent() { return html; } }) },
     Session: { getActiveUser: () => ({ getEmail: () => currentUser }), getScriptTimeZone: () => 'Africa/Nairobi' },

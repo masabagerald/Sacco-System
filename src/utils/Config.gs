@@ -113,6 +113,19 @@ const WAIVER_ROLE_MINIMUMS = { 'Chairperson': 1, 'Finance Committee': 2 };
 const WAIVER_STATUS = { PENDING: 'Pending Waiver Approval', PARTIAL: 'Partially Approved', APPROVED: 'Waiver Approved', REJECTED: 'Waiver Rejected' };
 const REQ_PENDING_WAIVER = 'Pending Waiver Approval';
 
+// ── ASSET REGISTER (ISS-12) ───────────────────────────────────────────────────
+// Admins only. Every new asset, and every material change to one, must be verified by a different admin.
+const SH_ASSETS        = 'Assets';          // one row per asset: its current details
+const SH_ASSET_REVIEWS = 'Asset Reviews';   // append-only: each verification or rejection
+const SH_ASSET_HISTORY = 'Asset History';   // append-only: every change, with the previous and new value
+const ASSET_TYPES = ['Computers', 'Printers', 'Furniture', 'Vehicles', 'Equipment', 'Other'];  // 'Other' needs the type written in
+// Condition and availability are separate: a functional asset can be in use; a disposed asset keeps its last condition.
+const ASSET_CONDITIONS = ['Functional', 'Non-functional'];
+const ASSET_AVAILABILITY = ['Available', 'In Use', 'Unavailable', 'Disposed Off'];
+const ASSET_DISPOSED = 'Disposed Off';
+const ASSET_VERIFICATION = { PENDING: 'Pending Verification', VERIFIED: 'Verified', REJECTED: 'Rejected' };
+const ASSET_PAGE_SIZE = 25;
+
 // ── LOAN INSIGHTS & INVESTMENT TRACKER ────────────────────────────────────────
 const SH_LOAN_FUND   = 'Loan Fund Ledger';
 const SH_INVESTMENTS = 'Investments';

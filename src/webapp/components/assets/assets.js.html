@@ -1,0 +1,156 @@
+<script>
+// ── ASSET REGISTER (admins) ───────────────────────────────────────────────────
+// Filters and page are sent to the server; the exports use the same filters, so they match the list.
+let AS={filters:{},page:1,options:null,loaded:false}, AV={asset:null}, AF={id:'',version:null};
+const AS_F=['q','type','condition','availability','location','from','to','verification','disposal'];
+
+function openAssets(){if(!AS.loaded){AS.loaded=true;}loadAssets();}
+function readAssetFilters(){const f={};AS_F.forEach(k=>{const v=$('#asf_'+k).value.trim();if(v)f[k]=v;});return f;}
+function applyAssetFilters(){AS.filters=readAssetFilters();AS.page=1;loadAssets();}
+function clearAssetFilters(){AS_F.forEach(k=>{$('#asf_'+k).value='';});applyAssetFilters();}
+function assetPage(d){AS.page=Math.max(1,AS.page+d);loadAssets();}
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&String(e.target.id).indexOf('asf_')===0)applyAssetFilters();});
+
+function fillSelect(id,values,keep){const el=$('#'+id),cur=el.value;el.innerHTML=(keep||'')+values.map(v=>'<option>'+esc(v)+'</option>').join('');el.value=cur;}
+
+function loadAssets(){
+  $('#as_body').classList.add('loading');$('#as_err').textContent='';
+  Api.getAssets(AS.filters,AS.page,res=>{
+    $('#as_body').classList.remove('loading');
+    if(!res.ok){$('#as_err').textContent=res.error;return;}
+    if(!AS.options){AS.options=res.options;
+      fillSelect('asf_type',res.options.types,'<option value="">All</option>');fillSelect('asf_condition',res.options.conditions,'<option value="">All</option>');
+      fillSelect('asf_availability',res.options.availability,'<option value="">All</option>');fillSelect('asf_verification',res.options.verification,'<option value="">All</option>');}
+    AS.page=res.page;renderAssets(res);
+  },e=>{$('#as_body').classList.remove('loading');$('#as_err').textContent='Error: '+e.message;});
+}
+function verBadge(v){return '<span class="badge '+(v==='Verified'?'approved':v==='Rejected'?'rejected':'pending')+'">'+esc(v)+'</span>';}
+function renderAssets(res){
+  const s=res.summary;
+  $('#as_count').textContent=s.count;
+  $('#as_countm').textContent=s.verified+' verified · '+s.pending+' pending · '+s.rejected+' rejected · '+s.disposed+' disposed';
+  $('#as_vval').textContent=fmt(s.verifiedValue);$('#as_uval').textContent=fmt(s.unverifiedValue);
+  $('#as_uvalm').textContent='Pending or rejected assets, not counted as verified';
+  setBadge('rb-ast',s.pending);
+  $('#as_tb').innerHTML=res.assets.length?res.assets.map(a=>'<tr><td><strong>'+esc(a.id)+'</strong>'+(a.tag?'<div class="note">'+esc(a.tag)+'</div>':'')+'</td>'
+      +'<td>'+esc(a.description)+((a.make||a.model||a.serial)?'<div class="note">'+esc([a.make,a.model].filter(Boolean).join(' '))+(a.serial?' · S/N '+esc(a.serial):'')+'</div>':'')+'</td>'
+      +'<td>'+esc(a.typeLabel)+'</td><td class="r">'+Math.round(a.value).toLocaleString('en-US')+'</td><td>'+esc(hd(a.dateAcquired))+'</td><td>'+esc(a.location)+'</td>'
+      +'<td>'+esc(a.condition)+'<div class="note">'+esc(a.availability)+(a.disposed?' '+esc(hd(a.disposalDate))+' to '+esc(a.disposedTo):'')+'</div></td>'
+      +'<td>'+verBadge(a.verification)+(a.version>1?'<div class="note">version '+a.version+'</div>':'')+'</td>'
+      +'<td><button class="btn sm'+(a.canReview?' solid':'')+'" onclick="openAssetView(\''+esc(a.id)+'\')">'+(a.canReview?'Review':'View')+'</button></td></tr>').join('')
+    :'<tr class="empty"><td colspan="9">'+(res.ready?'No asset matches the filters.':'No assets registered yet.')+'</td></tr>';
+  $('#as_pageinfo').textContent=res.total?('Showing '+((res.page-1)*res.pageSize+1)+'–'+Math.min(res.total,res.page*res.pageSize)+' of '+res.total+' (page '+res.page+' of '+res.pages+')'):'';
+  $('#as_prev').disabled=res.page<=1;$('#as_next').disabled=res.page>=res.pages;
+}
+
+// ── details, history, review ──
+function openAssetView(id){
+  AV={asset:null};$('#av_title').textContent=id;$('#av_sub').textContent='';$('#av_body').innerHTML='<p class="note">Loading&hellip;</p>';
+  ['av_ver','av_rej','av_edit','av_dispose'].forEach(b=>$('#'+b).classList.add('hidden'));$('#av_review').classList.add('hidden');
+  $('#av_block').textContent='';mst('av_st','','');om('m_assetView');
+  Api.getAsset(id,res=>{
+    if(!res.ok){$('#av_body').innerHTML='<p class="note">'+esc(res.error)+'</p>';return;}
+    AV=res;const a=res.asset,row=(k,v)=>quoteRow(k,v);
+    $('#av_sub').innerHTML=verBadge(a.verification)+' version '+a.version+(a.verifiedBy&&a.verification==='Verified'?' · verified by '+esc(a.verifiedByName)+' '+esc(hdt(a.verifiedAt)):'');
+    $('#av_body').innerHTML='<table><tbody>'
+      +row('Type',esc(a.typeLabel))+row('Description',esc(a.description))+row('Asset tag',esc(a.tag||'—'))
+      +row('Make / model',esc([a.make,a.model].filter(Boolean).join(' ')||'—'))+row('Serial number',esc(a.serial||'—'))
+      +row('Value',fmt(a.value))+row('Date acquired',esc(hd(a.dateAcquired)))+row('Condition',esc(a.condition))+row('Status',esc(a.availability))
+      +row('Location',esc(a.location))
+      +(a.disposed?row('Disposal date',esc(hd(a.disposalDate)))+row('Disposed to',esc(a.disposedTo))+row('Recipient contact',esc(a.recipientContact)):'')
+      +row('Documents',a.documents.length?a.documents.map(d=>'<a href="'+esc(d)+'" target="_blank" rel="noopener">'+esc(d)+'</a>').join('<br>'):'None')
+      +row('Notes',esc(a.notes||'—'))+row('Registered',esc(a.createdByName)+' · '+esc(hdt(a.createdAt)))
+      +row('Awaiting / last submitted by',esc(a.submittedByName)+' · '+esc(hdt(a.submittedAt)))
+      +'</tbody></table>'
+      +'<p class="note"><strong>Reviews</strong></p>'+(res.reviews.length?'<table><tbody>'+res.reviews.map(v=>'<tr><td>'+esc(hdt(v.at))+'</td><td>v'+v.version+'</td><td>'+esc(v.reviewerName)+' ('+esc(v.reviewer)+')</td><td>'+verBadge(v.decision)+'</td><td>'+esc(v.comment)+'</td></tr>').join('')+'</tbody></table>':'<p class="note">None yet.</p>')
+      +'<p class="note"><strong>History</strong></p><div class="tscroll"><table><tbody>'+res.history.slice().reverse().map(h=>'<tr><td style="white-space:nowrap">'+esc(hdt(h.at))+'</td><td>v'+h.version+' '+esc(h.action)+'</td><td>'+esc(h.byName)+'</td><td>'
+        +(h.field?esc(h.field)+': <s>'+esc(h.before||'—')+'</s> → '+esc(h.after||'—'):esc(h.after))+(h.reason?'<div class="note">'+esc(h.reason)+'</div>':'')+'</td></tr>').join('')+'</tbody></table></div>';
+    const canReview=a.verification==='Pending Verification'&&!res.reviewBlock;
+    $('#av_ver').classList.toggle('hidden',!canReview);$('#av_rej').classList.toggle('hidden',!canReview);$('#av_review').classList.toggle('hidden',!canReview);
+    $('#av_edit').classList.remove('hidden');$('#av_dispose').classList.toggle('hidden',a.disposed);
+    $('#av_block').textContent=a.verification==='Pending Verification'&&res.reviewBlock?res.reviewBlock:'';
+    $('#av_comment').value='';$('#av_ver').disabled=false;$('#av_rej').disabled=false;
+  },e=>{$('#av_body').innerHTML='<p class="note">Error: '+esc(e.message)+'</p>';});
+}
+function reviewAsset(kind){
+  const a=AV.asset,c=$('#av_comment').value.trim();
+  if(kind==='reject'&&!c)return mst('av_st','err','Enter the reason for rejecting. It is emailed to the person who entered the asset.');
+  $('#av_ver').disabled=true;$('#av_rej').disabled=true;mst('av_st','','Saving…');
+  const done=res=>{
+    if(!res.ok){$('#av_ver').disabled=false;$('#av_rej').disabled=false;return mst('av_st','err',res.error);}
+    mst('av_st','ok',kind==='verify'?'Verified.':'Rejected; the person who entered it has been told why.');loadAssets();setTimeout(()=>cm('m_assetView'),1200);
+  },fail=e=>{$('#av_ver').disabled=false;$('#av_rej').disabled=false;mst('av_st','err','Error: '+e.message);};
+  if(kind==='verify')Api.verifyAsset(a.id,c,a.version,done,fail);else Api.rejectAsset(a.id,c,a.version,done,fail);
+}
+
+// ── register / edit ──
+const AF_FIELDS=['type','otherType','description','tag','serial','make','model','value','dateAcquired','condition','availability','location','disposalDate','disposedTo','recipientContact','documents','notes'];
+function afErr(f,msg){const e=$('#af_'+f+'_err');if(e)e.textContent=msg||'';const i=$('#af_'+f);if(i)i.classList.toggle('invalid',!!msg);}
+function assetTypeChanged(){$('#af_otherwrap').classList.toggle('hidden',$('#af_type').value!=='Other');}
+function assetAvailabilityChanged(){document.querySelectorAll('.af-disp').forEach(el=>el.classList.toggle('hidden',$('#af_availability').value!=='Disposed Off'));}
+function openAssetForm(id){
+  const o=AS.options||{types:[],conditions:[],availability:[]};
+  fillSelect('af_type',o.types,'<option value="">— select —</option>');fillSelect('af_condition',o.conditions,'<option value="">— select —</option>');
+  fillSelect('af_availability',o.availability,'<option value="">— select —</option>');
+  AF_FIELDS.concat(['reason']).forEach(f=>afErr(f,''));mst('af_st','','');$('#af_btn').disabled=false;
+  const a=id&&AV.asset&&AV.asset.id===id?AV.asset:null;
+  AF={id:a?a.id:'',version:a?a.version:null};
+  AF_FIELDS.forEach(f=>{const el=$('#af_'+f);el.value=a?(f==='documents'?a.documents.join('\n'):(a[f]==null?'':String(a[f]))):'';});
+  if(!a){$('#af_dateAcquired').value=todayISO();$('#af_condition').value='Functional';$('#af_availability').value='Available';}
+  $('#af_reason').value='';$('#af_reasonwrap').classList.toggle('hidden',!a);
+  $('#af_title').textContent=a?'Edit '+a.id:'Register Asset';
+  $('#af_sub').textContent=a?'Currently '+a.verification+' (version '+a.version+').':'';
+  $('#af_note').innerHTML=a?'Changes to identity, value, condition, status, location or disposal details send the asset back to <strong>Pending Verification</strong>. Corrections to the description, notes or documents do not.'
+    :'A new asset is <strong>Pending Verification</strong> until a different administrator verifies it.';
+  $('#af_btn').textContent=a?'Save changes':'Register';
+  assetTypeChanged();assetAvailabilityChanged();
+  cm('m_assetView');om('m_asset');
+}
+function submitAssetForm(){
+  const d={};AF_FIELDS.forEach(f=>{d[f]=$('#af_'+f).value;});
+  AF_FIELDS.concat(['reason']).forEach(f=>afErr(f,''));
+  if(d.availability!=='Disposed Off'){d.disposalDate='';d.disposedTo='';d.recipientContact='';}
+  const reason=$('#af_reason').value.trim();
+  if(AF.id&&!reason){afErr('reason','Give the reason for the change.');return mst('af_st','err','Please give a reason.');}
+  $('#af_btn').disabled=true;mst('af_st','','Saving…');
+  const done=res=>{
+    if(!res.ok){$('#af_btn').disabled=false;if(res.field)afErr(res.field,res.error);return mst('af_st','err',res.error);}
+    mst('af_st','ok',AF.id?(res.material?'Saved. The asset now needs verification by a different administrator.':'Saved. Minor correction; verification unchanged.')
+      :'Registered as '+res.assetId+'. A different administrator must verify it.');
+    loadAssets();setTimeout(()=>cm('m_asset'),1600);
+  },fail=e=>{$('#af_btn').disabled=false;mst('af_st','err','Error: '+e.message);};
+  if(AF.id)Api.updateAsset(AF.id,d,reason,AF.version,done,fail);else Api.registerAsset(d,done,fail);
+}
+
+// ── disposal ──
+function openAssetDispose(){
+  const a=AV.asset;if(!a)return;
+  $('#ad_info').textContent=a.id+': '+a.description;
+  ['date','to','contact','docs','reason'].forEach(k=>{$('#ad_'+k).value='';});$('#ad_date').value=todayISO();
+  ['date','to','contact','docs'].forEach(k=>{const e=$('#ad_'+k+'_err');if(e)e.textContent='';});
+  mst('ad_st','','');$('#ad_btn').disabled=false;cm('m_assetView');om('m_assetDispose');
+}
+function submitAssetDispose(){
+  const a=AV.asset, map={disposalDate:'date',disposedTo:'to',recipientContact:'contact',documents:'docs'};
+  ['date','to','contact','docs'].forEach(k=>{const e=$('#ad_'+k+'_err');if(e)e.textContent='';});
+  $('#ad_btn').disabled=true;mst('ad_st','','Saving…');
+  Api.disposeAsset(a.id,{date:$('#ad_date').value,to:$('#ad_to').value.trim(),contact:$('#ad_contact').value.trim(),documents:$('#ad_docs').value,version:a.version},$('#ad_reason').value.trim(),res=>{
+    if(!res.ok){$('#ad_btn').disabled=false;const k=map[res.field];if(k&&$('#ad_'+k+'_err'))$('#ad_'+k+'_err').textContent=res.error;return mst('ad_st','err',res.error);}
+    mst('ad_st','ok','Disposal recorded. A different administrator must verify it.');loadAssets();setTimeout(()=>cm('m_assetDispose'),1600);
+  },e=>{$('#ad_btn').disabled=false;mst('ad_st','err','Error: '+e.message);});
+}
+
+// ── exports (same filters as the list on screen) ──
+function exportAssets(kind){
+  const btn=$('#as_'+kind);btn.disabled=true;$('#as_err').textContent='';
+  const call=kind==='pdf'?Api.exportAssetRegisterPdf:Api.exportAssetRegisterXlsx;
+  call(AS.filters,res=>{
+    btn.disabled=false;
+    if(!res.ok){$('#as_err').textContent=res.error;return;}
+    const bin=atob(res.base64),bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+    const url=URL.createObjectURL(new Blob([bytes],{type:res.mimeType})),a=document.createElement('a');
+    a.href=url;a.download=res.fileName;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  },e=>{btn.disabled=false;$('#as_err').textContent='Error: '+e.message;});
+}
+</script>

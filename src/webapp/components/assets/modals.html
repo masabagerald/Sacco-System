@@ -1,0 +1,66 @@
+<!-- Register / edit an asset -->
+<div class="modal-bg" id="m_asset" onclick="if(event.target===this)cm('m_asset')">
+  <div class="modal wide"><button class="x" onclick="cm('m_asset')">&times;</button>
+    <h3 id="af_title">Register Asset</h3><p class="sub" id="af_sub"></p>
+    <div class="mgrid">
+      <div class="field"><label for="af_type">Asset type</label><select id="af_type" onchange="assetTypeChanged()"></select><div class="ferr" id="af_type_err"></div></div>
+      <div class="field hidden" id="af_otherwrap"><label for="af_otherType">Specify the type</label><input id="af_otherType" type="text" maxlength="100"><div class="ferr" id="af_otherType_err"></div></div>
+      <div class="field full"><label for="af_description">Description</label><input id="af_description" type="text" maxlength="500"><div class="ferr" id="af_description_err"></div></div>
+      <div class="field"><label for="af_tag">Asset tag (optional, unique)</label><input id="af_tag" type="text" maxlength="50" placeholder="e.g. MSIC-IT-001"><div class="ferr" id="af_tag_err"></div></div>
+      <div class="field"><label for="af_serial">Serial number (optional, unique)</label><input id="af_serial" type="text" maxlength="100"><div class="ferr" id="af_serial_err"></div></div>
+      <div class="field"><label for="af_make">Make</label><input id="af_make" type="text" maxlength="100"></div>
+      <div class="field"><label for="af_model">Model</label><input id="af_model" type="text" maxlength="100"></div>
+      <div class="field"><label for="af_value">Value (UGX)</label><input id="af_value" type="number" min="0" step="1"><div class="ferr" id="af_value_err"></div></div>
+      <div class="field"><label for="af_dateAcquired">Date acquired</label><input id="af_dateAcquired" type="date"><div class="ferr" id="af_dateAcquired_err"></div></div>
+      <div class="field"><label for="af_condition">Condition</label><select id="af_condition"></select><div class="ferr" id="af_condition_err"></div></div>
+      <div class="field"><label for="af_availability">Status</label><select id="af_availability" onchange="assetAvailabilityChanged()"></select><div class="ferr" id="af_availability_err"></div></div>
+      <div class="field full"><label for="af_location">Location</label><input id="af_location" type="text" maxlength="200"><div class="ferr" id="af_location_err"></div></div>
+      <div class="field hidden af-disp"><label for="af_disposalDate">Disposal date</label><input id="af_disposalDate" type="date"><div class="ferr" id="af_disposalDate_err"></div></div>
+      <div class="field hidden af-disp"><label for="af_disposedTo">Disposed to (person or organisation)</label><input id="af_disposedTo" type="text" maxlength="200"><div class="ferr" id="af_disposedTo_err"></div></div>
+      <div class="field full hidden af-disp"><label for="af_recipientContact">Recipient contact (phone or email)</label><input id="af_recipientContact" type="text" maxlength="200"><div class="ferr" id="af_recipientContact_err"></div></div>
+      <div class="field full"><label for="af_documents">Supporting documents (optional)</label><textarea id="af_documents" rows="2" placeholder="Links to receipts, invoices or photos (for example in Google Drive), one per line, starting with https://"></textarea><div class="ferr" id="af_documents_err"></div></div>
+      <div class="field full"><label for="af_notes">Notes</label><textarea id="af_notes" rows="2" maxlength="1000"></textarea></div>
+      <div class="field full hidden" id="af_reasonwrap"><label for="af_reason">Reason for the change (required)</label><input id="af_reason" type="text" maxlength="500"><div class="ferr" id="af_reason_err"></div></div>
+    </div>
+    <p class="note" id="af_note">A new asset is <strong>Pending Verification</strong> until a different administrator verifies it.</p>
+    <div class="mact"><button class="btn" onclick="cm('m_asset')">Cancel</button><button class="btn solid" id="af_btn" onclick="submitAssetForm()">Register</button></div>
+    <div class="mst" id="af_st"></div>
+  </div>
+</div>
+
+<!-- Asset details, history and review -->
+<div class="modal-bg" id="m_assetView" onclick="if(event.target===this)cm('m_assetView')">
+  <div class="modal wide"><button class="x" onclick="cm('m_assetView')">&times;</button>
+    <h3 id="av_title">Asset</h3><p class="sub" id="av_sub"></p>
+    <div id="av_body"><p class="note">Loading&hellip;</p></div>
+    <div id="av_review" class="hidden">
+      <div class="mgrid"><div class="field full"><label for="av_comment">Comment (required to reject; emailed to the person who entered it)</label><textarea id="av_comment" rows="2" maxlength="500"></textarea></div></div>
+    </div>
+    <p class="note" id="av_block"></p>
+    <div class="mact">
+      <button class="btn" onclick="cm('m_assetView')">Close</button>
+      <button class="btn" id="av_edit" onclick="openAssetForm(AV.asset.id)">Edit</button>
+      <button class="btn" id="av_dispose" onclick="openAssetDispose()">Record disposal</button>
+      <button class="btn danger hidden" id="av_rej" onclick="reviewAsset('reject')">Reject</button>
+      <button class="btn solid hidden" id="av_ver" onclick="reviewAsset('verify')">Verify</button>
+    </div>
+    <div class="mst" id="av_st"></div>
+  </div>
+</div>
+
+<!-- Record a disposal -->
+<div class="modal-bg" id="m_assetDispose" onclick="if(event.target===this)cm('m_assetDispose')">
+  <div class="modal"><button class="x" onclick="cm('m_assetDispose')">&times;</button>
+    <h3>Record Disposal</h3><p class="sub" id="ad_info"></p>
+    <div class="mgrid">
+      <div class="field"><label for="ad_date">Disposal date</label><input id="ad_date" type="date"><div class="ferr" id="ad_date_err"></div></div>
+      <div class="field"><label for="ad_to">Disposed to</label><input id="ad_to" type="text" maxlength="200" placeholder="Person or organisation"><div class="ferr" id="ad_to_err"></div></div>
+      <div class="field full"><label for="ad_contact">Recipient contact (phone or email)</label><input id="ad_contact" type="text" maxlength="200"><div class="ferr" id="ad_contact_err"></div></div>
+      <div class="field full"><label for="ad_docs">Disposal documents (optional)</label><textarea id="ad_docs" rows="2" placeholder="https:// links, one per line"></textarea><div class="ferr" id="ad_docs_err"></div></div>
+      <div class="field full"><label for="ad_reason">Reason</label><input id="ad_reason" type="text" maxlength="500" placeholder="e.g. Donated to St Jude School, committee minute 7/2026"></div>
+    </div>
+    <p class="note">The asset stays on the register, marked Disposed Off. The disposal must be verified by a different administrator.</p>
+    <div class="mact"><button class="btn" onclick="cm('m_assetDispose')">Cancel</button><button class="btn solid" id="ad_btn" onclick="submitAssetDispose()">Record disposal</button></div>
+    <div class="mst" id="ad_st"></div>
+  </div>
+</div>

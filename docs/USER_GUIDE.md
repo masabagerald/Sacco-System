@@ -36,6 +36,7 @@ This guide explains how to use the club's web app: signing in, checking your sav
   - [Loan Insights (admin)](#loan-insights-admin)
   - [Loan fund entries](#loan-fund-entries)
   - [Investments](#investments)
+  - [Asset register](#asset-register)
 - [Frequently asked questions](#frequently-asked-questions)
 
 ---
@@ -542,6 +543,24 @@ Both entries are created together and linked. Approving one approves the other, 
 ![Transfer with the Loan Fund form: moving money from the Money Market Fund into the loan fund](images/19-investment-transfer.png)
 
 ---
+
+### Asset register
+
+**Asset register** (Admin menu) lists the club's own assets: computers, printers, furniture, vehicles, equipment and others. Only administrators can see or change it.
+
+![Asset Register: filters, the verified and unverified value, and assets with their verification status](images/24-asset-register.png)
+
+**Registering an asset.** Click **+ Register asset** and enter the type (for **Other**, say what it is), a description, the value in UGX, the date acquired, the condition (**Functional** / **Non-functional**), the status (**Available**, **In Use**, **Unavailable** or **Disposed Off**) and the location. Add the asset tag, make, model and serial number where there are any. Tags and serial numbers must be unique. You can add links to receipts, invoices or photos (for example in Google Drive), one per line, starting with https://.
+
+**Verification.** Every new asset starts as **Pending Verification**. A **different** administrator opens it (**Review**), checks the details and documents, and clicks **Verify**, or **Reject** with a reason. A rejection is emailed to the person who entered the asset; they correct it and save, which sends it for verification again. You can't verify an asset you registered, or a change you made.
+
+![An asset pending verification, with its details, history and the Verify and Reject buttons](images/25-asset-review.png)
+
+**Changing an asset.** Open it and click **Edit**. A reason is required. Changes to the asset's identity (tag, type, make, model, serial number), value, date acquired, condition, status, location or disposal details send it back to **Pending Verification** as a new version. Corrections to the description, notes or document links don't. Every change is kept in the asset's **History** with the old and new value.
+
+**Disposing of an asset.** Open it and click **Record disposal**. Enter the disposal date, who it went to and their phone number or email. The asset stays on the register, marked **Disposed Off**, and the disposal must be verified by a different administrator. Assets are never deleted.
+
+**Search, filters and exports.** Search by asset ID, tag, serial number, make, model or description, and filter by type, condition, status, location, acquisition dates, verification and disposal. **Export PDF** and **Export Excel** download the register with the same filters. Pending and rejected assets are clearly marked, and only verified assets count towards the **Verified value**. Every export is recorded in the audit log.
 
 ## Frequently asked questions
 

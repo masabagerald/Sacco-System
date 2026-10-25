@@ -98,6 +98,15 @@
       set('#wv_comment', 'Title verified at the lands office; value confirmed by the valuer.');
     } },
 
+    'asset-register': { as: P.M001, async run() {
+      await wait(300); goSec('assets'); await wait(800);
+    } },
+
+    'asset-review': { as: P.M001, async run() {
+      await wait(300); goSec('assets'); await wait(800); openAssetView('AST-0004'); await wait(300);
+      set('#av_comment', 'Checked the projector and the receipt in the club office.');
+    } },
+
     'reverse-repayment': { as: P.M001, async run() {
       await wait(300); goSec('loans'); await wait(700); focusOn(panelOf('#repaymentsTb'));
       openRevRepay('RPY-000046'); set('#rr_rs', 'Recorded against L014 by mistake; the payment was for L012');

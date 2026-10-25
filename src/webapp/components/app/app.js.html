@@ -58,11 +58,12 @@ function doLogout(){
 }
 function showTab(t){
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  ['my','admin','audit','insights','investments'].forEach(n=>$('#tab-'+n).classList.toggle('hidden',n!==t));
+  ['my','admin','audit','insights','investments','assets'].forEach(n=>$('#tab-'+n).classList.toggle('hidden',n!==t));
   if(t==='admin')loadAdmin();
   if(t==='audit')loadAudit();
   if(t==='insights')openInsights();
   if(t==='investments')openInvestments();
+  if(t==='assets')openAssets();
 }
 function loadMyAccount(){
   STMT=null;
@@ -94,6 +95,7 @@ const NAV=[
     {id:'fines',    label:'Surcharges',     icon:'⚑', pane:'admin', anchor:'sec-fines'},
     {id:'reports',  label:'Reports',        icon:'▣', pane:'admin', anchor:'sec-reports'},
     {id:'investments',label:'Investments',  icon:'◆', pane:'investments', anchor:null, badge:'rb-inv'},
+    {id:'assets',   label:'Asset register', icon:'▥', pane:'assets', anchor:null, badge:'rb-ast'},
     {id:'audit',    label:'Audit log',      icon:'≡', pane:'audit', anchor:null}]}
 ];
 const BOTTOM_MEMBER=['my','m-loans','m-savings'];
