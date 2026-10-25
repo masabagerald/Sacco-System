@@ -175,6 +175,7 @@ Open the web app URL. **The first time the app is opened, it sets up the spreads
   | `sendRepaymentReminders` | daily 9 am, and on the 25th, 8 am |
   | `sendMonthlyStatements` | 1st of the month, 7 am |
   | `sendMonthlyAuditReport` | 1st of the month, 5 am |
+  | `sendPendingActionReminders`: one email per person listing approvals, reviews and guarantor consents waiting for them over 12 hours | daily, 8 am |
   | `backupSpreadsheet`: copy to a Drive folder, keeps 8 | Mondays, 6 am |
 
 - adds **the hosting account (the club's Google account) as the first member**: `<SHORT>-0001`, **System Administrator**, an **Admin with no membership type**.
@@ -216,7 +217,7 @@ clasp deploy -i <DEPLOYMENT_ID> -d "Short description of the update"
 
 - **Always pass `-i <DEPLOYMENT_ID>`**. It updates the existing deployment, so the URL stays the same. `clasp deploy` without `-i` creates a *new* deployment with a *new* URL. Find the ID with `clasp list-deployments`.
 - `clasp push` alone changes the code in the editor (and the `…/dev` test URL), not the live `/exec` app. The live app changes only when the deployment is updated.
-- If an update adds tabs or columns, it raises `SETUP_VERSION` in `src/services/SetupService.gs`, and the first visit after deploying runs setup again automatically (adding only what is missing). You can also run `setupNewClub` in the editor yourself; it is safe any time.
+- If an update adds tabs, columns or scheduled jobs, it raises `SETUP_VERSION` in `src/services/SetupService.gs`, and the first visit after deploying runs setup again automatically, adding only what is missing. New scheduled jobs are added alongside the existing ones, without duplicating them. You can also run `setupNewClub` in the editor yourself; it is safe any time.
 - If the update needs a new Google permission, the app may show *"Authorization required"* until someone runs any function (for example `setupNewClub`) in the editor as the club's account and allows it.
 - In the editor you can also do it by hand: **Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy**.
 

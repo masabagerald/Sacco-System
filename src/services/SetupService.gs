@@ -4,14 +4,14 @@
 // editor. Either way it:
 //   - creates every tab the app needs, with its header row, and adds any missing columns
 //     (setupGuaranteeSchema() covers the guarantor, loan fund, investment, waiver and asset tabs);
-//   - schedules the jobs (createAllTriggers) if the project has none yet;
+//   - schedules any job that has no trigger yet (SCHEDULED_JOBS in ScheduledJobs.gs);
 //   - if the Members tab is empty, adds the hosting account -- the Google account the app runs as -- as
 //     the first member: "System Administrator", an active Admin with no membership type. That account
 //     always stays an active Admin with no membership type (see _hostMemberError).
 // Existing tabs, rows and columns are never changed or removed, so it is safe to run again.
 
 // Raise when a release needs setup to run again on clubs that are already live (new tabs or columns).
-const SETUP_VERSION = '2';  // 2: Terms Acceptance tab
+const SETUP_VERSION = '3';  // 2: Terms Acceptance tab; 3: daily pending-action reminders job
 const HOST_MEMBER_NAME = 'System Administrator';
 
 // The core tabs, with every column the app uses. A function, not a constant: Config.gs (the SH_* names)
@@ -71,7 +71,8 @@ function setupNewClub() {
     }
 
     let triggers = '';
-    if (!ScriptApp.getProjectTriggers().length) { createAllTriggers(); triggers = 'Scheduled jobs created. '; }
+    const added = _ensureScheduledJobs();
+    if (added.length) triggers = 'Scheduled jobs added: ' + added.join(', ') + '. ';
 
     Config.setScriptProp('setupVersion', SETUP_VERSION);
     const msg = 'Setup complete for ' + SACCO_NAME + '. '

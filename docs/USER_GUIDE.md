@@ -276,7 +276,7 @@ Choose a period at the top: **This month**, **Previous month**, **Year to date**
 | An admin records a deposit or withdrawal | Deposit / Withdrawal Confirmation |
 | A transaction on your account is corrected or reversed | Contribution Corrected / Savings Transaction Reversed |
 | Your withdrawal or loan request gets its first approval, is approved or is rejected | Request update |
-| You are named as a guarantor | Guarantor request, with Approve / Decline buttons |
+| You are named as a guarantor | Guarantor request, with Approve / Decline buttons; a reminder each morning until you respond |
 | A guarantor responds to your loan request | Guarantor response |
 | A loan you guarantee is repaid, charged, overdue or cleared | Guarantor notice |
 | Your loan is due soon, due today or overdue | Loan reminders |
@@ -298,6 +298,8 @@ Every loan, every withdrawal request, every [loan fund entry](#loan-fund-entries
 - A **rejected** request can't be approved later.
 
 When one of these rules applies, the app shows a note instead of the **Approve** button. Admins are emailed when a request has its first approval and needs a second.
+
+**Daily reminders.** Every morning, each admin with something waiting gets **one email**, *"Waiting for your action"*, listing every loan request, withdrawal, loan fund entry, investment transaction, asset verification and loan-with-security waiver they can act on, and how long each has waited. An item is included once it has waited 12 hours, and you are reminded only about items the rules allow you to approve: not your own requests, not ones you started, and not ones you already approved. Reminders continue each day until the item is approved or rejected.
 
 ### Dashboard
 

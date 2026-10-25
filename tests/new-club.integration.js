@@ -31,7 +31,7 @@ module.exports = {
     assert.deepStrictEqual([m.MemberNo, m['Full Name'], m.Email, m.Role, m['Membership Type'], m.Status],
       [val('MEMBER_NO_PREFIX') + '0001', 'System Administrator', host, 'Admin', '', 'Active'], 'hosting account: Admin, no membership type');
     assert.deepStrictEqual(fakes.triggers.map(t => t.fn).sort(),
-      ['backupSpreadsheet', 'processLoanDueDates', 'sendMonthlyAuditReport', 'sendMonthlyStatements', 'sendRepaymentReminders', 'sendRepaymentReminders'],
+      ['backupSpreadsheet', 'processLoanDueDates', 'sendMonthlyAuditReport', 'sendMonthlyStatements', 'sendPendingActionReminders', 'sendRepaymentReminders', 'sendRepaymentReminders'],
       'scheduled jobs created');
     assert.ok(fakes.sheet(val('SH_AUDIT')).records('timestamp').some(a => a.Action === 'Club Set Up'));
 
@@ -39,7 +39,7 @@ module.exports = {
     g.doGet({ parameter: {} });
     assert.match(g.setupNewClub(), /All core tabs already existed/);
     assert.strictEqual(fakes.sheet(val('SH_MEMBERS')).records('memberno').length, 1, 'no second admin');
-    assert.strictEqual(fakes.triggers.length, 6, 'no duplicate jobs');
+    assert.strictEqual(fakes.triggers.length, 7, 'no duplicate jobs');
   },
 
   'the hosting account always stays an active Admin with no membership type'(c) {

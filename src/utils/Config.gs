@@ -115,6 +115,7 @@ const MEMBER_LOAN_FEE = 5000;
 const OVERDUE_SURCHARGE_RATE = 0.10;       // 10% on principal+interest once the due date is missed
 const OVERDUE_REMINDER_DAYS_BEFORE = 3;    // reminder 3 days before the due date
 const OVERDUE_MAX_DAILY_NOTICE_DAYS = 14;  // daily overdue notices stop after 2 weeks
+const PENDING_REMINDER_MIN_HOURS = 12;     // approvals/reviews waiting this long are in the next daily reminder
 
 // ── SECURED LOANS & CONSTITUTIONAL WAIVERS (ISS-11) ───────────────────────────
 // A Founder Member who does not meet a savings coverage requirement (the applicant's loan cap,

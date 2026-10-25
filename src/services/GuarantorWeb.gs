@@ -9,9 +9,9 @@ function _memberName(memberNo, members) {
   return m ? (m['Full Name'] || memberNo) : memberNo;
 }
 
-// Emails every guarantor on a new request. Email failures are logged, not thrown,
-// so the request itself still saves.
-function _sendGuarantorRequests(requestId, applicantNo, amount, termDef, tokens) {
+// Emails every guarantor on a new request (reminder: the daily reminder, same email and links).
+// Email failures are logged, not thrown, so the request itself still saves.
+function _sendGuarantorRequests(requestId, applicantNo, amount, termDef, tokens, reminder) {
   const { rows: members } = readSheet(SH_MEMBERS, 'memberno');
   const applicant = _memberName(applicantNo, members);
   const base = _webAppUrl();
@@ -21,7 +21,7 @@ function _sendGuarantorRequests(requestId, applicantNo, amount, termDef, tokens)
     const link = d => base + '?g=' + t.token + '&decide=' + d;
     const html = _guarantorEmailHtml(m['Full Name'] || '', requestId, applicant, amount, termDef, link('approve'), link('decline'));
     try {
-      _sendHtmlEmail(m['Email'], '[' + SACCO_NAME + '] Please respond to guarantor request ' + requestId, html);
+      _sendHtmlEmail(m['Email'], '[' + SACCO_NAME + '] ' + (reminder ? 'Reminder: please' : 'Please') + ' respond to guarantor request ' + requestId, html);
     } catch (e) { Logger.log('Guarantor email failed for ' + t.guarantorNo + ': ' + e); }
   });
 }

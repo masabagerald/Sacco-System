@@ -164,15 +164,38 @@ function backupSpreadsheet() {
   auditLog('Backup Created', '', 'System', 'Weekly backup: '+fileName, folderName);
 }
 
-// Creates all time-driven triggers in one go — run once from Apps Script (safe to re-run)
+// Daily: one email per person with everything waiting for their approval, review or consent (ReminderService.gs)
+function sendPendingActionReminders() { _oncePerDay('sendPendingActionReminders', () => _sendPendingActionReminders(Date.now())); }
+
+// The scheduled jobs: [function, schedule]. A function may appear more than once.
+const SCHEDULED_JOBS = [
+  ['sendMonthlyStatements', t => t.timeBased().onMonthDay(1).atHour(7)],
+  ['sendMonthlyAuditReport', t => t.timeBased().onMonthDay(1).atHour(5)],
+  ['sendRepaymentReminders', t => t.timeBased().onMonthDay(25).atHour(8)],
+  ['sendRepaymentReminders', t => t.timeBased().everyDays(1).atHour(9)],
+  ['processLoanDueDates', t => t.timeBased().everyDays(1).atHour(7)],
+  ['sendPendingActionReminders', t => t.timeBased().everyDays(1).atHour(8)],
+  ['backupSpreadsheet', t => t.timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(6)]
+];
+
+// Creates all time-driven triggers in one go -- run from Apps Script (safe to re-run: the existing
+// ones are removed first, so there are never duplicates)
 function createAllTriggers() {
-  // Remove existing to avoid duplicates
   ScriptApp.getProjectTriggers().forEach(t => ScriptApp.deleteTrigger(t));
-  ScriptApp.newTrigger('sendMonthlyStatements').timeBased().onMonthDay(1).atHour(7).create();
-  ScriptApp.newTrigger('sendMonthlyAuditReport').timeBased().onMonthDay(1).atHour(5).create();
-  ScriptApp.newTrigger('sendRepaymentReminders').timeBased().onMonthDay(25).atHour(8).create();
-  ScriptApp.newTrigger('sendRepaymentReminders').timeBased().everyDays(1).atHour(9).create();
-  ScriptApp.newTrigger('processLoanDueDates').timeBased().everyDays(1).atHour(7).create();
-  ScriptApp.newTrigger('backupSpreadsheet').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(6).create();
+  SCHEDULED_JOBS.forEach(([fn, schedule]) => schedule(ScriptApp.newTrigger(fn)).create());
   Logger.log('All triggers created successfully.');
+}
+
+// Adds the jobs that have no trigger yet, leaving existing ones alone (used by setup, so a release that
+// adds a job schedules it on clubs that are already live). Returns the functions scheduled.
+function _ensureScheduledJobs() {
+  const have = {};
+  ScriptApp.getProjectTriggers().forEach(t => { have[t.getHandlerFunction()] = true; });
+  const added = [];
+  SCHEDULED_JOBS.forEach(([fn, schedule]) => {
+    if (have[fn]) return;
+    schedule(ScriptApp.newTrigger(fn)).create();
+    if (added.indexOf(fn) < 0) added.push(fn);
+  });
+  return added;
 }
