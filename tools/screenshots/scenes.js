@@ -149,6 +149,13 @@
       document.querySelectorAll('#iv_body .sec-h')[1].style.display = 'none';
     } },
 
+    'new-investment': { as: P.M001, async run() {
+      await wait(300); goSec('investments'); await wait(800); openInv('');
+      set('#in_nm', '364-day Treasury Bill'); set('#in_ty', 'Treasury Bill'); set('#in_pv', 'Bank of Uganda');
+      set('#in_md', '2027-10-20'); set('#in_ar', 'CSD-88412'); set('#in_fs', 'Principal'); invSourceChanged();
+      set('#in_am', '1500000'); set('#in_rf', 'TB-2026-11');
+    } },
+
     'investment-transfer': { as: P.M001, async run() {
       await wait(300); goSec('investments'); await wait(800); focusOn(panelOf('#iv_tb'));
       openInvTr('INV-000001'); set('#tr_dir', 'toLoanFund'); set('#tr_am', '300000'); set('#tr_rf', 'TRF-9'); set('#tr_nt', 'Top up the loan float');

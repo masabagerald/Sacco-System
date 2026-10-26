@@ -37,6 +37,9 @@ function renderAccTab(){
   $('#d_accContrib').textContent=fmt(a.contributions);
   $('#d_accMonth').textContent=fmt(a.contributionsThisMonth)+' this month';
   $('#d_accWd').textContent=fmt(a.withdrawals);
+  $('#d_accInvC').classList.toggle('hidden',!a.pooled||!(a.invested||a.redeemed));
+  $('#d_accInv').textContent=fmt(n(a.invested)-n(a.redeemed));
+  $('#d_accInvM').textContent=a.redeemed?fmt(a.invested)+' invested, '+fmt(a.redeemed)+' redeemed back':'Paid into investments from this pool';
   $('#d_accBal').textContent=fmt(a.balance);
   $('#d_accBalTh').textContent=a.pooled?'Net':'Balance';
   $('#d_accNote').textContent=a.pooled

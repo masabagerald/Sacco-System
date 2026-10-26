@@ -56,13 +56,15 @@ function _principalBalance(memberNo) { return _accountBalances(memberNo).Princip
 function _isPooled(account) { return POOLED_ACCOUNTS.indexOf(account) > -1; }
 
 // Club-wide balance of an account: every member's deposits less every withdrawal (with reversals)
+// Club-wide balance of a pool (Operations, Welfare): every member's deposits less withdrawals, less the
+// money invested from the pool (net of redemptions back into it; InvestmentService.gs)
 function _poolBalanceFromRows(rows, account) {
   let bal = 0;
   rows.forEach(r => {
     if (!String(r['MemberNo'] || '').trim() || _accountOf(r) !== account) return;
     bal += _txSign(_txType(r)) * num(r['Amount (UGX)']);
   });
-  return r2(bal);
+  return r2(bal - _poolInvestmentFlows(account).net);
 }
 
 // What a member has paid into each account: deposits less reversed deposits
@@ -104,8 +106,10 @@ function _depositAccountSummary(rows, nameOf, month) {
       const m = a.members[k];
       return { memberNo: m.memberNo, name: m.name, contributions: r2(m.contributions), withdrawals: r2(m.withdrawals), balance: r2(m.contributions - m.withdrawals) };
     });
+    const inv = _poolInvestmentFlows(name);   // pools only: money invested from the pool, net of redemptions
     return { account: name, pooled: _isPooled(name), contributions: r2(a.contributions), withdrawals: r2(a.withdrawals),
-      balance: r2(a.contributions - a.withdrawals), contributionsThisMonth: r2(a.contributionsThisMonth), members };
+      invested: inv.invested, redeemed: inv.redeemed,
+      balance: r2(a.contributions - a.withdrawals - inv.net), contributionsThisMonth: r2(a.contributionsThisMonth), members };
   });
 }
 
@@ -219,6 +223,7 @@ function _withdrawalAvailable(savRows, requests, memberNo, account) {
   const bal = pooled ? _poolBalanceFromRows(savRows, account) : _accountBalancesFromRows(savRows, no)[account];
   const pending = requests
     .filter(r => _requestAccount(r) === account && _isOpenRequest(r) && (pooled || String(r['MemberNo'] || '').trim() === no))
-    .reduce((s, r) => s + num(r['Amount (UGX)']), 0);
+    .reduce((s, r) => s + num(r['Amount (UGX)']), 0)
+    + (pooled ? _poolInvestmentFlows(account).pending : 0);   // investments from the pool awaiting approval
   return r2(bal - pending);
 }

@@ -11,7 +11,7 @@ const LOAN_FUND_HEADERS = ['EntryID', 'Timestamp', 'Date', 'Entry Type', 'Amount
 const INV_TX_HEADERS = ['TxID', 'Timestamp', 'InvestmentID', 'Date', 'Tx Type', 'Amount (UGX)', 'Cost Source', 'Reference', 'Notes',
   'Linked Entry', 'Reverses', 'Status', 'Initiated By', 'Approver 1', 'Approver 1 At', 'Approver 2', 'Approver 2 At', 'Decision Notes', 'Decided By'];
 const INVESTMENT_HEADERS = ['InvestmentID', 'Timestamp', 'Name', 'Type', 'Provider', 'Currency', 'Start Date', 'Maturity Date',
-  'Account Reference', 'Status', 'Notes', 'Document Link', 'Created By', 'Updated At', 'Updated By'];
+  'Account Reference', 'Status', 'Notes', 'Document Link', 'Created By', 'Updated At', 'Updated By', 'Source of Funds', 'Source of Funds (Other)'];
 
 // `sheet` is a getter: Apps Script runs this file before Config.gs, so SH_* is not defined yet when
 // this object is built -- it is read only when a function asks for it.

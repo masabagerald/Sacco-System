@@ -31,7 +31,8 @@ function getInvestment(investmentId) {
   return { ok: true, investment: { id: String(r['InvestmentID']).trim(), name: String(r['Name'] || ''), type: String(r['Type'] || ''),
     provider: String(r['Provider'] || ''), currency: String(r['Currency'] || INVESTMENT_CURRENCY), startDate: _dstr(r['Start Date']),
     maturityDate: _dstr(r['Maturity Date']), accountRef: String(r['Account Reference'] || ''), status: String(r['Status'] || 'Active'),
-    notes: String(r['Notes'] || ''), documentLink: String(r['Document Link'] || '') } };
+    notes: String(r['Notes'] || ''), documentLink: String(r['Document Link'] || ''),
+    fundSource: String(r['Source of Funds'] || ''), fundSourceOther: String(r['Source of Funds (Other)'] || '') } };
 }
 
 // Creates an investment record. If initialAmount is given, its Initial Investment transaction is
@@ -43,6 +44,9 @@ function createInvestment(data) {
   const v = _validateInvestment(data); if (!v.ok) return v;
   const inv = v.inv, initial = num(data.initialAmount);
   if (initial < 0) return { ok: false, error: 'The initial amount cannot be negative.' };
+  // The loan fund's capital is Principal savings: only money from Principal can be paid out of the loan fund
+  if (data.fromLoanFund && inv.fundSource !== 'Principal')
+    return { ok: false, field: 'fundSource', error: 'Only money from Principal is paid out of the loan fund. Choose Principal as the source of funds, or untick "Paid out of the loan fund".' };
   return _withScriptLock(() => {
     const { sh, headers, hRow, rows, missing } = _readOptional(SH_INVESTMENTS, 'investmentid');
     if (missing || hRow < 0) throw new Error('The "' + SH_INVESTMENTS + '" tab is missing. Run setupFinanceSchema() once from the script editor.');
@@ -51,8 +55,10 @@ function createInvestment(data) {
     const id = _nextRef('investment', rows.map(r => r['InvestmentID']));
     _writeRow(sh, headers, emptyRow(sh, hRow, _hdrIdx(headers, 'InvestmentID')), { InvestmentID: id, Timestamp: now_ts(), Name: inv.name, Type: inv.type,
       Provider: inv.provider, Currency: inv.currency, 'Start Date': inv.startDate, 'Maturity Date': inv.maturityDate,
-      'Account Reference': inv.accountRef, Status: inv.status, Notes: inv.notes, 'Document Link': inv.documentLink, 'Created By': auth.member.memberNo });
-    auditLog('Investment Created', '', auth.member.memberNo, inv.type + ' "' + inv.name + '" with ' + inv.provider + ', started ' + inv.startDate
+      'Account Reference': inv.accountRef, Status: inv.status, Notes: inv.notes, 'Document Link': inv.documentLink, 'Created By': auth.member.memberNo,
+      'Source of Funds': inv.fundSource, 'Source of Funds (Other)': inv.fundSourceOther });
+    auditLog('Investment Created', '', auth.member.memberNo, inv.type + ' "' + inv.name + '" with ' + inv.provider
+      + ', funded from ' + (inv.fundSource === 'Others' ? 'Others: ' + inv.fundSourceOther : inv.fundSource) + ', started ' + inv.startDate
       + (inv.maturityDate ? ', matures ' + inv.maturityDate : '') + (inv.accountRef ? ', account ' + _maskRef(inv.accountRef) : '') + '.', id);
     if (!initial) return { ok: true, investmentId: id };
     const tx = _proposeInvestmentTxLocked(auth, id, 'Initial Investment', initial, inv.startDate, data.reference, 'Initial investment', '', data.fromLoanFund ? 'fromLoanFund' : '');
@@ -71,7 +77,25 @@ function updateInvestment(investmentId, data, reason) {
     const row = rows.find(r => String(r['InvestmentID'] || '').trim() === String(investmentId || '').trim());
     if (!row) return { ok: false, error: 'Investment not found.' };
     const next = { Name: inv.name, Type: inv.type, Provider: inv.provider, Currency: inv.currency, 'Start Date': inv.startDate,
-      'Maturity Date': inv.maturityDate, 'Account Reference': inv.accountRef, Status: inv.status, Notes: inv.notes, 'Document Link': inv.documentLink };
+      'Maturity Date': inv.maturityDate, 'Account Reference': inv.accountRef, Status: inv.status, Notes: inv.notes, 'Document Link': inv.documentLink,
+      'Source of Funds': inv.fundSource, 'Source of Funds (Other)': inv.fundSourceOther };
+    const oldSource = String(row['Source of Funds'] || '').trim();
+    if (oldSource !== inv.fundSource) {
+      const moved = _readOptional(SH_INV_TX, 'txid').rows.filter(r => String(r['InvestmentID'] || '').trim() === String(investmentId || '').trim()
+        && String(r['Status'] || '').trim() !== 'Rejected' && ['contributed', 'redeemed'].indexOf(INV_FLOW_KEYS[String(r['Tx Type'] || '').trim()]) > -1);
+      if (oldSource && moved.length)
+        return { ok: false, field: 'fundSource', error: 'The source of funds can\'t be changed after money has been paid into or out of this investment: '
+          + 'it would move that money between pools. Reverse the transactions first, or record a new investment.' };
+      // Recording the source of an older investment for the first time: its money then comes off that pool
+      if (!oldSource && POOLED_ACCOUNTS.indexOf(inv.fundSource) > -1 && moved.length) {
+        const ia = _investmentAtoms(_readOptional(SH_INV_TX, 'txid').rows, String(investmentId).trim());
+        const net = r2(ia.atoms.filter(a => !a.linked).reduce((s, a) => s + (a.key === 'contributed' ? a.amount : a.key === 'redeemed' ? -a.amount : 0), 0));
+        const bal = _poolBalanceFromRows(readSheet(SH_SAVINGS, 'memberno').rows, inv.fundSource);
+        if (net > bal + 0.005)
+          return { ok: false, field: 'fundSource', error: 'This investment holds ' + fmtUGX(net) + ' paid in, more than the ' + fmtUGX(Math.max(bal, 0))
+            + ' in the club ' + inv.fundSource + ' pool. Check the source of funds.' };
+      }
+    }
     const shown = (k, x) => k === 'Account Reference' ? _maskRef(x) : String(x || '');
     const changes = Object.keys(next).filter(k => String(k.indexOf('Date') > -1 ? _dstr(row[k]) : (row[k] || '')).trim() !== String(next[k]).trim())
       .map(k => k + ': "' + shown(k, k.indexOf('Date') > -1 ? _dstr(row[k]) : row[k]) + '" -> "' + shown(k, next[k]) + '"');

@@ -49,7 +49,8 @@ const SHOTS = [
   ['16-loan-fund-entry.png', 'loan-fund-entry', 1280, 900],
   ['17-loan-fund-trace.png', 'loan-fund-trace', 1280, 900],
   ['18-investments.png', 'investments', 1280, 1240],
-  ['19-investment-transfer.png', 'investment-transfer', 1280, 900]
+  ['19-investment-transfer.png', 'investment-transfer', 1280, 900],
+  ['28-new-investment.png', 'new-investment', 1280, 980]
 ];
 
 // The server code loaded into a fresh context with in-memory Apps Script services

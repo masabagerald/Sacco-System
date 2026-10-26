@@ -55,10 +55,10 @@ function buildFinanceData(loadServer) {
   as(EMAIL.ALICE);
 
   const mm = must(g.createInvestment({ name: 'Money Market Fund', type: 'Unit Trust', provider: 'UAP Old Mutual', startDate: ago(280),
-    accountRef: 'UT-55102847', initialAmount: 2000000, reference: 'UT-DEP-1' }), 'unit trust');
+    accountRef: 'UT-55102847', initialAmount: 2000000, reference: 'UT-DEP-1', fundSource: 'Others', fundSourceOther: 'Club reserves' }), 'unit trust');
   approve(mm.txId);
   const tb = must(g.createInvestment({ name: '182-day Treasury Bill', type: 'Treasury Bill', provider: 'Bank of Uganda', startDate: ago(150),
-    maturityDate: g.fmt_date(g._addDays(new Date(), 32)), accountRef: 'CSD-77120', initialAmount: 1000000, reference: 'TB-1' }), 'treasury bill');
+    maturityDate: g.fmt_date(g._addDays(new Date(), 32)), accountRef: 'CSD-77120', initialAmount: 1000000, reference: 'TB-1', fundSource: 'Principal' }), 'treasury bill');
   approve(tb.txId);
   [[mm, 'Income Earned', 18000, 240], [mm, 'Income Received', 18000, 230], [mm, 'Income Earned', 19500, 200], [mm, 'Income Reinvested', 19500, 195],
    [mm, 'Income Earned', 21000, 140], [mm, 'Income Received', 21000, 130], [mm, 'Valuation', 2085000, 100], [mm, 'Fee', 6000, 95, 'Investment balance'],

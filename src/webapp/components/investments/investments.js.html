@@ -49,6 +49,7 @@ function renderInvestments(r){
   $('#iv_tb').innerHTML=r.investments.length?r.investments.map(i=>{
     const f=i.figures;
     return '<tr><td><b>'+esc(i.name)+'</b><div class="note">'+esc(i.id)+' · '+esc(i.type)+' · '+esc(i.provider)+(i.accountRef?' · '+esc(i.accountRef):'')+'</div>'
+      +'<div class="note">Source of funds: '+esc(i.fundSource)+'</div>'
       +(i.documentLink?'<div class="note"><a href="'+esc(i.documentLink)+'" target="_blank" rel="noopener">document</a></div>':'')+'</td>'
       +'<td>'+badge(i.status,{active:'active',matured:'cleared',closed:'member'})+'</td><td class="r">'+num0(f.netInvested)+'</td>'
       +'<td class="r">'+num0(f.value)+'<div class="note">'+(!f.valued?'at cost, no valuation':'valued '+num0(f.valuationAmount)+' on '+esc(hd(f.valuationDate))+' (manual)'+(f.valuationAmount!==f.value?', adjusted for later flows':''))+'</div></td>'
@@ -57,7 +58,7 @@ function renderInvestments(r){
       +'<td><div class="btn-row"><button class="btn sm solid" onclick="openInvTx(\''+esc(i.id)+'\')">Record</button><button class="btn sm" onclick="openInvTr(\''+esc(i.id)+'\')">Transfer</button><button class="btn sm" onclick="openInv(\''+esc(i.id)+'\')">Edit</button></div></td></tr>';
   }).join(''):'<tr class="empty"><td colspan="9">No investments yet.</td></tr>';
   const brk=rows=>rows.length?rows.map(x=>'<tr><td>'+esc(x.name)+' <span class="note">('+x.count+')</span></td><td class="r">'+num0(x.value)+'</td><td class="r">'+num0(x.netReturn)+'</td></tr>').join(''):'<tr class="empty"><td colspan="3">None.</td></tr>';
-  $('#iv_typeTb').innerHTML=brk(r.byType);$('#iv_provTb').innerHTML=brk(r.byProvider);
+  $('#iv_typeTb').innerHTML=brk(r.byType);$('#iv_provTb').innerHTML=brk(r.byProvider);$('#iv_srcTb').innerHTML=brk(r.bySource||[]);
   $('#iv_matTb').innerHTML=r.maturities.length?r.maturities.map(x=>'<tr><td>'+esc(hd(x.maturityDate))+'</td><td>'+esc(x.name)+' <span class="note">'+esc(x.provider)+'</span></td><td class="r">'+num0(x.value)+'</td></tr>').join(''):'<tr class="empty"><td>Nothing maturing in the next 90 days.</td></tr>';
 }
 
@@ -69,23 +70,38 @@ function openInv(id){
   $('#in_t').textContent=id?'Edit Investment '+id:'New Investment';
   ['nm','pv','md','ar','dl','nt','am','rf','rs'].forEach(k=>$('#in_'+k).value='');
   $('#in_ty').value='Unit Trust';$('#in_st').value='Active';$('#in_sd').value=todayISO();$('#in_lf').checked=false;
+  $('#in_fs').value='';$('#in_fo').value='';$('#in_fs_err').textContent='';$('#in_fo_err').textContent='';invSourceChanged();
   om('m_inv');
   if(id){mst('in_sts','','Loading…');Api.getInvestment(id,res=>{
     if(!res.ok)return mst('in_sts','err',res.error);
     const v=res.investment;$('#in_nm').value=v.name;$('#in_ty').value=v.type;$('#in_pv').value=v.provider;$('#in_sd').value=v.startDate;
-    $('#in_md').value=v.maturityDate;$('#in_ar').value=v.accountRef;$('#in_st').value=v.status;$('#in_dl').value=v.documentLink;$('#in_nt').value=v.notes;mst('in_sts','','');
+    $('#in_md').value=v.maturityDate;$('#in_ar').value=v.accountRef;$('#in_st').value=v.status;$('#in_dl').value=v.documentLink;$('#in_nt').value=v.notes;
+    $('#in_fs').value=v.fundSource||'';$('#in_fo').value=v.fundSourceOther||'';invSourceChanged();
+    mst('in_sts','',v.fundSource?'':'Choose the source of funds for this investment before saving.');
   });}
+}
+// Others needs a description; only Principal (the loan fund's capital) can be paid out of the loan fund
+function invSourceChanged(){
+  const s=$('#in_fs').value;
+  $('#in_fowrap').classList.toggle('hidden',s!=='Others');
+  const principal=s==='Principal'&&!IV_EDIT;
+  $('#in_lfwrap').classList.toggle('hidden',!principal);
+  $('#in_lf').checked=principal;
 }
 function submitInv(){
   const d={name:$('#in_nm').value.trim(),type:$('#in_ty').value,provider:$('#in_pv').value.trim(),startDate:$('#in_sd').value,maturityDate:$('#in_md').value,
-    accountRef:$('#in_ar').value.trim(),status:$('#in_st').value,documentLink:$('#in_dl').value.trim(),notes:$('#in_nt').value.trim(),currency:'UGX'};
-  const done=res=>{$('#in_btn').disabled=false;if(!res.ok)return mst('in_sts','err',res.error);
+    accountRef:$('#in_ar').value.trim(),status:$('#in_st').value,documentLink:$('#in_dl').value.trim(),notes:$('#in_nt').value.trim(),currency:'UGX',
+    fundSource:$('#in_fs').value,fundSourceOther:$('#in_fo').value.trim()};
+  $('#in_fs_err').textContent='';$('#in_fo_err').textContent='';
+  if(!d.fundSource){$('#in_fs_err').textContent='Choose the source of funds.';return mst('in_sts','err','Choose the source of funds.');}
+  if(d.fundSource==='Others'&&!d.fundSourceOther){$('#in_fo_err').textContent='Say where the money came from.';return mst('in_sts','err','Say where the money came from.');}
+  const done=res=>{$('#in_btn').disabled=false;if(!res.ok){if(res.field==='fundSource')$('#in_fs_err').textContent=res.error;if(res.field==='fundSourceOther')$('#in_fo_err').textContent=res.error;return mst('in_sts','err',res.error);}
     mst('in_sts',res.txError?'err':'ok',IV_EDIT?'Saved.':'Created '+res.investmentId+(res.txId?'; initial investment proposed as '+res.txId:'')+(res.txError?'. The initial amount was not proposed: '+res.txError:'.'));
     loadInvestments();if(!res.txError)setTimeout(()=>cm('m_inv'),1100);};
   const fail=e=>{$('#in_btn').disabled=false;mst('in_sts','err','Error: '+e.message);};
   $('#in_btn').disabled=true;mst('in_sts','','Saving…');
   if(IV_EDIT)Api.updateInvestment(IV_EDIT,d,$('#in_rs').value.trim(),done,fail);
-  else Api.createInvestment(Object.assign(d,{initialAmount:$('#in_am').value,reference:$('#in_rf').value.trim(),fromLoanFund:$('#in_lf').checked}),done,fail);
+  else Api.createInvestment(Object.assign(d,{initialAmount:$('#in_am').value,reference:$('#in_rf').value.trim(),fromLoanFund:d.fundSource==='Principal'&&$('#in_lf').checked}),done,fail);
 }
 
 // ── transactions ──────────────────────────────────────────────────────────────

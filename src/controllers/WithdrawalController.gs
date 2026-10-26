@@ -69,6 +69,7 @@ function getWithdrawalRequests() {
   const { rows: members } = readSheet(SH_MEMBERS,'memberno');
   const { rows: savRows } = readSheet(SH_SAVINGS,'memberno');
   const nameOf = {}; members.forEach(m => { nameOf[String(m['MemberNo']||'').trim()] = m['Full Name'] || ''; });
+  const poolBal = {}; POOLED_ACCOUNTS.forEach(a => { poolBal[a] = _poolBalanceFromRows(savRows, a); });
   return { ok: true, requests: rows
     .filter(r=>String(r['RequestID']||'').trim()!=='')
     .map(r=>{
@@ -81,7 +82,7 @@ function getWithdrawalRequests() {
       return {requestId:r['RequestID'],memberNo,memberName:nameOf[memberNo]||memberNo,account,pooled,
         amount:num(r['Amount (UGX)']),reason:r['Reason']||'',status:r['Status']||'',
         decisionNotes:r['Decision Notes']||'',date:r['Timestamp'],
-        currentBalance: pooled ? _poolBalanceFromRows(savRows,account) : _accountBalancesFromRows(savRows,memberNo)[account],
+        currentBalance: pooled ? poolBal[account] : _accountBalancesFromRows(savRows,memberNo)[account],
         initiatedBy, initiatedByName: nameOf[initiatedBy]||initiatedBy,
         approver1, approver1Name: approver1 ? (nameOf[approver1]||approver1) : '',
         approver2, approver2Name: approver2 ? (nameOf[approver2]||approver2) : ''};})

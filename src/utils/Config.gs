@@ -174,6 +174,9 @@ const ENTRY_REVERSAL = 'Reversal';
 
 const INVESTMENT_TYPES = ['Unit Trust', 'Fixed Deposit', 'Treasury Bill', 'Treasury Bond', 'Other'];
 const INVESTMENT_STATUSES = ['Active', 'Matured', 'Closed'];
+// Where an investment's money came from. Principal is the loan fund's capital, so money from Principal can be
+// recorded as a linked transfer out of the loan fund; the others are recorded on the investment only.
+const INVESTMENT_FUND_SOURCES = ['Principal', 'Operations', 'Welfare', 'Others'];
 const INVESTMENT_CURRENCY = 'UGX';  // only UGX is supported: totals have no exchange-rate rule
 // Investment transactions (each needs two admin approvals, like loan fund entries)
 const INV_TX_TYPES = ['Initial Investment', 'Additional Contribution', 'Redemption', 'Income Earned', 'Income Received',

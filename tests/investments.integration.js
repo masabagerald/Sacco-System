@@ -23,7 +23,7 @@ function portfolio(ctx) {
   const { g, fakes } = ctx;
   fakes.signInAs(ALICE);
   const c = ok(g.createInvestment({ name: 'Money Market Fund', type: 'Unit Trust', provider: 'UAP Old Mutual', startDate: '2025-01-10',
-    accountRef: '12345678', initialAmount: 1000000, reference: 'UT-1' }), 'create');
+    accountRef: '12345678', initialAmount: 1000000, reference: 'UT-1', fundSource: 'Others', fundSourceOther: 'Club reserves' }), 'create');
   assert.ok(c.txId, 'initial investment proposed with the record');
   ctx.approve(c.txId);
   ctx.propose('INV-000001', 'Income Earned', 20000, '2025-02-28', '', 'February return', '');
@@ -153,10 +153,10 @@ module.exports = {
     const ctx = setup(c), { g, fakes } = ctx;
     fakes.signInAs(ALICE);
     const soon = g.fmt_date(g._addDays(new Date(), 30)), far = g.fmt_date(g._addDays(new Date(), 200));
-    ok(g.createInvestment({ name: 'FD 1', type: 'Fixed Deposit', provider: 'Stanbic', startDate: '2025-01-01', maturityDate: soon }), 'fd1');
-    ok(g.createInvestment({ name: 'Bond', type: 'Treasury Bond', provider: 'BoU', startDate: '2025-01-01', maturityDate: far }), 'bond');
-    fails(g.createInvestment({ name: 'FD 1', type: 'Fixed Deposit', provider: 'Stanbic', startDate: '2025-01-01' }), /already exists/, 'duplicate record');
-    fails(g.createInvestment({ name: 'X', type: 'Fixed Deposit', provider: 'Y', startDate: '2025-01-01', currency: 'USD' }), /Only UGX/, 'currency');
+    ok(g.createInvestment({ name: 'FD 1', type: 'Fixed Deposit', provider: 'Stanbic', startDate: '2025-01-01', maturityDate: soon, fundSource: 'Welfare' }), 'fd1');
+    ok(g.createInvestment({ name: 'Bond', type: 'Treasury Bond', provider: 'BoU', startDate: '2025-01-01', maturityDate: far, fundSource: 'Principal' }), 'bond');
+    fails(g.createInvestment({ name: 'FD 1', type: 'Fixed Deposit', provider: 'Stanbic', startDate: '2025-01-01', fundSource: 'Welfare' }), /already exists/, 'duplicate record');
+    fails(g.createInvestment({ name: 'X', type: 'Fixed Deposit', provider: 'Y', startDate: '2025-01-01', currency: 'USD', fundSource: 'Welfare' }), /Only UGX/, 'currency');
     assert.deepStrictEqual(Array.from(ctx.dash().maturities).map(m => m.name), ['FD 1']);
   },
 
@@ -171,5 +171,35 @@ module.exports = {
     fails(g.proposeInvestmentTx('INV-000001', 'Fee', 5, '', '', '', 'Paid separately'), /Admin access required/, 'propose');
     fails(g.proposeInvestmentTransfer('toLoanFund', 'INV-000001', 5, '', '', ''), /Admin access required/, 'transfer');
     ok(g.getLoanInsights({}), 'Loan Insights still allowed');
+  },
+
+  'every investment records its source of funds; only Principal can be paid out of the loan fund'(c) {
+    const ctx = setup(c), { g } = ctx;
+    ctx.fakes.signInAs(ALICE);
+    const base = { type: 'Fixed Deposit', provider: 'Stanbic', startDate: '2025-01-01' };
+    const r1 = g.createInvestment(Object.assign({ name: 'A' }, base));
+    assert.ok(!r1.ok && r1.field === 'fundSource' && /Choose the source of funds: Principal, Operations, Welfare, Others/.test(r1.error), JSON.stringify(r1));
+    const r2 = g.createInvestment(Object.assign({ name: 'A', fundSource: 'Savings' }, base));
+    assert.ok(!r2.ok && r2.field === 'fundSource', 'unknown source refused');
+    const r3 = g.createInvestment(Object.assign({ name: 'A', fundSource: 'Others' }, base));
+    assert.ok(!r3.ok && r3.field === 'fundSourceOther' && /where the money came from/.test(r3.error), 'Others needs a description');
+    const r4 = g.createInvestment(Object.assign({ name: 'A', fundSource: 'Welfare', initialAmount: 1000, fromLoanFund: true }, base));
+    assert.ok(!r4.ok && /Only money from Principal is paid out of the loan fund/.test(r4.error), 'loan fund only for Principal');
+
+    const a = ok(g.createInvestment(Object.assign({ name: 'A', fundSource: 'Others', fundSourceOther: 'Harambee fundraising' }, base)), 'others').investmentId;
+    ok(g.createInvestment(Object.assign({ name: 'B', fundSource: 'Welfare', fundSourceOther: 'ignored' }, base)), 'welfare');
+    const det = ok(g.getInvestment(a), 'detail').investment;
+    assert.deepStrictEqual([det.fundSource, det.fundSourceOther], ['Others', 'Harambee fundraising']);
+    const b = ok(g.getInvestment('INV-000002'), 'detail B').investment;
+    assert.deepStrictEqual([b.fundSource, b.fundSourceOther], ['Welfare', ''], 'the description is kept only for Others');
+    assert.ok(ctx.audit().some(x => x.Action === 'Investment Created' && /funded from Others: Harambee fundraising/.test(x.Details)));
+
+    const dash = ok(g.getInvestmentDashboard({}), 'dashboard');
+    assert.strictEqual(dash.investments.find(i => i.id === a).fundSource, 'Others: Harambee fundraising');
+    assert.strictEqual(JSON.stringify(dash.bySource.map(x => x.name).sort()), JSON.stringify(['Others: Harambee fundraising', 'Welfare']));
+
+    // A change of source is audited like any other change
+    ok(g.updateInvestment(a, Object.assign({}, det, { fundSource: 'Operations', fundSourceOther: '' }), 'Recorded wrongly'), 'update');
+    assert.ok(ctx.audit().some(x => x.Action === 'Investment Updated' && /Source of Funds: "Others" -> "Operations"/.test(x.Details)), 'old and new source kept');
   }
 };

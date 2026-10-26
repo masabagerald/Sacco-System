@@ -36,11 +36,13 @@
       <div class="field"><label>Maturity date (if any)</label><input id="in_md" type="date"></div>
       <div class="field"><label>Account / reference no.</label><input id="in_ar" type="text" autocomplete="off"></div>
       <div class="field"><label>Status</label><select id="in_st"><option>Active</option><option>Matured</option><option>Closed</option></select></div>
+      <div class="field"><label for="in_fs">Source of funds</label><select id="in_fs" onchange="invSourceChanged()"><option value="">— select —</option><option>Principal</option><option>Operations</option><option>Welfare</option><option>Others</option></select><div class="ferr" id="in_fs_err"></div></div>
+      <div class="field hidden" id="in_fowrap"><label for="in_fo">Specify the source</label><input id="in_fo" type="text" maxlength="150" placeholder="e.g. fundraising, a grant"><div class="ferr" id="in_fo_err"></div></div>
       <div class="field full"><label>Document link (https://, optional)</label><input id="in_dl" type="url" placeholder="Drive link to the certificate or statement"></div>
       <div class="field full"><label>Notes</label><input id="in_nt" type="text"></div>
       <div class="field in-new"><label>Initial amount (UGX)</label><input id="in_am" type="number" min="0" placeholder="optional"></div>
       <div class="field in-new"><label>Payment reference</label><input id="in_rf" type="text"></div>
-      <label class="field full in-new chk"><input id="in_lf" type="checkbox"> Paid out of the loan fund (records a linked transfer)</label>
+      <label class="field full in-new chk hidden" id="in_lfwrap"><input id="in_lf" type="checkbox"> Paid out of the loan fund (records a linked transfer; Principal savings are the loan fund)</label>
       <div class="field full hidden" id="in_rswrap"><label>Reason for the change (kept in the audit log)</label><input id="in_rs" type="text"></div>
     </div>
     <p class="note">Currency: UGX only. The initial amount is proposed as a transaction that two other admins must approve.</p>

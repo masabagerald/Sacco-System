@@ -99,7 +99,7 @@ function _portfolioFromRows(invRows, txRows, from, to, today) {
   const start = from || firstDate || to;
   const before = _dayBefore(start);
 
-  const totals = {}, period = {}, byType = {}, byProvider = {};
+  const totals = {}, period = {}, byType = {}, byProvider = {}, bySource = {};
   let realizedGain = 0, unrealizedGain = 0;
   const list = invs.map(x => {
     const r = x.row, at = _investmentAt(x.ia, to), p = _investmentPeriod(_investmentAt(x.ia, before), at);
@@ -109,9 +109,11 @@ function _portfolioFromRows(invRows, txRows, from, to, today) {
     const type = String(r['Type'] || 'Other').trim(), prov = String(r['Provider'] || '-').trim();
     _sumInto(byType[type] || (byType[type] = { name: type, count: 0 }), at, ['netInvested', 'value', 'incomeTotal', 'netReturn']).count++;
     _sumInto(byProvider[prov] || (byProvider[prov] = { name: prov, count: 0 }), at, ['netInvested', 'value', 'incomeTotal', 'netReturn']).count++;
+    const src = _fundSourceLabel(r);
+    _sumInto(bySource[src] || (bySource[src] = { name: src, count: 0 }), at, ['netInvested', 'value', 'incomeTotal', 'netReturn']).count++;
     return { id: x.id, name: String(r['Name'] || ''), type, provider: prov, currency: String(r['Currency'] || INVESTMENT_CURRENCY),
       startDate: _dstr(r['Start Date']), maturityDate: _dstr(r['Maturity Date']), status, accountRef: _maskRef(r['Account Reference']),
-      notes: String(r['Notes'] || ''), documentLink: String(r['Document Link'] || ''), figures: at, period: p };
+      notes: String(r['Notes'] || ''), documentLink: String(r['Document Link'] || ''), fundSource: _fundSourceLabel(r), figures: at, period: p };
   });
   const horizon = fmt_date(_addDays(_ymd(today), MATURITY_WINDOW_DAYS));
   const maturities = list.filter(i => i.status === 'Active' && i.maturityDate && i.maturityDate >= today && i.maturityDate <= horizon)
@@ -132,6 +134,7 @@ function _portfolioFromRows(invRows, txRows, from, to, today) {
   if (!list.length) INV_SUM_KEYS.forEach(k => { totals[k] = 0; });
   return { range: { from: start, to, allTime: !from }, totals: Object.assign(totals, { realizedGain, unrealizedGain }), period,
     byType: Object.keys(byType).map(k => byType[k]), byProvider: Object.keys(byProvider).map(k => byProvider[k]),
+    bySource: Object.keys(bySource).map(k => bySource[k]),
     maturities, investments: list, months,
     valuationsAreManual: true, valuedCount: list.filter(i => i.figures.valued).length };
 }
@@ -143,7 +146,56 @@ function _investmentById(id) { return _investmentRows().find(r => String(r['Inve
 
 // A redemption may not exceed the investment's current recorded value (with pendingToo, less other
 // redemptions still awaiting approval). Returns an error message, or ''.
+// ── Investments funded from the Operations and Welfare pools ──
+// Money invested from a pool comes off its balance; money redeemed from that investment goes back to it.
+// Only approved transactions count (reversals net off), and transfers linked to the loan fund are left out:
+// they move money between the investment and the loan fund, not the pool. Nothing is written to the Savings
+// ledger -- _poolBalanceFromRows subtracts this, so every pool balance and check uses it.
+// Returns { invested, redeemed, net, pending } for the pool: pending = contributions awaiting approval.
+function _poolInvestmentFlows(account) {
+  const out = { invested: 0, redeemed: 0, net: 0, pending: 0 };
+  if (POOLED_ACCOUNTS.indexOf(account) < 0) return out;
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss.getSheetByName(SH_INVESTMENTS) || !ss.getSheetByName(SH_INV_TX)) return out;
+  const ids = _investmentRows().filter(r => String(r['Source of Funds'] || '').trim() === account).map(r => String(r['InvestmentID']).trim());
+  if (!ids.length) return out;
+  const txRows = readSheet(SH_INV_TX, 'txid').rows;
+  ids.forEach(id => {
+    _investmentAtoms(txRows, id).atoms.filter(a => !a.linked).forEach(a => {
+      if (a.key === 'contributed') out.invested += a.amount;
+      if (a.key === 'redeemed') out.redeemed += a.amount;
+    });
+  });
+  txRows.filter(r => ids.indexOf(String(r['InvestmentID'] || '').trim()) > -1 && _isOpenRequest(r) && !String(r['Linked Entry'] || '').trim()
+    && INV_FLOW_KEYS[String(r['Tx Type'] || '').trim()] === 'contributed').forEach(r => { out.pending += num(r['Amount (UGX)']); });
+  out.invested = r2(out.invested); out.redeemed = r2(out.redeemed); out.pending = r2(out.pending);
+  out.net = r2(out.invested - out.redeemed);
+  return out;
+}
+
+// A contribution to an investment funded from a pool must be covered by the pool's balance.
+// pendingToo (when proposing): also counts withdrawal requests and other contributions still awaiting approval.
+function _poolContributionError(row, pendingToo) {
+  if (INV_FLOW_KEYS[String(row['Tx Type'] || '').trim()] !== 'contributed' || String(row['Linked Entry'] || '').trim()) return '';
+  const inv = _investmentById(row['InvestmentID']);
+  const account = inv ? String(inv['Source of Funds'] || '').trim() : '';
+  if (POOLED_ACCOUNTS.indexOf(account) < 0) return '';
+  let avail = _poolBalanceFromRows(readSheet(SH_SAVINGS, 'memberno').rows, account);
+  if (pendingToo) {
+    const id = String(row['TxID'] || '').trim();
+    avail -= readSheet(SH_WD_REQ, 'requestid').rows.filter(r => _requestAccount(r) === account && _isOpenRequest(r)).reduce((s, r) => s + num(r['Amount (UGX)']), 0);
+    avail -= _poolInvestmentFlows(account).pending - (id ? 0 : 0);
+    if (id) { const self = _readOptional(SH_INV_TX, 'txid').rows.find(r => String(r['TxID'] || '').trim() === id); if (self && _isOpenRequest(self)) avail += num(self['Amount (UGX)']); }
+  }
+  avail = r2(avail);
+  if (num(row['Amount (UGX)']) > avail + 0.005)
+    return 'Not enough money in the club ' + account + ' pool: ' + fmtUGX(Math.max(avail, 0)) + ' available'
+      + (pendingToo ? ' (after withdrawals and investments awaiting approval)' : '') + ', but this contribution is ' + fmtUGX(num(row['Amount (UGX)'])) + '.';
+  return '';
+}
+
 function _investmentTxError(row, pendingToo) {
+  const poolErr = _poolContributionError(row, pendingToo); if (poolErr) return poolErr;
   if (String(row['Tx Type'] || '').trim() !== 'Redemption') return '';
   const invId = String(row['InvestmentID'] || '').trim();
   const txRows = _readOptional(SH_INV_TX, 'txid').rows;
@@ -166,13 +218,21 @@ function _validYmd(s) {
   return d.getFullYear() === +m[1] && d.getMonth() === +m[2] - 1 && d.getDate() === +m[3];
 }
 
+// "Principal", "Others: Harambee fundraising", or "Not recorded" for investments entered before this field existed
+function _fundSourceLabel(r) {
+  const s = String(r['Source of Funds'] || '').trim();
+  if (!s) return 'Not recorded';
+  return s === 'Others' && String(r['Source of Funds (Other)'] || '').trim() ? 'Others: ' + String(r['Source of Funds (Other)']).trim() : s;
+}
+
 // Checks the details of an investment. Returns { ok, inv } with cleaned values, or { ok:false, error }.
 function _validateInvestment(input) {
   const inv = {
     name: String(input.name || '').trim(), type: String(input.type || '').trim(), provider: String(input.provider || '').trim(),
     currency: String(input.currency || INVESTMENT_CURRENCY).trim().toUpperCase(), startDate: String(input.startDate || '').trim(),
     maturityDate: String(input.maturityDate || '').trim(), accountRef: String(input.accountRef || '').trim(),
-    status: String(input.status || 'Active').trim(), notes: String(input.notes || '').trim(), documentLink: String(input.documentLink || '').trim()
+    status: String(input.status || 'Active').trim(), notes: String(input.notes || '').trim(), documentLink: String(input.documentLink || '').trim(),
+    fundSource: String(input.fundSource || '').trim(), fundSourceOther: String(input.fundSourceOther || '').trim().slice(0, 150)
   };
   if (!inv.name) return { ok: false, error: 'Enter the investment name.' };
   if (INVESTMENT_TYPES.indexOf(inv.type) < 0) return { ok: false, error: 'Choose the investment type.' };
@@ -182,6 +242,9 @@ function _validateInvestment(input) {
   if (inv.maturityDate && (!_validYmd(inv.maturityDate) || inv.maturityDate < inv.startDate)) return { ok: false, error: 'The maturity date must be a valid date on or after the start date.' };
   if (INVESTMENT_STATUSES.indexOf(inv.status) < 0) return { ok: false, error: 'Choose a valid status.' };
   if (inv.documentLink && !/^https:\/\//i.test(inv.documentLink)) return { ok: false, error: 'The document link must start with https://' };
+  if (INVESTMENT_FUND_SOURCES.indexOf(inv.fundSource) < 0) return { ok: false, field: 'fundSource', error: 'Choose the source of funds: ' + INVESTMENT_FUND_SOURCES.join(', ') + '.' };
+  if (inv.fundSource === 'Others' && !inv.fundSourceOther) return { ok: false, field: 'fundSourceOther', error: 'Say where the money came from.' };
+  if (inv.fundSource !== 'Others') inv.fundSourceOther = '';
   return { ok: true, inv };
 }
 
