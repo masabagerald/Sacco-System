@@ -61,4 +61,19 @@ function loadAudit(){
     tb.innerHTML=res.entries.map(e=>'<tr><td>'+esc(hdt(e.timestamp))+'</td><td>'+esc(e.action)+'</td><td>'+esc(e.member)+'</td><td>'+esc(e.performedBy)+'</td><td>'+esc(e.details)+'</td><td>'+esc(e.refId)+'</td></tr>').join('');
   });
 }
+// The server sends the CSV in pages (20,000 entries each); they are joined here into one file
+function downloadAuditCsv(){
+  const from=$('#auditFrom').value,to=$('#auditTo').value,btn=$('#auditCsvBtn'),st=$('#auditCsvSt'),parts=[];
+  const fail=msg=>{btn.disabled=false;st.textContent='Error: '+msg;};
+  btn.disabled=true;st.textContent='Preparing…';
+  const page=offset=>Api.exportAuditLogCsv(from,to,offset,res=>{
+    if(!res.ok)return fail(res.error);
+    parts.push(res.csv);
+    if(res.nextOffset!=null){st.textContent='Preparing… '+res.nextOffset.toLocaleString()+' of '+res.total.toLocaleString()+' entries';return page(res.nextOffset);}
+    const url=URL.createObjectURL(new Blob([parts.join('\n')],{type:'text/csv;charset=utf-8;'})),a=document.createElement('a');
+    a.href=url;a.download=res.fileName;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+    btn.disabled=false;st.textContent='Downloaded '+res.total.toLocaleString()+' entries.';
+  },e=>fail(e.message));
+  page(0);
+}
 </script>

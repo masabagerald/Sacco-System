@@ -478,7 +478,7 @@ Publishing creates a new version straight away. **Everyone it applies to** (ever
 ### Reports and the audit log
 
 - **Reports**: **Download Ledger PDF** (a formatted report) or **Download Ledger CSV** (for a spreadsheet). Both include members, loans, savings transactions with their accounts, and surcharges.
-- **Audit log**: every action is listed with its date and exact time (East Africa Time, to the second), the action, the member affected, who did it and the details. This covers contributions, corrections, reversals, withdrawal and loan requests, approvals, rejections, guarantor answers (with decline reasons) and overrides. Entries can't be edited in the app.
+- **Audit log**: every action is listed with its date and exact time (East Africa Time, to the second), the action, the member affected, who did it and the details. This covers contributions, corrections, reversals, withdrawal and loan requests, approvals, rejections, guarantor answers (with decline reasons) and overrides. Entries can't be edited in the app. The tab shows the newest 200 entries. To keep the full record, pick a **From** and **To** date and click **Download CSV**, or leave both dates blank to download the whole log. Large logs download in parts and the progress is shown beside the button. Each download is itself recorded in the audit log.
 
 ![Audit log listing guarantor consent, loan requests, an override, approvals, a deposit and a correction](images/13-audit-log.png)
 

@@ -65,13 +65,12 @@ function getAdminDashboard() {
 
 // Newest first. Timestamps are 'yyyy-MM-dd HH:mm:ss' in the script timezone (the zone now_ts() writes
 // in); entries made on the same second keep their sheet order (later row first).
+// The log is append-only, so only the bottom `limit` rows are read, however long the log grows.
 function getAuditLog(limit) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
   limit = num(limit) || 100;
-  const { rows } = readSheet(SH_AUDIT,'timestamp');
-  const sorted = rows
-    .map(r=>({timestamp:String(r['Timestamp']||''),action:r['Action'],member:r['Member (Affected)'],
-      performedBy:r['Performed By'],details:r['Details'],refId:r['Reference ID'],_row:r._row}))
+  const sh = getSheet(SH_AUDIT), hRow = _auditHeaderRow(sh), last = sh.getLastRow();
+  const sorted = (hRow < 0 ? [] : _auditEntries(sh, Math.max(hRow + 1, last - limit + 1), last))
     .sort((a,b)=>b.timestamp.localeCompare(a.timestamp) || b._row-a._row)
     .slice(0, limit)
     .map(e=>{ delete e._row; return e; });
