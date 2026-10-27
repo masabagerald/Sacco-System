@@ -52,21 +52,79 @@ function renderAccTab(){
 }
 
 // ── AUDIT LOG ─────────────────────────────────────────────────────────────────
-function loadAudit(){
-  Api.getAuditLog(200, res=>{
-    if(!res.ok)return;
-    $('#auditTz').textContent=res.timeZone?'Date and time of each action, in '+res.timeZone+' time.':'';
-    const tb=$('#auditTb');
-    if(!res.entries.length){tb.innerHTML='<tr class="empty"><td colspan="6">No audit entries yet.</td></tr>';return;}
-    tb.innerHTML=res.entries.map(e=>'<tr><td>'+esc(hdt(e.timestamp))+'</td><td>'+esc(e.action)+'</td><td>'+esc(e.member)+'</td><td>'+esc(e.performedBy)+'</td><td>'+esc(e.details)+'</td><td>'+esc(e.refId)+'</td></tr>').join('');
-  });
+// Searched, filtered and paged on the server, so years of history stay quick to browse.
+const AUDIT={filters:{},page:0,pageSize:100};
+function readAuditFilters(){
+  return {q:$('#auditQ').value.trim(),member:$('#auditMember').value,category:$('#auditCat').value,
+    from:$('#auditFrom').value,to:$('#auditTo').value,sensitive:$('#auditSens').checked};
 }
-// The server sends the CSV in pages (20,000 entries each); they are joined here into one file
+function searchAudit(){AUDIT.filters=readAuditFilters();AUDIT.page=0;loadAudit();}
+function clearAuditFilters(){
+  ['#auditQ','#auditMember','#auditCat','#auditFrom','#auditTo'].forEach(s=>$(s).value='');
+  $('#auditSens').checked=false;searchAudit();
+}
+function auditPage(step){AUDIT.page=Math.max(0,AUDIT.page+step);loadAudit();}
+// Fills a filter dropdown once, keeping the current choice; a value not in the list (e.g. "System") is added
+function auditOptions(sel,items){
+  const el=$(sel),cur=el.value;
+  if(el.options.length<=1)items.forEach(o=>el.add(new Option(o.label,o.value)));
+  if(cur&&![...el.options].some(o=>o.value===cur))el.add(new Option(cur,cur));
+  el.value=cur;
+}
+const auditWho=(no,name)=>no?'<button class="au-link" data-member="'+esc(no)+'" title="Show this member\'s history">'+esc(no)+(name?' · '+esc(name):'')+'</button>':'';
+function loadAudit(){
+  const tb=$('#auditTb');
+  tb.innerHTML='<tr class="empty"><td colspan="6">Loading&hellip;</td></tr>';
+  document.querySelectorAll('.au-pager').forEach(p=>p.innerHTML='');
+  Api.getAuditLog(Object.assign({page:AUDIT.page,pageSize:AUDIT.pageSize},AUDIT.filters),res=>{
+    if(!res.ok){tb.innerHTML='<tr class="empty"><td colspan="6">'+esc(res.error)+'</td></tr>';return;}
+    $('#auditTz').textContent=res.timeZone?'Times are '+res.timeZone+' time.':'';
+    auditOptions('#auditMember',res.members.map(m=>({value:m.no,label:m.no+' · '+m.name})));
+    auditOptions('#auditCat',res.categories.map(c=>({value:c,label:c})));
+    if(!res.entries.length){tb.innerHTML='<tr class="empty"><td colspan="6">'+(res.total?'No more entries.':'No entries match these filters.')+'</td></tr>';}
+    else{
+      let day='';
+      tb.innerHTML=res.entries.map(e=>{
+        const d=String(e.timestamp).slice(0,10),t=String(e.timestamp).slice(11);
+        const head=d!==day?'<tr class="au-day"><td colspan="6">'+esc(auditDay(d))+'</td></tr>':'';day=d;
+        return head+'<tr'+(e.sensitive?' class="au-sens"':'')+'><td class="mono">'+esc(t||'—')+'</td>'
+          +'<td><span class="au-cat au-'+esc(e.category.toLowerCase())+'">'+esc(e.category)+'</span> '+esc(e.action)
+          +(e.sensitive?' <span class="badge rejected" title="Undoes, overrides or changes a record, or takes data out">Sensitive</span>':'')+'</td>'
+          +'<td>'+auditWho(e.member,e.memberName)+'</td><td>'+auditWho(e.performedBy,e.performedByName)+'</td>'
+          +'<td>'+esc(e.details)+'</td>'
+          +'<td>'+(e.refId?'<button class="au-link mono" data-ref="'+esc(e.refId)+'" title="Show every entry with this reference">'+esc(e.refId)+'</button>':'')+'</td></tr>';
+      }).join('');
+    }
+    const first=res.page*res.pageSize,last=first+res.entries.length;
+    const pager=(res.total?'<span>Showing '+(first+1).toLocaleString()+'–'+last.toLocaleString()+' of '+res.total.toLocaleString()+' entries</span>':'<span></span>')
+      +'<span class="btn-row"><button class="btn sm" onclick="auditPage(-1)"'+(res.page?'':' disabled')+'>&larr; Newer</button>'
+      +'<button class="btn sm" onclick="auditPage(1)"'+(last<res.total?'':' disabled')+'>Older &rarr;</button></span>';
+    document.querySelectorAll('.au-pager').forEach(p=>p.innerHTML=pager);
+  },e=>{tb.innerHTML='<tr class="empty"><td colspan="6">Error: '+esc(e.message)+'</td></tr>';});
+}
+// "Tuesday, 14 March 2034" for the day headings
+function auditDay(d){
+  const m=String(d).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m?new Date(+m[1],+m[2]-1,+m[3]).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):d;
+}
+// Clicking a member shows their history; clicking a reference shows that record's whole trail
+document.addEventListener('click',ev=>{
+  const b=ev.target.closest&&ev.target.closest('#auditTb .au-link');if(!b)return;
+  if(b.dataset.member){const sel=$('#auditMember');
+    if(![...sel.options].some(o=>o.value===b.dataset.member))sel.add(new Option(b.dataset.member,b.dataset.member));
+    sel.value=b.dataset.member;$('#auditQ').value='';}
+  if(b.dataset.ref){$('#auditQ').value=b.dataset.ref;$('#auditMember').value='';}
+  $('#auditCat').value='';$('#auditFrom').value='';$('#auditTo').value='';$('#auditSens').checked=false;
+  searchAudit();
+});
+// Downloads everything matching the filters (also applied to the table, so the two match). The server
+// sends the CSV in pages (20,000 entries each); they are joined here into one file.
 function downloadAuditCsv(){
-  const from=$('#auditFrom').value,to=$('#auditTo').value,btn=$('#auditCsvBtn'),st=$('#auditCsvSt'),parts=[];
+  const filters=readAuditFilters(),btn=$('#auditCsvBtn'),st=$('#auditCsvSt'),parts=[];
+  if(JSON.stringify(filters)!==JSON.stringify(AUDIT.filters))searchAudit();
   const fail=msg=>{btn.disabled=false;st.textContent='Error: '+msg;};
   btn.disabled=true;st.textContent='Preparing…';
-  const page=offset=>Api.exportAuditLogCsv(from,to,offset,res=>{
+  const page=offset=>Api.exportAuditLogCsv(filters,offset,res=>{
     if(!res.ok)return fail(res.error);
     parts.push(res.csv);
     if(res.nextOffset!=null){st.textContent='Preparing… '+res.nextOffset.toLocaleString()+' of '+res.total.toLocaleString()+' entries';return page(res.nextOffset);}

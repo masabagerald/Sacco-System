@@ -63,16 +63,19 @@ function getAdminDashboard() {
       outstandingBalance:l.outstandingBalance,progressLabel:l.progressLabel})) };
 }
 
-// Newest first. Timestamps are 'yyyy-MM-dd HH:mm:ss' in the script timezone (the zone now_ts() writes
-// in); entries made on the same second keep their sheet order (later row first).
-// The log is append-only, so only the bottom `limit` rows are read, however long the log grows.
-function getAuditLog(limit) {
+// One page of the audit log, newest first, searched and filtered on the server (AuditService.gs), so
+// any entry in years of history can be found. filters: { from, to, member, category, sensitive, q,
+// page (0 = newest), pageSize }, or just a page size. Timestamps are 'yyyy-MM-dd HH:mm:ss' in the script
+// timezone (the zone now_ts() writes in); entries made on the same second keep their sheet order (later row first).
+function getAuditLog(filters) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
-  limit = num(limit) || 100;
-  const sh = getSheet(SH_AUDIT), hRow = _auditHeaderRow(sh), last = sh.getLastRow();
-  const sorted = (hRow < 0 ? [] : _auditEntries(sh, Math.max(hRow + 1, last - limit + 1), last))
-    .sort((a,b)=>b.timestamp.localeCompare(a.timestamp) || b._row-a._row)
-    .slice(0, limit)
-    .map(e=>{ delete e._row; return e; });
-  return { ok:true, entries: sorted, timeZone: Session.getScriptTimeZone() };
+  if (!filters || typeof filters !== 'object') filters = { pageSize: filters };
+  const f = _auditFilters(filters); if (f.error) return { ok:false, error:f.error };
+  const pageSize = Math.min(500, Math.max(1, Math.floor(num(filters.pageSize)) || 100));
+  const page = Math.max(0, Math.floor(num(filters.page)));
+  const sh = getSheet(SH_AUDIT), members = _auditMembers(), names = _auditNameMap(members);
+  const hits = _auditFind(sh, f, names).sort((a,b)=>b.ts.localeCompare(a.ts) || b.row-a.row);
+  const entries = _auditRead(sh, hits.slice(page * pageSize, (page + 1) * pageSize)).map(e => _auditView(e, names));
+  return { ok:true, entries, total: hits.length, page, pageSize, timeZone: Session.getScriptTimeZone(),
+    categories: AUDIT_CATEGORY_NAMES, members };
 }

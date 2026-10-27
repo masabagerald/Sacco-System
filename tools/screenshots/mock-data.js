@@ -180,7 +180,12 @@
       ['2026-10-08 09:40', 'Withdrawal First Approval', 'M004', 'M002', 'First of two required approvals (UGX 50,000 from Welfare).', 'WRQ-000009'],
       ['2026-10-05 10:12', 'Deposit', 'M004', 'M001', 'Deposit of UGX 100,000 (Principal account, Monthly Premium, dated 2026-10-05). Note: Slip 55812. New Principal balance: UGX 1,250,000. Total savings: UGX 1,460,000', 'DEP-000344'],
       ['2026-08-07 15:03', 'Contribution Corrected', 'M004', 'M001', 'DEP-000290 corrected. Before: UGX 150,000 in Principal (Monthly Premium, dated 2026-08-05). After: UGX 100,000 in Principal (Monthly Premium, dated 2026-08-05). Reason: Wrong amount', 'DEP-000295']
-    ].map(([timestamp, action, member, performedBy, details, refId]) => ({ timestamp, action, member, performedBy, details, refId })), timeZone: 'Africa/Nairobi' })
+    ].map(([timestamp, action, member, performedBy, details, refId]) => ({ timestamp: timestamp + ':07', action,
+      category: /Deposit|Contribution|Withdrawal/.test(action) ? 'Savings' : 'Loans', sensitive: /Override|Corrected/.test(action),
+      member, memberName: name(member), performedBy, performedByName: name(performedBy), details, refId })),
+    total: 7, page: 0, pageSize: 100, timeZone: 'Africa/Nairobi',
+    categories: ['Exports', 'System', 'Assets', 'Investments', 'Loans', 'Savings', 'Members', 'Other'],
+    members: Object.keys(PEOPLE).map(no => ({ no, name: name(no) })) })
   };
 
   function runner(onOk, onFail) {

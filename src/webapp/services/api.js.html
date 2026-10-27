@@ -39,8 +39,8 @@ const Api = {
   getWithdrawalRequests: (onSuccess) => callServer('getWithdrawalRequests', [], onSuccess),
   getAllFinesForAdmin: (onSuccess) => callServer('getAllFinesForAdmin', [], onSuccess),
   getSavingsTransactions: (filters, onSuccess, onFailure) => callServer('getSavingsTransactions', [filters], onSuccess, onFailure),
-  getAuditLog: (limit, onSuccess) => callServer('getAuditLog', [limit], onSuccess),
-  exportAuditLogCsv: (from, to, offset, onSuccess, onFailure) => callServer('exportAuditLogCsv', [from, to, offset], onSuccess, onFailure),
+  getAuditLog: (filters, onSuccess, onFailure) => callServer('getAuditLog', [filters], onSuccess, onFailure),
+  exportAuditLogCsv: (filters, offset, onSuccess, onFailure) => callServer('exportAuditLogCsv', [filters, offset], onSuccess, onFailure),
 
   recordSavings: (memberNo, type, amount, account, category, surchargeReason, notes, txDate, onSuccess, onFailure) =>
     callServer('recordSavings', [memberNo, type, amount, account, category, surchargeReason, notes, txDate], onSuccess, onFailure),

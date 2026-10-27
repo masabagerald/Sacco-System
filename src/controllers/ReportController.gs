@@ -184,43 +184,31 @@ function exportAdminCSV() {
 
 
 // ── AUDIT LOG EXPORT ─────────────────────────────────────────────────────────
-// CSV of the audit log for a date range (either end blank = open), sent in pages that the browser joins
-// into one file, so 100,000+ entries download without hitting the size limit of one server reply.
-// Each page reads only the Timestamp column to find the matching rows, then just the rows it returns.
+// CSV of the audit log with the same filters as the Audit tab (AuditService.gs), oldest first, sent in
+// pages that the browser joins into one file, so 100,000+ entries download without hitting the size
+// limit of one server reply. A date-only export reads just the Timestamp column plus the rows it returns.
 
 const AUDIT_EXPORT_PAGE = 20000;
 
 // Details and notes are typed by users: a cell starting with = + or @ would run as a formula in Excel
 function _csvText(v) { const s = String(v == null ? '' : v); return csvQ(/^[=+@]/.test(s) ? "'" + s : s); }
 
-function exportAuditLogCsv(from, to, offset) {
+function exportAuditLogCsv(filters, offset) {
   const auth = _adminCaller(); if (!auth.ok) return auth;
-  from = String(from || '').trim(); to = String(to || '').trim(); offset = Math.max(0, Math.floor(num(offset)));
-  const isDay = s => !s || /^\d{4}-\d{2}-\d{2}$/.test(s);
-  if (!isDay(from) || !isDay(to)) return { ok:false, error:'Dates must be in yyyy-mm-dd format.' };
-  if (from && to && from > to) return { ok:false, error:'The start date is after the end date.' };
+  const f = _auditFilters(filters); if (f.error) return { ok:false, error:f.error };
+  offset = Math.max(0, Math.floor(num(offset)));
 
-  const sh = getSheet(SH_AUDIT), hRow = _auditHeaderRow(sh), last = sh.getLastRow();
-  const matches = [];  // sheet rows in the range, oldest first
-  if (hRow > 0 && last > hRow) {
-    const tz = _sheetTimeZone();
-    sh.getRange(hRow + 1, 1, last - hRow, 1).getValues().forEach((r, i) => {
-      const day = _auditTs(r[0], tz).slice(0, 10);
-      if (day && (!from || day >= from) && (!to || day <= to)) matches.push(hRow + 1 + i);
-    });
-  }
+  const sh = getSheet(SH_AUDIT), names = _auditNameMap(_auditMembers());
+  const hits = _auditFind(sh, f, names);
+  const page = hits.slice(offset, offset + AUDIT_EXPORT_PAGE);
+  const lines = _auditRead(sh, page).map(e => { const v = _auditView(e, names);
+    return [v.timestamp, v.action, v.category, v.member, v.memberName, v.performedBy, v.performedByName, v.details, v.refId].map(_csvText).join(','); });
+  if (!offset) lines.unshift(['Timestamp','Action','Category','Member (Affected)','Member Name','Performed By','Performed By Name','Details','Reference ID'].join(','));
 
-  const page = matches.slice(offset, offset + AUDIT_EXPORT_PAGE), wanted = {};
-  page.forEach(r => { wanted[r] = true; });
-  const entries = page.length ? _auditEntries(sh, page[0], page[page.length - 1]).filter(e => wanted[e._row]) : [];
-  const lines = entries.map(e => [e.timestamp, e.action, e.member, e.performedBy, e.details, e.refId].map(_csvText).join(','));
-  if (!offset) lines.unshift(['Timestamp','Action','Member (Affected)','Performed By','Details','Reference ID'].join(','));
-
-  const next = offset + page.length, done = next >= matches.length;
-  const range = (from || 'the start') + ' to ' + (to || 'today');
-  if (done) auditLog('Audit Log Export', '', auth.member.memberNo, 'Audit log CSV downloaded: ' + range + ' (' + matches.length + ' entries).', '');
-  return { ok:true, csv: lines.join('\n'), total: matches.length, nextOffset: done ? null : next,
-    fileName: CLUB_SHORT_NAME + '_Audit_Log_' + (from || 'start') + '_to_' + (to || today()) + '.csv' };
+  const next = offset + page.length, done = next >= hits.length;
+  if (done) auditLog('Audit Log Export', '', auth.member.memberNo, 'Audit log CSV downloaded: ' + _auditFilterLabel(f) + ' (' + hits.length + ' entries).', '');
+  return { ok:true, csv: lines.join('\n'), total: hits.length, nextOffset: done ? null : next,
+    fileName: CLUB_SHORT_NAME + '_Audit_Log_' + (f.from || 'start') + '_to_' + (f.to || today()) + '.csv' };
 }
 
 

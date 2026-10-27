@@ -3,13 +3,22 @@
     <div><h2>Audit Log</h2><p class="sub">Every action recorded automatically. Append-only &mdash; never edited by the system. <span id="auditTz"></span></p></div>
     <button class="btn sm" onclick="loadAudit()">Refresh</button>
   </div>
-  <div class="bar">
-    <span>Download:</span>
-    <div class="field" style="margin:0"><label for="auditFrom">From</label><input id="auditFrom" type="date"></div>
-    <div class="field" style="margin:0"><label for="auditTo">To</label><input id="auditTo" type="date"></div>
-    <button class="btn sm solid" id="auditCsvBtn" onclick="downloadAuditCsv()">Download CSV</button>
-    <span id="auditCsvSt">Leave the dates blank to download the whole log.</span>
+  <div class="as-filters">
+    <div class="field"><label for="auditQ">Search</label><input id="auditQ" type="search" placeholder="Action, name, details or reference" onkeydown="if(event.key==='Enter')searchAudit()"></div>
+    <div class="field"><label for="auditMember">Member</label><select id="auditMember"><option value="">Everyone</option></select></div>
+    <div class="field"><label for="auditCat">Category</label><select id="auditCat"><option value="">All</option></select></div>
+    <div class="field"><label for="auditFrom">From</label><input id="auditFrom" type="date"></div>
+    <div class="field"><label for="auditTo">To</label><input id="auditTo" type="date"></div>
   </div>
-  <table><thead><tr><th>Date &amp; time</th><th>Action</th><th>Member</th><th>Performed By</th><th>Details</th><th>Ref</th></tr></thead>
-  <tbody id="auditTb"><tr class="empty"><td colspan="6">Loading&hellip;</td></tr></tbody></table>
+  <div class="bar">
+    <label class="au-chk"><input type="checkbox" id="auditSens"> Sensitive actions only</label>
+    <button class="btn sm solid" onclick="searchAudit()">Search</button>
+    <button class="btn sm" onclick="clearAuditFilters()">Clear</button>
+    <button class="btn sm" id="auditCsvBtn" onclick="downloadAuditCsv()">Download CSV</button>
+    <span id="auditCsvSt"></span>
+  </div>
+  <div class="au-pager"></div>
+  <div class="tscroll"><table><thead><tr><th>Time</th><th>Action</th><th>Member</th><th>Performed By</th><th>Details</th><th>Ref</th></tr></thead>
+  <tbody id="auditTb"><tr class="empty"><td colspan="6">Loading&hellip;</td></tr></tbody></table></div>
+  <div class="au-pager"></div>
 </div>
