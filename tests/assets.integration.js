@@ -10,7 +10,7 @@ const eq = (a, b, msg) => assert.strictEqual(JSON.stringify(a), JSON.stringify(b
 
 function setup(c) {
   const ctx = seed(c), { g, fakes, val } = ctx;
-  g._sendEmail = (to, subject, rows, message) => { if (to) fakes.emails.push({ to, subject, rows, message }); };
+  g.sendEmail_ = (to, subject, rows, message) => { if (to) fakes.emails.push({ to, subject, rows, message }); };
   ctx.as = e => fakes.signInAs(e);
   ctx.assets = () => { const s = fakes.sheet(val('SH_ASSETS')); return s ? s.records('assetid') : []; };
   ctx.history = () => { const s = fakes.sheet(val('SH_ASSET_HISTORY')); return s ? s.records('assetid') : []; };
@@ -211,9 +211,9 @@ module.exports = {
 
     // PDF: built through the shared branded layout; capture what goes into it
     const cap = { tables: [], cards: null, kv: [] };
-    g._brandedPdf = (title, sub, fn) => { cap.title = title; fn({}); return { getBytes: () => [37, 80, 68, 70] }; };
-    g._cards = (b, cards) => { cap.cards = cards; }; g._kv = (b, rows) => { cap.kv.push(rows); };
-    g._section = () => {}; g._table = (b, head, rows) => { cap.tables.push({ head, rows }); };
+    g.brandedPdf_ = (title, sub, fn) => { cap.title = title; fn({}); return { getBytes: () => [37, 80, 68, 70] }; };
+    g.cards_ = (b, cards) => { cap.cards = cards; }; g.kv_ = (b, rows) => { cap.kv.push(rows); };
+    g.section_ = () => {}; g.table_ = (b, head, rows) => { cap.tables.push({ head, rows }); };
     const p = ok(g.exportAssetRegisterPdf({ verification: 'Pending Verification', type: 'Furniture' }), 'pdf');
     assert.strictEqual(p.count, 28);
     const t = cap.tables[0];

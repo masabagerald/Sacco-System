@@ -3,27 +3,27 @@ const GUARANTOR_HEADERS = ['Timestamp','RequestID','LoanID','ApplicantNo','Guara
 
 // A guarantor row is "live" while the loan it backs is still running. Before the loan exists
 // it backs a pending request. Live guarantors can't guarantee anyone else (Sec 5).
-function _liveGuaranteeRows() {
-  const { rows: g } = readSheet(SH_GUARANTORS, 'requestid');
+function liveGuaranteeRows_() {
+  const { rows: g } = readSheet_(SH_GUARANTORS, 'requestid');
   if (!g.length) return [];
-  const { rows: reqs } = readSheet(SH_LOAN_REQ, 'requestid');
+  const { rows: reqs } = readSheet_(SH_LOAN_REQ, 'requestid');
   const reqStatus = {};
   reqs.forEach(r => { reqStatus[String(r['RequestID']||'').trim()] = String(r['Status']||'').trim(); });
-  const { rows: loans } = readSheet(SH_LOANS, 'loanid');
-  const { rows: reps } = readSheet(SH_REPAY, 'loanid');
+  const { rows: loans } = readSheet_(SH_LOANS, 'loanid');
+  const { rows: reps } = readSheet_(SH_REPAY, 'loanid');
   const loanStatus = {};
-  loans.forEach(l => { loanStatus[String(l['LoanID']||'').trim()] = _computeLoan(l, reps).status; });
+  loans.forEach(l => { loanStatus[String(l['LoanID']||'').trim()] = computeLoan_(l, reps).status; });
   return g.filter(r => {
     const lid = String(r['LoanID']||'').trim();
     if (lid) return loanStatus[lid] === LOAN_STATUS.ACTIVE;
-    return _isOpenRequest({ Status: reqStatus[String(r['RequestID']||'').trim()] });
+    return isOpenRequest_({ Status: reqStatus[String(r['RequestID']||'').trim()] });
   });
 }
 
 // How many live guarantees a member holds, ignoring the request being decided (excludeRequestId)
-function _liveGuaranteesOf(memberNo, excludeRequestId) {
+function liveGuaranteesOf_(memberNo, excludeRequestId) {
   const mNo = String(memberNo).trim(), ex = String(excludeRequestId||'').trim();
-  return _liveGuaranteeRows().filter(r =>
+  return liveGuaranteeRows_().filter(r =>
     String(r['GuarantorNo']||'').trim() === mNo &&
     (!ex || String(r['RequestID']||'').trim() !== ex)).length;
 }
@@ -32,7 +32,7 @@ function _liveGuaranteesOf(memberNo, excludeRequestId) {
 // coverageWaived: guarantor numbers whose 25% savings coverage was waived by an approved secured-loan
 // waiver (ISS-11). Only that one check is skipped for them; every other guarantor rule still applies.
 // A failure of the coverage check alone is marked coverageFailed, so the form can offer a secured loan.
-function _guarantorChecks(applicantNo, amount, guarantorNos, excludeRequestId, coverageWaived) {
+function guarantorChecks_(applicantNo, amount, guarantorNos, excludeRequestId, coverageWaived) {
   const waived = (coverageWaived || []).map(g => String(g).trim());
   const applicant = String(applicantNo).trim();
   const list = [...new Set((guarantorNos||[]).map(g => String(g).trim()).filter(Boolean))];
@@ -40,23 +40,23 @@ function _guarantorChecks(applicantNo, amount, guarantorNos, excludeRequestId, c
   if (list.includes(applicant)) return { ok: false, error: 'A member cannot guarantee their own loan.' };
   const needed = r2(num(amount) * GUARANTOR_SAVINGS_RATIO);
   for (const g of list) {
-    const m = _memberByNo(g);
+    const m = memberByNo_(g);
     if (!m) return { ok: false, error: 'Guarantor ' + g + ' was not found.' };
     if (String(m['Status']||'').trim().toLowerCase() !== 'active') return { ok: false, error: 'Guarantor ' + g + ' is not an active member.' };
     if (String(m['Membership Type']||'').trim() !== 'Founder Member') return { ok: false, error: 'Guarantor ' + g + ' must be a Founder Member.' };
-    const running = _runningLoanOf(g);
+    const running = runningLoanOf_(g);
     if (running) return { ok: false, error: 'Guarantor ' + g + ' has a running loan (' + running.loanId + ') and cannot guarantee anyone. (Art. 4, Sec. 6)' };
-    if (_liveGuaranteesOf(g, excludeRequestId) > 0) return { ok: false, error: 'Guarantor ' + g + ' is already guaranteeing another loan. A member can guarantee only one member at a time. (Art. 4, Sec. 5)' };
+    if (liveGuaranteesOf_(g, excludeRequestId) > 0) return { ok: false, error: 'Guarantor ' + g + ' is already guaranteeing another loan. A member can guarantee only one member at a time. (Art. 4, Sec. 5)' };
     if (waived.indexOf(g) > -1) continue;
-    const sav = _principalBalance(g);
+    const sav = principalBalance_(g);
     if (sav < needed) return { ok: false, coverageFailed: true, error: 'Guarantor ' + g + ' has Principal savings of ' + fmtUGX(sav) + ' but needs at least ' + fmtUGX(needed) + ' (25% of the loan). (Art. 4, Sec. 3)' };
   }
   return { ok: true, guarantors: list };
 }
 
 // { requestId: [guarantor memberNos] }
-function _guarantorMap() {
-  const { rows } = readSheet(SH_GUARANTORS, 'requestid');
+function guarantorMap_() {
+  const { rows } = readSheet_(SH_GUARANTORS, 'requestid');
   const map = {};
   rows.forEach(r => {
     const id = String(r['RequestID']||'').trim();
@@ -68,9 +68,9 @@ function _guarantorMap() {
 
 // Saves guarantor rows for a request (requestId set) or a directly issued loan (loanId set).
 // Returns [{guarantorNo, token}] so the caller can email each guarantor their response link.
-function _appendGuarantors(requestId, loanId, applicantNo, guarantorNos) {
+function appendGuarantors_(requestId, loanId, applicantNo, guarantorNos) {
   if (!guarantorNos.length) return [];
-  const { sh, headers } = readSheet(SH_GUARANTORS, 'requestid');
+  const { sh, headers } = readSheet_(SH_GUARANTORS, 'requestid');
   const tokens = guarantorNos.map(() => Utilities.getUuid().replace(/-/g, ''));
   const out = guarantorNos.map((g, i) => {
     const arr = headers.map(() => '');
@@ -85,8 +85,8 @@ function _appendGuarantors(requestId, loanId, applicantNo, guarantorNos) {
 }
 
 // Once a request is approved, attach the new loan ID to its guarantor rows
-function _linkGuarantorsToLoan(requestId, loanId) {
-  const { sh, headers, hRow } = readSheet(SH_GUARANTORS, 'requestid');
+function linkGuarantorsToLoan_(requestId, loanId) {
+  const { sh, headers, hRow } = readSheet_(SH_GUARANTORS, 'requestid');
   const cR = ci(headers, 'requestid'), cL = ci(headers, 'loanid');
   if (cL < 0) return;
   const data = sh.getDataRange().getValues();
@@ -95,8 +95,8 @@ function _linkGuarantorsToLoan(requestId, loanId) {
 }
 
 // Each loan's guarantors with their consent: { loanId: [{memberNo, response, respondedAt}] }
-function _guarantorsByLoan() {
-  const { rows } = readSheet(SH_GUARANTORS, 'requestid');
+function guarantorsByLoan_() {
+  const { rows } = readSheet_(SH_GUARANTORS, 'requestid');
   const map = {};
   rows.forEach(r => {
     const id = String(r['LoanID']||'').trim();
@@ -110,10 +110,10 @@ function _guarantorsByLoan() {
 // Members a guarantor can pick from: active members other than the applicant.
 // Admins may pass applicantNo to load candidates for a member they are issuing a loan to.
 function getGuarantorCandidates(applicantNo) {
-  const auth = _caller(); if (!auth.ok) return auth;
+  const auth = caller_(); if (!auth.ok) return auth;
   const isAdmin = String(auth.member.role||'').toLowerCase() === 'admin';
   const who = (isAdmin && applicantNo) ? String(applicantNo).trim() : auth.member.memberNo;
-  const { rows } = readSheet(SH_MEMBERS, 'memberno');
+  const { rows } = readSheet_(SH_MEMBERS, 'memberno');
   return { ok: true, candidates: rows
     .filter(m => String(m['Status']||'').trim().toLowerCase() === 'active' && String(m['Membership Type']||'').trim() === 'Founder Member' && String(m['MemberNo']||'').trim() !== who)
     .map(m => ({ memberNo: String(m['MemberNo']).trim(), name: m['Full Name'] || '' })) };
@@ -130,11 +130,11 @@ function setupGuaranteeSchema() {
   GUARANTOR_HEADERS.forEach(name => {
     if (!gHdr.includes(name.toLowerCase())) { g.getRange(1, g.getLastColumn() + 1).setValue(name); gHdr.push(name.toLowerCase()); }
   });
-  _guarantorNoticeSheet();  // Guarantor Notifications: one row per notice sent, so none is sent twice
+  guarantorNoticeSheet_();  // Guarantor Notifications: one row per notice sent, so none is sent twice
 
   // Adds any missing columns to an existing tab. Finds the real header row (tabs have a title above it).
   const addColumns = (sheetName, hint, names) => {
-    const { sh, hRow } = readSheet(sheetName, hint);
+    const { sh, hRow } = readSheet_(sheetName, hint);
     if (hRow < 0) throw new Error('Could not find the header row on the ' + sheetName + ' tab.');
     names.forEach(name => {
       const lastCol = sh.getLastColumn();
@@ -158,15 +158,15 @@ function setupGuaranteeSchema() {
 // ── GUARANTOR RESPONSES ───────────────────────────────────────────────────────
 
 // [{guarantorNo, response}] for a request. response: Pending / Accepted / Declined
-function _guaranteeResponses(requestId) {
-  const { rows } = readSheet(SH_GUARANTORS, 'requestid');
+function guaranteeResponses_(requestId) {
+  const { rows } = readSheet_(SH_GUARANTORS, 'requestid');
   return rows.filter(r => String(r['RequestID']||'').trim() === String(requestId).trim())
     .map(r => ({ guarantorNo: String(r['GuarantorNo']||'').trim(), response: String(r['Response']||'Pending').trim() || 'Pending' }));
 }
 
 // Admin approval is blocked until both guarantors have accepted
-function _guarantorGate(requestId) {
-  const list = _guaranteeResponses(requestId);
+function guarantorGate_(requestId) {
+  const list = guaranteeResponses_(requestId);
   if (list.length !== GUARANTOR_COUNT)
     return { ok: false, error: 'This request has ' + list.length + ' guarantor(s) on file; exactly ' + GUARANTOR_COUNT + ' are required. Reject it so the member can apply again with two guarantors.' };
   const declined = list.find(g => g.response === 'Declined');

@@ -12,7 +12,7 @@ function setup(c) {
   const ctx = seed(c), { g, fakes, val } = ctx;
   fakes.addSheet(val('SH_REPAY'), [['LoanID', 'Date', 'Timestamp', 'MemberNo', 'Amount (UGX)', 'Recorded By', 'Notes', 'Reference', 'Reverses']]);
   fakes.addSheet(val('SH_FINES'), [['FineID', 'Timestamp', 'MemberNo', 'Date', 'Amount (UGX)', 'Reason', 'Status', 'Recorded By']]);
-  g._sendEmail = (to, subject, rows, message) => { if (to) fakes.emails.push({ to, subject, rows, message }); };
+  g.sendEmail_ = (to, subject, rows, message) => { if (to) fakes.emails.push({ to, subject, rows, message }); };
   ctx.notices = () => { const sh = fakes.sheet(val('SH_GUARANTOR_NOTICES')); return sh ? sh.records('event key') : []; };
   ctx.guarantorMail = event => fakes.emails.filter(e => e.subject.startsWith('Guarantor notice: ' + event + ' on '));
   return ctx;
@@ -26,7 +26,7 @@ function fund(ctx, memberNo, amount) {
 function respond(ctx, requestId, guarantorNo, decide, reason) {
   const row = ctx.guarantors().find(r => r.RequestID === requestId && r.GuarantorNo === guarantorNo);
   assert.ok(row, 'guarantor row for ' + guarantorNo);
-  return ctx.g._guarantorHandle(row.Token, decide, '1', reason || '');
+  return ctx.g.guarantorHandle_(row.Token, decide, '1', reason || '');
 }
 
 const rowValue = (mail, label) => { const r = (mail.rows || []).find(x => x[0] === label); return r ? r[1] : undefined; };
@@ -181,16 +181,16 @@ Object.assign(tests, {
     const ctx = setup(c), { g, fakes, val } = ctx;
     const { loanId } = issuedLoan(ctx, APPLICANTS[2]);              // Nan's Soft Loan: 50,000 + 2,500 + 10,000
     const sh = fakes.sheet(val('SH_LOANS')), hdr = sh.data[0], row = sh.data.find(r => r[0] === loanId);
-    row[hdr.indexOf('Due Date')] = g.fmt_date(g._addDays(new Date(), -2));
-    g.processLoanDueDates();
+    row[hdr.indexOf('Due Date')] = g.fmt_date(g.addDays_(new Date(), -2));
+    fakes.asOwner(() => g.processLoanDueDates());
     const overdue = ctx.guarantorMail('Loan overdue: surcharge charged');
     assert.deepStrictEqual(overdue.map(m => m.to).sort(), [ALICE, DAN]);
     assert.strictEqual(rowValue(overdue[0], 'Amount'), 'UGX 5,250', '10% of loan + interest');
     assert.strictEqual(rowValue(overdue[0], 'Remaining loan balance'), 'UGX 67,750');
     // A retry that crashed before marking the loan: the job runs the whole branch again
     row[hdr.indexOf('Last Notice')] = ''; row[hdr.indexOf('Overdue Surcharge (UGX)')] = '';
-    g.processLoanDueDates();
-    g.processLoanDueDates();
+    fakes.asOwner(() => g.processLoanDueDates());
+    fakes.asOwner(() => g.processLoanDueDates());
     assert.strictEqual(ctx.guarantorMail('Loan overdue: surcharge charged').length, 2, 'still one notice per guarantor');
     assert.strictEqual(ctx.notices().filter(n => n['Event Key'] === 'overdue|' + loanId).length, 2);
 
@@ -206,8 +206,8 @@ Object.assign(tests, {
     const ctx = setup(c), { g } = ctx;
     const { loanId } = issuedLoan(ctx, APPLICANTS[0]);
     const ev = { key: 'test|1', event: 'Loan repayment', amount: 100, date: g.today(), message: 'Test.' };
-    assert.strictEqual(g._notifyGuarantors(loanId, ev), 2);
-    assert.strictEqual(g._notifyGuarantors(loanId, ev), 0, 'a retried call sends nothing');
+    assert.strictEqual(g.notifyGuarantors_(loanId, ev), 2);
+    assert.strictEqual(g.notifyGuarantors_(loanId, ev), 0, 'a retried call sends nothing');
     assert.strictEqual(ctx.notices().length, 2);
   },
 

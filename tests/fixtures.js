@@ -52,7 +52,7 @@ function acceptCurrentTerms({ g, fakes, val }, email) {
   if (!m) return;
   let sh = fakes.sheet(val('SH_TERMS'));
   if (!sh) sh = fakes.addSheet(val('SH_TERMS'), [val('TERMS_HEADERS')]);
-  const docs = g._termsDocuments();
+  const docs = g.termsDocuments_();
   const keys = String(m.Role).toLowerCase() === 'admin' ? ['use', 'admin'] : ['use'];
   const have = sh.records('memberno');
   keys.filter(k => !have.some(r => r.MemberNo === m.MemberNo && r.Document === k && String(r.Version) === docs[k].version && r.Decision === 'Accepted'))

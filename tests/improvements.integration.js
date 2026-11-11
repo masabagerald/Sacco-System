@@ -17,8 +17,8 @@ function addRow(ctx, sheetConst, obj) {
 // Records every email with its rows (the default fakes keep only the subject)
 function captureMail(ctx) {
   const { g, fakes } = ctx;
-  g._sendEmail = (to, subject, rows, message) => { if (to) fakes.emails.push({ to, subject, rows, message }); };
-  g._notifyAdmins = (subject, rows, message) => fakes.emails.push({ to: 'admins', subject, rows, message });
+  g.sendEmail_ = (to, subject, rows, message) => { if (to) fakes.emails.push({ to, subject, rows, message }); };
+  g.notifyAdmins_ = (subject, rows, message) => fakes.emails.push({ to: 'admins', subject, rows, message });
   return subject => fakes.emails.filter(e => subject.test(e.subject));
 }
 const labels = mail => (mail.rows || []).map(r => String(r[0]));
@@ -32,7 +32,7 @@ module.exports = {
     addRow(ctx, 'SH_AUDIT', { Timestamp: new D(2025, 9, 18, 9, 15, 0), Action: 'Morning', 'Performed By': 'M001' });
     addRow(ctx, 'SH_AUDIT', { Timestamp: new D(2025, 9, 18, 14, 30, 5), Action: 'Afternoon', 'Performed By': 'M001' });
     addRow(ctx, 'SH_AUDIT', { Timestamp: '2025-10-17', Action: 'Old date-only row', 'Performed By': 'M001' });
-    g.auditLog('Just now', 'M004', 'M001', 'details', 'REF1');
+    g.auditLog_('Just now', 'M004', 'M001', 'details', 'REF1');
     const written = ctx.audit().find(a => a.Action === 'Just now');
     assert.match(String(written.Timestamp), /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/, 'new entries are stamped with date and time');
 
@@ -51,7 +51,7 @@ module.exports = {
     const ctx = seed(c), { g } = ctx;
     const D = ctx.val('Date');
     addRow(ctx, 'SH_REPAY', { LoanID: 'L001', Date: new D(2025, 2, 15), Timestamp: new D(2025, 2, 15, 8, 5, 9), 'Amount (UGX)': 1 });
-    const row = g.readSheet(ctx.val('SH_REPAY'), 'loanid').rows[0];
+    const row = g.readSheet_(ctx.val('SH_REPAY'), 'loanid').rows[0];
     same([row.Date, row.Timestamp], ['2025-03-15', '2025-03-15 08:05:09']);
   },
 
@@ -128,7 +128,7 @@ module.exports = {
     same([m.Email, m.Phone], ['new.person@gmail.com', '+256772123456'], 'email lower-cased, phone in international form');
     const rowNo = sh.data.findIndex(r => r[0] === res.memberNo) + 1;
     assert.strictEqual(sh.formats[rowNo + ':' + (sh.data[0].indexOf('Phone') + 1)], '@', 'phone saved as text so the + is kept');
-    assert.ok(g._lookupMember('NEW.PERSON@gmail.com').ok, 'sign-in still matches the email in any case');
+    assert.ok(g.lookupMember_('NEW.PERSON@gmail.com').ok, 'sign-in still matches the email in any case');
     fails(g.addMember('Again', 'new.person@gmail.com', '', 'Member', 'Founder Member', ''), /already registered/, 'unique email');
   },
 

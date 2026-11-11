@@ -15,7 +15,7 @@ function buildFinanceData(loadServer) {
   fakes.sheet(val('SH_MEMBERS')).data.forEach(r => { if (NAMES[r[0]]) r[1] = NAMES[r[0]]; });
   g.setupFinanceSchema();
   const must = (r, what) => { if (!r || !r.ok) throw new Error('finance sample data, ' + what + ': ' + JSON.stringify(r)); return r; };
-  const ago = days => g.fmt_date(g._addDays(new Date(), -days));
+  const ago = days => g.fmt_date(g.addDays_(new Date(), -days));
   const addRow = (sheet, o) => {
     const sh = fakes.sheet(val(sheet)); const h = sh.data.findIndex(r => r.some(v => String(v).trim()));
     sh.data.push(sh.data[h].map(k => (k in o ? o[k] : '')));
@@ -33,7 +33,7 @@ function buildFinanceData(loadServer) {
   let n = 0;
   const loan = (no, principal, days, model, term, surcharge, repayments) => {
     const id = 'L' + String(++n).padStart(3, '0'), issued = ago(days), member = model === 'Member';
-    const due = member ? g._addMonths(g._ymd(issued), term) : g._addDays(g._ymd(issued), term);
+    const due = member ? g.addMonths_(g.ymd_(issued), term) : g.addDays_(g.ymd_(issued), term);
     addRow('SH_LOANS', { LoanID: id, MemberNo: no, 'Date Issued': issued, 'Principal (UGX)': principal, Status: 'Active', 'Loan Model': model,
       'Processing Fee (UGX)': member ? 5000 : 10000, 'Interest Rate (%)': 10, 'Term (months)': member ? term : '', 'Term (days)': member ? '' : term,
       'Due Date': g.fmt_date(due), 'Overdue Surcharge (UGX)': surcharge || '' });
@@ -58,7 +58,7 @@ function buildFinanceData(loadServer) {
     accountRef: 'UT-55102847', initialAmount: 2000000, reference: 'UT-DEP-1', fundSource: 'Others', fundSourceOther: 'Club reserves' }), 'unit trust');
   approve(mm.txId);
   const tb = must(g.createInvestment({ name: '182-day Treasury Bill', type: 'Treasury Bill', provider: 'Bank of Uganda', startDate: ago(150),
-    maturityDate: g.fmt_date(g._addDays(new Date(), 32)), accountRef: 'CSD-77120', initialAmount: 1000000, reference: 'TB-1', fundSource: 'Principal' }), 'treasury bill');
+    maturityDate: g.fmt_date(g.addDays_(new Date(), 32)), accountRef: 'CSD-77120', initialAmount: 1000000, reference: 'TB-1', fundSource: 'Principal' }), 'treasury bill');
   approve(tb.txId);
   [[mm, 'Income Earned', 18000, 240], [mm, 'Income Received', 18000, 230], [mm, 'Income Earned', 19500, 200], [mm, 'Income Reinvested', 19500, 195],
    [mm, 'Income Earned', 21000, 140], [mm, 'Income Received', 21000, 130], [mm, 'Valuation', 2085000, 100], [mm, 'Fee', 6000, 95, 'Investment balance'],

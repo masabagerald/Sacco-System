@@ -1,6 +1,6 @@
 // ── SHARED REQUEST HELPERS (loan requests & withdrawal requests) ─────────────
 
-function _updateReqStatus(sh, headers, hRow, requestId, status, notes, decidedBy) {
+function updateReqStatus_(sh, headers, hRow, requestId, status, notes, decidedBy) {
   const cId=ci(headers,'requestid'), cSt=ci(headers,'status'),
         cNo=ci(headers,'decision notes'), cBy=ci(headers,'decided by');
   const data=sh.getDataRange().getValues();
@@ -16,7 +16,7 @@ function _updateReqStatus(sh, headers, hRow, requestId, status, notes, decidedBy
 
 // Records one of the two required admin approvals (slot 1 or 2) with a timestamp.
 // Shared by Loan Requests and Withdrawal Requests -- both sheets use the same column names.
-function _setApprover(sh, headers, hRow, requestId, slot, memberNo) {
+function setApprover_(sh, headers, hRow, requestId, slot, memberNo) {
   const cId = ci(headers,'requestid'), cM = ci(headers,'approver '+slot), cT = ci(headers,'approver '+slot+' at');
   const data = sh.getDataRange().getValues();
   for (let r = hRow+1; r < data.length; r++) {
@@ -33,7 +33,7 @@ function _setApprover(sh, headers, hRow, requestId, slot, memberNo) {
 // already in it stay open and are issued when their last guarantor accepts.
 const AWAITING_GUARANTORS = 'Awaiting Guarantors';
 
-function _isOpenRequest(req) {
+function isOpenRequest_(req) {
   const st = String(req['Status'] || '').trim();
   return st === 'Pending' || st === 'Partially Approved' || st === AWAITING_GUARANTORS;
 }
@@ -41,8 +41,8 @@ function _isOpenRequest(req) {
 // Segregation of duties for any request needing two admin approvals (loans and withdrawals).
 // An admin may not approve a request they initiated, one for their own account, or give both
 // approvals. Returns an error message, or '' when approverNo may approve.
-function _approvalDutyError(req, approverNo) {
-  if (!_isOpenRequest(req)) return 'Already decided.';
+function approvalDutyError_(req, approverNo) {
+  if (!isOpenRequest_(req)) return 'Already decided.';
   const me = String(approverNo || '').trim();
   const member = String(req['MemberNo'] || '').trim();
   const initiatedBy = String(req['Initiated By'] || member).trim();

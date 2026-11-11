@@ -108,7 +108,7 @@ function createGasFakes() {
       getProjectTriggers: () => triggers.slice(),
       deleteTrigger: t => { const i = triggers.indexOf(t); if (i > -1) triggers.splice(i, 1); },
       WeekDay: { MONDAY: 'MONDAY' },
-      newTrigger: fn => { const t = { fn, schedule: [], getHandlerFunction: () => fn }; const b = new Proxy({}, { get: (_, k) => k === 'create'
+      newTrigger: fn => { const id = 'trg-' + (triggers.length + 1) + '-' + fn; const t = { fn, schedule: [], getHandlerFunction: () => fn, getUniqueId: () => id }; const b = new Proxy({}, { get: (_, k) => k === 'create'
         ? () => { triggers.push(t); return t; } : (...a) => { t.schedule.push(k + '(' + a.join(',') + ')'); return b; } }); return b; } },
     HtmlService: { createHtmlOutput: html => ({ html, setTitle() { return this; }, addMetaTag() { return this; }, getContent() { return html; } }),
       createTemplateFromFile: file => ({ file, evaluate() { return { file, setTitle() { return this; }, addMetaTag() { return this; } }; } }) },
@@ -128,14 +128,20 @@ function createGasFakes() {
     globals, logs, emails,
     // Replace the email helpers so tests can see who was notified without building HTML.
     install(g) {
-      g._sendEmail = (to, subject) => emails.push({ to, subject });
-      g._sendHtmlEmail = (to, subject, html) => emails.push({ to, subject, html });
-      g._notifyAdmins = subject => emails.push({ to: 'admins', subject });
+      g.sendEmail_ = (to, subject) => emails.push({ to, subject });
+      g.sendHtmlEmail_ = (to, subject, html) => emails.push({ to, subject, html });
+      g.notifyAdmins_ = subject => emails.push({ to: 'admins', subject });
     },
     addSheet(name, rows) { sheets[name] = new FakeSheet(name, rows); return sheets[name]; },
     sheet: name => sheets[name],
     signInAs(email) { currentUser = email; },
     hostAs(email) { hostUser = email; },
+    // Runs fn as the hosting account working in the script editor (for scheduled jobs and editor tools)
+    asOwner(fn) {
+      const was = [currentUser, hostUser];
+      hostUser = hostUser || 'host@club.org'; currentUser = hostUser;
+      try { return fn(); } finally { [currentUser, hostUser] = was; }
+    },
     triggers
   };
 }

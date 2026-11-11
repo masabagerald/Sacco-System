@@ -15,7 +15,7 @@ function activity(ctx) {
   const id = ok(g.requestLoan(50000, '1w', 'Stock', ['M004', 'M007']), 'request').requestId;
   ['M004', 'M007'].forEach(no => {
     const row = ctx.guarantors().find(r => r.RequestID === id && r.GuarantorNo === no);
-    g._guarantorHandle(row.Token, 'approve', '1', '');
+    g.guarantorHandle_(row.Token, 'approve', '1', '');
   });
   fakes.signInAs(ALICE); ok(g.approveLoanRequest(id, ''), 'first');
   fakes.signInAs(BOB); const loanId = ok(g.approveLoanRequest(id, ''), 'final').loanId;
@@ -35,10 +35,10 @@ module.exports = {
     const { requestId, loanId } = activity(ctx);
     const auditBefore = ctx.audit().length;
 
-    assert.match(g.previewMemberNumberMigration(), /M001 -> MSIC-0001.*M007 -> MSIC-0007/);
+    assert.match(fakes.asOwner(() => g.previewMemberNumberMigration()), /M001 -> MSIC-0001.*M007 -> MSIC-0007/);
     assert.strictEqual(members(ctx)[0].MemberNo, 'M001', 'preview changes nothing');
 
-    assert.match(g.migrateMemberNumbers(), /cell\(s\)/);
+    assert.match(fakes.asOwner(() => g.migrateMemberNumbers()), /cell\(s\)/);
     assert.deepStrictEqual(members(ctx).map(m => m.MemberNo), ['MSIC-0001', 'MSIC-0002', 'MSIC-0003', 'MSIC-0004', 'MSIC-0005', 'MSIC-0006', 'MSIC-0007']);
     const req = ctx.loanReqs().find(r => r.RequestID === requestId);
     assert.deepStrictEqual([req.MemberNo, req['Initiated By'], req['Guarantor 1'], req['Guarantor 2'], req['Approver 1'], req['Approver 2']],
@@ -65,13 +65,13 @@ module.exports = {
     fakes.signInAs(ALICE);
     assert.strictEqual(ok(g.addMember('Joan', 'joan@x.org', '', 'Member', 'Founder Member', ''), 'add').memberNo, 'MSIC-0008');
 
-    assert.strictEqual(g.migrateMemberNumbers(), 'Nothing to change.', 'second run');
+    assert.strictEqual(fakes.asOwner(() => g.migrateMemberNumbers()), 'Nothing to change.', 'second run');
   },
 
   'the migration stops without changes if a new number is already taken'(c) {
     const ctx = seed(c), { g, fakes, val } = ctx;
     fakes.sheet(val('SH_MEMBERS')).appendRow(['MSIC-0002', 'Zed', 'zed@x.org', '', 'Member', 'Founder Member', '2024-01-01', 'Active']);
-    assert.match(g.migrateMemberNumbers(), /MSIC-0002 \(the new number for M002\) is already used/);
+    assert.match(fakes.asOwner(() => g.migrateMemberNumbers()), /MSIC-0002 \(the new number for M002\) is already used/);
     assert.strictEqual(members(ctx)[0].MemberNo, 'M001', 'nothing changed');
   }
 };

@@ -8,17 +8,17 @@ const BRAND_STRIPE = '#f6f9fc';
 const BRAND_LINE   = '#d5e0ec';
 const BRAND_MUTED  = '#5b6b7d';
 
-function _logoBlob() {
+function logoBlob_() {
   return Utilities.newBlob(Utilities.base64Decode(CLUB_LOGO_B64), 'image/jpeg', 'club-seal.jpg');
 }
 
 // Builds a branded document with buildFn(body) and returns the PDF blob
-function _brandedPdf(fileTitle, subtitle, buildFn) {
+function brandedPdf_(fileTitle, subtitle, buildFn) {
   const doc = DocumentApp.create(fileTitle);
   const body = doc.getBody();
   body.setMarginLeft(40); body.setMarginRight(40); body.setMarginTop(30); body.setMarginBottom(30);
   body.editAsText().setFontFamily('Arial').setFontSize(10).setForegroundColor(BRAND_INK);
-  _brandHeader(body, subtitle);
+  brandHeader_(body, subtitle);
   buildFn(body);
   const foot = body.appendParagraph('Generated ' + human_date(today()) + '  |  ' + SACCO_NAME + '  |  Confidential: for members and the committee only.');
   foot.setSpacingBefore(18);
@@ -31,7 +31,7 @@ function _brandedPdf(fileTitle, subtitle, buildFn) {
 }
 
 // Navy band: club seal on the left, club name and report title on the right
-function _brandHeader(body, subtitle) {
+function brandHeader_(body, subtitle) {
   const band = body.appendTable([['', SACCO_NAME]]);
   band.setBorderWidth(0);
   const left = band.getRow(0).getCell(0);
@@ -42,7 +42,7 @@ function _brandHeader(body, subtitle) {
   right.setPaddingTop(12); right.setPaddingBottom(10); right.setPaddingLeft(10);
   left.setVerticalAlignment(DocumentApp.VerticalAlignment.MIDDLE);
   right.setVerticalAlignment(DocumentApp.VerticalAlignment.MIDDLE);
-  const img = left.getChild(0).asParagraph().appendInlineImage(_logoBlob());
+  const img = left.getChild(0).asParagraph().appendInlineImage(logoBlob_());
   img.setWidth(70); img.setHeight(70);
   const name = right.getChild(0).asParagraph();
   name.editAsText().setBold(true).setFontSize(15).setForegroundColor('#ffffff');
@@ -51,7 +51,7 @@ function _brandHeader(body, subtitle) {
   body.appendParagraph('').setSpacingAfter(2);
 }
 
-function _section(body, text) {
+function section_(body, text) {
   const p = body.appendParagraph(text);
   p.setSpacingBefore(14); p.setSpacingAfter(4);
   p.editAsText().setFontSize(12).setBold(true).setForegroundColor(BRAND_COLOR);
@@ -59,7 +59,7 @@ function _section(body, text) {
 }
 
 // Summary cards: [[label, value], ...] shown side by side
-function _cards(body, items) {
+function cards_(body, items) {
   const t = body.appendTable([items.map(i => i[0]), items.map(i => i[1])]);
   t.setBorderWidth(0);
   items.forEach((_, c) => {
@@ -76,7 +76,7 @@ function _cards(body, items) {
 }
 
 // Label / value pairs with no header row (member details, loan details)
-function _kv(body, rows) {
+function kv_(body, rows) {
   const t = body.appendTable(rows);
   t.setBorderColor(BRAND_LINE);
   rows.forEach((row, r) => {
@@ -89,7 +89,7 @@ function _kv(body, rows) {
 }
 
 // Table with a navy header row and striped body rows. rightCols: 0-based columns to right-align.
-function _table(body, header, rows, rightCols) {
+function table_(body, header, rows, rightCols) {
   const data = rows.length ? rows : [['No records'].concat(header.slice(1).map(() => ''))];
   const values = [header].concat(data);
   const t = body.appendTable(values);

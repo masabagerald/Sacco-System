@@ -7,10 +7,10 @@
 const MEMBER_NO_DIGITS = 4;
 const LEGACY_MEMBER_NO = /^M([0-9]+)$/i;
 
-function _formatMemberNo(n) { return MEMBER_NO_PREFIX + String(n).padStart(MEMBER_NO_DIGITS, '0'); }
+function formatMemberNo_(n) { return MEMBER_NO_PREFIX + String(n).padStart(MEMBER_NO_DIGITS, '0'); }
 
 // Serial part of a member number in either format (MSIC-0007 or legacy M007), or 0
-function _memberSerial(memberNo) {
+function memberSerial_(memberNo) {
   const s = String(memberNo||'').trim();
   const m = s.match(LEGACY_MEMBER_NO) || (s.toUpperCase().startsWith(MEMBER_NO_PREFIX) && s.slice(MEMBER_NO_PREFIX.length).match(/^([0-9]+)$/));
   return m ? parseInt(m[1], 10) : 0;
@@ -18,9 +18,9 @@ function _memberSerial(memberNo) {
 
 // Next number after the highest existing one, counting legacy numbers too, so a new member added
 // before the migration (e.g. MSIC-0006 after M005) can never collide with a migrated number.
-function _nextMemberNo() {
-  const { rows } = readSheet(SH_MEMBERS, 'memberno');
-  return _formatMemberNo(rows.reduce((max, r) => Math.max(max, _memberSerial(r['MemberNo'])), 0) + 1);
+function nextMemberNo_() {
+  const { rows } = readSheet_(SH_MEMBERS, 'memberno');
+  return formatMemberNo_(rows.reduce((max, r) => Math.max(max, memberSerial_(r['MemberNo'])), 0) + 1);
 }
 
 // ── ONE-TIME MIGRATION: M001 -> MSIC-0001 ─────────────────────────────────────
@@ -32,20 +32,20 @@ const MEMBER_NO_COLUMNS = ['memberno', 'applicantno', 'guarantorno', 'borrowerno
   'reviewed by (admin 1)', 'approved by (admin 2)'];
 
 // { 'M001': 'MSIC-0001', ... } for every legacy number on the Members tab
-function _memberNoMapping() {
-  const { rows } = readSheet(SH_MEMBERS, 'memberno');
+function memberNoMapping_() {
+  const { rows } = readSheet_(SH_MEMBERS, 'memberno');
   const map = {};
   rows.forEach(r => {
     const old = String(r['MemberNo']||'').trim();
-    if (LEGACY_MEMBER_NO.test(old)) map[old] = _formatMemberNo(_memberSerial(old));
+    if (LEGACY_MEMBER_NO.test(old)) map[old] = formatMemberNo_(memberSerial_(old));
   });
   return map;
 }
 
 // Finds every cell to change. Returns { map, changes: [{sh, row, col, from, to}], summary: {tab: n}, error }
-function _planMemberNoMigration() {
-  const map = _memberNoMapping();
-  const existing = readSheet(SH_MEMBERS, 'memberno').rows.map(r => String(r['MemberNo']||'').trim());
+function planMemberNoMigration_() {
+  const map = memberNoMapping_();
+  const existing = readSheet_(SH_MEMBERS, 'memberno').rows.map(r => String(r['MemberNo']||'').trim());
   const clash = Object.keys(map).find(old => existing.indexOf(map[old]) > -1);
   if (clash) return { map, changes: [], summary: {}, error: map[clash] + ' (the new number for ' + clash + ') is already used by another member. Nothing was changed.' };
   const changes = [], summary = {};
@@ -65,30 +65,30 @@ function _planMemberNoMigration() {
   return { map, changes, summary, error: '' };
 }
 
-function _describeMemberNoPlan(plan) {
+function describeMemberNoPlan_(plan) {
   return 'Mapping: ' + (Object.keys(plan.map).map(k => k + ' -> ' + plan.map[k]).join(', ') || 'none (no old-format numbers)') +
     '. Cells per tab: ' + (Object.keys(plan.summary).map(k => k + ' ' + plan.summary[k]).join(', ') || 'none') + '.';
 }
 
 // Run from the script editor first: logs what migrateMemberNumbers() would change, changes nothing.
-function previewMemberNumberMigration() {
-  const plan = _planMemberNoMigration();
-  const msg = plan.error || (plan.changes.length + ' cell(s) would change. ' + _describeMemberNoPlan(plan));
+function previewMemberNumberMigration(e) { ownerOrTrigger_(e);
+  const plan = planMemberNoMigration_();
+  const msg = plan.error || (plan.changes.length + ' cell(s) would change. ' + describeMemberNoPlan_(plan));
   Logger.log(msg);
   return msg;
 }
 
 // Run once from the script editor: renumbers M001 -> MSIC-0001 (etc.) on every tab except the Audit
 // Log. Safe to run again: with no old-format numbers left it changes nothing.
-function migrateMemberNumbers() {
-  return _withScriptLock(() => {
-    const plan = _planMemberNoMigration();
+function migrateMemberNumbers(e) { ownerOrTrigger_(e);
+  return withScriptLock_(() => {
+    const plan = planMemberNoMigration_();
     if (plan.error) { Logger.log(plan.error); return plan.error; }
     if (!plan.changes.length) { Logger.log('No old-format member numbers found; nothing to change.'); return 'Nothing to change.'; }
     plan.changes.forEach(ch => ch.sh.getRange(ch.row, ch.col).setValue(ch.to));
-    const msg = 'Member numbers changed to the ' + MEMBER_NO_PREFIX + '0001 format: ' + plan.changes.length + ' cell(s). ' + _describeMemberNoPlan(plan)
+    const msg = 'Member numbers changed to the ' + MEMBER_NO_PREFIX + '0001 format: ' + plan.changes.length + ' cell(s). ' + describeMemberNoPlan_(plan)
       + ' Earlier audit entries and free-text notes keep the old numbers.';
-    auditLog('Member Numbers Migrated', '', 'System', msg, '');
+    auditLog_('Member Numbers Migrated', '', 'System', msg, '');
     Logger.log(msg);
     return msg;
   });

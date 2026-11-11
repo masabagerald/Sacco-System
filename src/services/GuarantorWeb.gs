@@ -2,64 +2,64 @@
 // Guarantors get an email with Approve / Decline links. Each link carries a private token
 // and opens a confirmation page, so a click alone (e.g. an email scanner) never records a decision.
 
-function _webAppUrl() { return ScriptApp.getService().getUrl(); }
+function webAppUrl_() { return ScriptApp.getService().getUrl(); }
 
-function _memberName(memberNo, members) {
+function memberName_(memberNo, members) {
   const m = members.find(x => String(x['MemberNo']||'').trim() === String(memberNo).trim());
   return m ? (m['Full Name'] || memberNo) : memberNo;
 }
 
 // Emails every guarantor on a new request (reminder: the daily reminder, same email and links).
 // Email failures are logged, not thrown, so the request itself still saves.
-function _sendGuarantorRequests(requestId, applicantNo, amount, termDef, tokens, reminder) {
-  const { rows: members } = readSheet(SH_MEMBERS, 'memberno');
-  const applicant = _memberName(applicantNo, members);
-  const base = _webAppUrl();
+function sendGuarantorRequests_(requestId, applicantNo, amount, termDef, tokens, reminder) {
+  const { rows: members } = readSheet_(SH_MEMBERS, 'memberno');
+  const applicant = memberName_(applicantNo, members);
+  const base = webAppUrl_();
   tokens.forEach(t => {
     const m = members.find(x => String(x['MemberNo']||'').trim() === String(t.guarantorNo).trim());
     if (!m || !String(m['Email']||'').trim()) { Logger.log('No email for guarantor ' + t.guarantorNo); return; }
     const link = d => base + '?g=' + t.token + '&decide=' + d;
-    const html = _guarantorEmailHtml(m['Full Name'] || '', requestId, applicant, amount, termDef, link('approve'), link('decline'));
+    const html = guarantorEmailHtml_(m['Full Name'] || '', requestId, applicant, amount, termDef, link('approve'), link('decline'));
     try {
-      _sendHtmlEmail(m['Email'], '[' + SACCO_NAME + '] ' + (reminder ? 'Reminder: please' : 'Please') + ' respond to guarantor request ' + requestId, html);
+      sendHtmlEmail_(m['Email'], '[' + SACCO_NAME + '] ' + (reminder ? 'Reminder: please' : 'Please') + ' respond to guarantor request ' + requestId, html);
     } catch (e) { Logger.log('Guarantor email failed for ' + t.guarantorNo + ': ' + e); }
   });
 }
 
-function _findGuaranteeByToken(token) {
-  const { sh, headers, rows } = readSheet(SH_GUARANTORS, 'requestid');
+function findGuaranteeByToken_(token) {
+  const { sh, headers, rows } = readSheet_(SH_GUARANTORS, 'requestid');
   const row = rows.find(r => String(r['Token']||'') === String(token));
   return row ? { sh, headers, row } : null;
 }
 
-function _setGuaranteeCell(sh, headers, rowNum, name, value) {
+function setGuaranteeCell_(sh, headers, rowNum, name, value) {
   const c = ci(headers, name);
   if (c > -1) sh.getRange(rowNum, c + 1).setValue(value);
 }
 
 // Handles a guarantor's link. Shows a confirmation page, then records the decision on confirm.
 // Declining needs a reason, which is stored with the response and in the audit log.
-function _guarantorHandle(token, decide, confirm, reason) {
-  const found = _findGuaranteeByToken(token);
-  if (!found) return _guarantorPage('Link not valid', 'This link is not valid. Please use the most recent email you received.');
+function guarantorHandle_(token, decide, confirm, reason) {
+  const found = findGuaranteeByToken_(token);
+  if (!found) return guarantorPage_('Link not valid', 'This link is not valid. Please use the most recent email you received.');
   const { sh, headers, row } = found;
   const requestId = String(row['RequestID']||'').trim();
 
-  const { rows: reqs } = readSheet(SH_LOAN_REQ, 'requestid');
+  const { rows: reqs } = readSheet_(SH_LOAN_REQ, 'requestid');
   const req = reqs.find(r => String(r['RequestID']||'').trim() === requestId);
-  if (!req || !_isOpenRequest(req))
-    return _guarantorPage('Request closed', 'This loan request is no longer open for guarantor responses.');
+  if (!req || !isOpenRequest_(req))
+    return guarantorPage_('Request closed', 'This loan request is no longer open for guarantor responses.');
 
   const current = String(row['Response']||'Pending').trim();
   if (current !== 'Pending')
-    return _guarantorPage('Already responded', 'You have already ' + (current === 'Accepted' ? 'approved' : 'declined') + ' this request. Thank you.');
+    return guarantorPage_('Already responded', 'You have already ' + (current === 'Accepted' ? 'approved' : 'declined') + ' this request. Thank you.');
 
   if (decide !== 'approve' && decide !== 'decline')
-    return _guarantorPage('Link not valid', 'This link is not valid.');
+    return guarantorPage_('Link not valid', 'This link is not valid.');
 
-  const { rows: members } = readSheet(SH_MEMBERS, 'memberno');
-  const applicantName = _memberName(req['MemberNo'], members);
-  const guarantorName = _memberName(row['GuarantorNo'], members);
+  const { rows: members } = readSheet_(SH_MEMBERS, 'memberno');
+  const applicantName = memberName_(req['MemberNo'], members);
+  const guarantorName = memberName_(row['GuarantorNo'], members);
   const amount = fmtUGX(num(req['Amount (UGX)']));
   const purpose = String(req['Purpose']||'').trim();
 
@@ -76,56 +76,56 @@ function _guarantorHandle(token, decide, confirm, reason) {
         (purpose ? '<tr><td style="color:#6b7c75;padding:4px 0;">Purpose</td><td style="text-align:right;">' + esc(purpose) + '</td></tr>' : '') +
       '</table>';
     const action = decide === 'approve'
-      ? '<a href="' + _webAppUrl() + '?g=' + token + '&decide=approve&confirm=1" target="_top" style="display:block;text-align:center;background:' + color + ';color:#fff;text-decoration:none;font-weight:700;padding:12px;border-radius:8px;">Yes, approve</a>'
-      : '<form method="get" action="' + _webAppUrl() + '" target="_top" style="margin:0;">' +
+      ? '<a href="' + webAppUrl_() + '?g=' + token + '&decide=approve&confirm=1" target="_top" style="display:block;text-align:center;background:' + color + ';color:#fff;text-decoration:none;font-weight:700;padding:12px;border-radius:8px;">Yes, approve</a>'
+      : '<form method="get" action="' + webAppUrl_() + '" target="_top" style="margin:0;">' +
           '<input type="hidden" name="g" value="' + esc(token) + '"><input type="hidden" name="decide" value="decline"><input type="hidden" name="confirm" value="1">' +
           '<label style="display:block;font-size:13px;color:#5b6b7d;margin:0 0 6px;">Reason for declining (required)</label>' +
           (needReason && confirm === '1' ? '<p style="color:#b3412e;font-size:13px;margin:0 0 6px;">Please give a reason.</p>' : '') +
           '<textarea name="reason" required maxlength="500" rows="3" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #d5e0ec;border-radius:8px;font:inherit;margin:0 0 12px;"></textarea>' +
           '<button type="submit" style="display:block;width:100%;background:' + color + ';color:#fff;border:0;font-weight:700;padding:12px;border-radius:8px;font-size:14px;cursor:pointer;">Yes, decline</button>' +
         '</form>';
-    return _guarantorPage('Confirm your response', details + action +
+    return guarantorPage_('Confirm your response', details + action +
       '<p style="font-size:12px;color:#6b7c75;margin:14px 0 0;">Close this page to cancel. Nothing is recorded until you confirm.</p>');
   }
 
   // Record the decision
   const decision = decide === 'approve' ? 'Accepted' : 'Declined';
-  _setGuaranteeCell(sh, headers, row._row, 'response', decision);
-  _setGuaranteeCell(sh, headers, row._row, 'responded at', now_ts());
-  if (decision === 'Declined') _setGuaranteeCell(sh, headers, row._row, 'decline reason', reason);
-  auditLog(decision === 'Accepted' ? 'Guarantor Consent Given' : 'Guarantor Declined', String(req['MemberNo']||''), String(row['GuarantorNo']||''),
+  setGuaranteeCell_(sh, headers, row._row, 'response', decision);
+  setGuaranteeCell_(sh, headers, row._row, 'responded at', now_ts());
+  if (decision === 'Declined') setGuaranteeCell_(sh, headers, row._row, 'decline reason', reason);
+  auditLog_(decision === 'Accepted' ? 'Guarantor Consent Given' : 'Guarantor Declined', String(req['MemberNo']||''), String(row['GuarantorNo']||''),
     guarantorName + (decision === 'Accepted' ? ' agreed to guarantee ' : ' declined to guarantee ') + applicantName + '\'s loan request of ' + amount
     + (decision === 'Declined' ? '. Reason: ' + reason : '') + '.', requestId);
   const applicantEmail = (members.find(m => String(m['MemberNo']||'').trim() === String(req['MemberNo']).trim()) || {})['Email'];
   const rowsOut = [['Request ID', requestId], ['Guarantor', guarantorName], ['Response', decision]].concat(decision === 'Declined' ? [['Reason', reason]] : []);
 
-  _sendEmail(applicantEmail, 'Guarantor response: ' + requestId, rowsOut,
+  sendEmail_(applicantEmail, 'Guarantor response: ' + requestId, rowsOut,
     decision === 'Accepted' ? guarantorName + ' has approved your guarantee request.' : guarantorName + ' has declined your guarantee request. Please choose another guarantor.');
   if (decision === 'Declined') {
-    _notifyAdmins('Guarantor declined: ' + requestId, rowsOut,
+    notifyAdmins_('Guarantor declined: ' + requestId, rowsOut,
       guarantorName + ' declined to guarantee ' + applicantName + '\'s loan request. The request cannot be approved as it stands.');
-  } else if (_guarantorGate(requestId).ok) {
+  } else if (guarantorGate_(requestId).ok) {
     // Both guarantors have consented: the request moves to the admin approval stage. A request left
     // "Awaiting Guarantors" by the earlier any-order flow already has both admin approvals, so this
     // acceptance is its last step: issue the loan now (every rule is checked again first).
     if (String(req['Status']||'').trim() === AWAITING_GUARANTORS) {
-      const fin = _withScriptLock(() => _finalizeLoanRequestLocked(requestId, String(req['Approver 2']||'').trim()));
+      const fin = withScriptLock_(() => finalizeLoanRequestLocked_(requestId, String(req['Approver 2']||'').trim()));
       if (!fin.ok) {
-        auditLog('Loan Issue Failed', String(req['MemberNo']||''), 'System', 'All guarantors accepted but the loan could not be issued: ' + fin.error, requestId);
-        _notifyAdmins('Loan not issued: ' + requestId, rowsOut.concat([['Problem', fin.error]]),
+        auditLog_('Loan Issue Failed', String(req['MemberNo']||''), 'System', 'All guarantors accepted but the loan could not be issued: ' + fin.error, requestId);
+        notifyAdmins_('Loan not issued: ' + requestId, rowsOut.concat([['Problem', fin.error]]),
           'Every guarantor has accepted and both admins approved, but the loan could not be issued. Fix the problem and click Issue loan, or reject the request with a reason.');
       }
     } else {
-      _notifyAdmins('Guarantors all accepted: ' + requestId, rowsOut,
+      notifyAdmins_('Guarantors all accepted: ' + requestId, rowsOut,
         'Both guarantors have consented. The request is ready for admin approval: two different admins, neither the initiator nor the applicant, must approve to issue the loan.');
     }
   }
 
-  return _guarantorPage(decision === 'Accepted' ? 'Thank you' : 'Response recorded',
+  return guarantorPage_(decision === 'Accepted' ? 'Thank you' : 'Response recorded',
     'Your ' + (decision === 'Accepted' ? 'approval' : 'decline') + ' for request <strong>' + esc(requestId) + '</strong> has been recorded. You can close this page.');
 }
 
-function _guarantorPage(title, bodyHtml) {
+function guarantorPage_(title, bodyHtml) {
   const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(title) + '</title></head>' +
     '<body style="margin:0;font-family:Arial,sans-serif;background:#f4f7f5;">' +
     '<div style="max-width:460px;margin:40px auto;background:#fff;border:1px solid #e5ece8;border-radius:12px;overflow:hidden;">' +
@@ -141,12 +141,12 @@ function _guarantorPage(title, bodyHtml) {
 
 // Email to a guarantor: who is asking, how much and for how long, and the Approve / Decline buttons.
 // Kept to what a guarantor needs to decide; the loan's purpose, rate and fees are not included.
-function _guarantorEmailHtml(name, requestId, applicant, amount, termDef, approveUrl, declineUrl) {
+function guarantorEmailHtml_(name, requestId, applicant, amount, termDef, approveUrl, declineUrl) {
   const btn = (url, label, color) => '<a href="' + url + '" style="display:block;text-align:center;background:' + color + ';color:#ffffff;text-decoration:none;font-weight:700;padding:13px;border-radius:8px;font-size:14px;">' + label + '</a>';
   const body =
     '<p style="margin:0 0 12px;">Hello ' + esc(name) + ',</p>' +
     '<p style="margin:0 0 12px;"><strong>' + esc(applicant) + '</strong> has asked you to guarantee a loan of <strong>' + esc(fmtUGX(amount)) + '</strong>.</p>' +
-    _emailRows([
+    emailRows_([
       ['Request ID', requestId],
       ['Repayment term', termDef.label]
     ]) +
@@ -156,5 +156,5 @@ function _guarantorEmailHtml(name, requestId, applicant, amount, termDef, approv
       '<td style="padding-left:6px;width:50%;">' + btn(declineUrl, 'Decline', '#b3412e') + '</td>' +
     '</tr></table>' +
     '<p style="margin:14px 0 0;color:#7a8a9c;font-size:12px;">You will be asked to confirm on the next page. If you did not expect this request, decline it or contact the committee.</p>';
-  return _emailShell('Guarantor request: ' + requestId, body);
+  return emailShell_('Guarantor request: ' + requestId, body);
 }

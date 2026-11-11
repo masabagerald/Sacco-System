@@ -17,7 +17,7 @@ function fund(ctx, memberNo, account, amount, date) {
 function respond(ctx, requestId, guarantorNo, decide, reason) {
   const row = ctx.guarantors().find(r => r.RequestID === requestId && r.GuarantorNo === guarantorNo);
   assert.ok(row, 'guarantor row for ' + guarantorNo);
-  return ctx.g._guarantorHandle(row.Token, decide, '1', reason || '');
+  return ctx.g.guarantorHandle_(row.Token, decide, '1', reason || '');
 }
 const responseOf = (ctx, requestId, guarantorNo) => ctx.guarantors().find(r => r.RequestID === requestId && r.GuarantorNo === guarantorNo);
 
@@ -103,7 +103,7 @@ module.exports = {
     assert.strictEqual(ctx.loanReqs()[0]['Approver 1'], '', 'nothing recorded');
 
     // Opening the link alone records nothing
-    g._guarantorHandle(responseOf(ctx, req.requestId, 'M004').Token, 'approve', '', '');
+    g.guarantorHandle_(responseOf(ctx, req.requestId, 'M004').Token, 'approve', '', '');
     assert.strictEqual(responseOf(ctx, req.requestId, 'M004').Response, 'Pending');
     respond(ctx, req.requestId, 'M004', 'approve');
     const dan = responseOf(ctx, req.requestId, 'M004');
@@ -260,7 +260,7 @@ module.exports = {
 
   'the 12-month saving period counts from the date a member joined'(c) {
     const ctx = seed(c), { g, fakes } = ctx;
-    const sixMonthsAgo = g.fmt_date(g._addMonths(new Date(), -6));
+    const sixMonthsAgo = g.fmt_date(g.addMonths_(new Date(), -6));
     const members = () => fakes.sheet(ctx.val('SH_MEMBERS')).records('memberno');
     fakes.signInAs(ALICE);
     ok(g.updateMember('M007', 'Member', 'Founder Member', 'Active', sixMonthsAgo), 'Fay joined six months ago');
@@ -291,7 +291,7 @@ module.exports = {
   'the loan cap counts Principal savings only'(c) {
     const ctx = seed(c), { g } = ctx;
     fund(ctx, 'M004', 'Principal', 100000, '2024-01-01'); fund(ctx, 'M004', 'Operations', 500000);
-    const lc = g._checkLimit('M004', 60000);
+    const lc = g.checkLimit_('M004', 60000);
     assert.deepStrictEqual([lc.savings, lc.maxLoan, lc.withinLimit], [100000, 50000, false]);
   },
 
@@ -302,11 +302,11 @@ module.exports = {
     const hdr = sh.data[0], row = sh.data.find(r => r[0] === loanId);
     row[hdr.indexOf('Due Date')] = g.today();
     const dueToday = () => fakes.emails.filter(e => /Loan Due Today/.test(e.subject)).length;
-    g.processLoanDueDates();
-    g.processLoanDueDates();
+    fakes.asOwner(() => g.processLoanDueDates());
+    fakes.asOwner(() => g.processLoanDueDates());
     assert.strictEqual(dueToday(), 1, 'one notice despite two runs');
     assert.strictEqual(row[hdr.indexOf('Last Notice')], g.today());
-    g.sendRepaymentReminders(); g.sendRepaymentReminders();
+    fakes.asOwner(() => g.sendRepaymentReminders()); fakes.asOwner(() => g.sendRepaymentReminders());
     assert.ok(fakes.logs.some(l => /sendRepaymentReminders already ran today/.test(l)), 'second reminder run is skipped');
   }
 };

@@ -1,5 +1,5 @@
 // ── LOAN SERVICE TESTS ─────────────────────────────────────────────────────────
-// _schedule and _computeLoan are pure functions (only Date/Math, no Sheet/GAS
+// schedule_ and computeLoan_ are pure functions (only Date/Math, no Sheet/GAS
 // service calls), so they're exercised directly here with in-memory fixtures.
 // Run runLoanServiceTests() from the Apps Script editor; it throws on failure
 // so a red run is unambiguous, and logs a line per assertion either way.
@@ -18,14 +18,14 @@ function monthsAgo_(n) {
 }
 
 function test_schedule_lastRowClosesToZero() {
-  const { monthlyPayment, schedule } = _schedule(120000, 5, 6);
+  const { monthlyPayment, schedule } = schedule_(120000, 5, 6);
   assertEqual_(schedule.length, 6, 'schedule has 6 rows for a 6-month term');
   assertEqual_(schedule[5].closing, 0, 'final row closes to zero');
   assertEqual_(monthlyPayment > 0 ? 1 : 0, 1, 'monthly payment is positive');
 }
 
 function test_schedule_zeroRateSplitsPrincipalEvenly() {
-  const { schedule } = _schedule(90000, 0, 3);
+  const { schedule } = schedule_(90000, 0, 3);
   assertEqual_(schedule[0].payment, 30000, 'zero-rate payment is principal/term');
   assertEqual_(schedule[2].closing, 0, 'zero-rate schedule still fully repays by the last month');
 }
@@ -35,8 +35,8 @@ function test_computeLoan_accruesInterestWithNoRepayments() {
     LoanID: 'TEST1', MemberNo: 'M999', 'Principal (UGX)': 100000, 'Monthly Rate (%)': 5,
     'Date Issued': monthsAgo_(3), 'Term (months)': 6, Status: 'Active'
   };
-  const result = _computeLoan(loan, []);
-  // Manual reducing-balance walk for 3 months at 5%/mo, matching _computeLoan's algorithm.
+  const result = computeLoan_(loan, []);
+  // Manual reducing-balance walk for 3 months at 5%/mo, matching computeLoan_'s algorithm.
   let expectedBalance = 100000;
   for (let i = 0; i < 3; i++) expectedBalance += expectedBalance * 0.05;
   assertEqual_(result.outstandingBalance, r2(expectedBalance), 'outstanding balance compounds monthly with no repayments');
@@ -51,7 +51,7 @@ function test_computeLoan_clearsWhenFullyRepaid() {
     'Date Issued': issued, 'Term (months)': 6, Status: 'Active'
   };
   const repayments = [{ LoanID: 'TEST2', Date: new Date(), 'Amount (UGX)': 100000 }];
-  const result = _computeLoan(loan, repayments);
+  const result = computeLoan_(loan, repayments);
   assertEqual_(result.outstandingBalance, 0, 'overpaying a loan leaves zero outstanding balance');
   assertEqual_(result.status === LOAN_STATUS.CLEARED ? 1 : 0, 1, 'fully repaid loan is marked Cleared');
 }

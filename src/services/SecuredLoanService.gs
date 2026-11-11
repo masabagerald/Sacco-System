@@ -20,12 +20,12 @@ const WAIVER_HEADERS = ['RequestID', 'Timestamp', 'ApplicantNo', 'Initiated By',
 const WAIVER_DECISION_HEADERS = ['Timestamp', 'RequestID', 'AdminNo', 'Admin Name', 'Committee Role', 'Decision', 'Comment'];
 
 // Creates a tab with its header row, or adds any missing columns. Safe to run again.
-function _ensureTab(name, hint, headers) {
+function ensureTab_(name, hint, headers) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sh = ss.getSheetByName(name);
   if (!sh) sh = ss.insertSheet(name);
   if (sh.getLastRow() === 0) { sh.appendRow(headers); return sh; }
-  const { hRow } = readSheet(name, hint);
+  const { hRow } = readSheet_(name, hint);
   if (hRow < 0) throw new Error('The "' + name + '" tab has data but no ' + hint + ' header row; fix it by hand.');
   headers.forEach(h => {
     const hdr = sh.getRange(hRow + 1, 1, 1, sh.getLastColumn()).getValues()[0].map(x => String(x).trim().toLowerCase());
@@ -36,28 +36,28 @@ function _ensureTab(name, hint, headers) {
 
 // One-time setup, also run by setupGuaranteeSchema(). The tabs are created on first use as well.
 function setupSecuredLoanSchema() {
-  _ensureTab(SH_WAIVERS, 'requestid', WAIVER_HEADERS);
-  _ensureTab(SH_WAIVER_DECISIONS, 'requestid', WAIVER_DECISION_HEADERS);
-  const { sh, hRow, headers } = readSheet(SH_MEMBERS, 'memberno');
+  ensureTab_(SH_WAIVERS, 'requestid', WAIVER_HEADERS);
+  ensureTab_(SH_WAIVER_DECISIONS, 'requestid', WAIVER_DECISION_HEADERS);
+  const { sh, hRow, headers } = readSheet_(SH_MEMBERS, 'memberno');
   if (hRow > -1 && ci(headers, 'committee role') < 0) sh.getRange(hRow + 1, sh.getLastColumn() + 1).setValue('Committee Role');
 }
 
-function _appendByHeaders(name, hint, obj) {
-  const { sh, headers } = readSheet(name, hint);
+function appendByHeaders_(name, hint, obj) {
+  const { sh, headers } = readSheet_(name, hint);
   sh.appendRow(headers.map(h => (obj[h] === undefined ? '' : obj[h])));
 }
 
 // ── Eligibility ───────────────────────────────────────────────────────────────
 
 // The two constitutional savings coverage checks, as figures for the applicant, the admins and the
-// audit trail. spec: from _loanSpecFor (the applicant cap applies only where spec.savingsLimit).
+// audit trail. spec: from loanSpecFor_ (the applicant cap applies only where spec.savingsLimit).
 // Returns { applicant, guarantors, failed: [text], waive: { applicantLimit, guarantors: [memberNo] } }.
-function _coverageCheck(memberNo, amount, spec, guarantorNos) {
+function coverageCheck_(memberNo, amount, spec, guarantorNos) {
   amount = num(amount);
   const pct = v => amount > 0 ? r2(v / amount * 100) : 0;
   const out = { applicant: null, guarantors: [], failed: [], waive: { applicantLimit: false, guarantors: [] } };
   if (spec && spec.savingsLimit) {
-    const lc = _checkLimit(memberNo, amount);
+    const lc = checkLimit_(memberNo, amount);
     out.applicant = { savings: r2(lc.savings), maxLoan: r2(lc.maxLoan), coveragePct: pct(lc.savings),
       limitPct: r2(LOAN_TO_SAVINGS_LIMIT * 100), ok: !!lc.withinLimit };
     if (!lc.withinLimit) {
@@ -68,8 +68,8 @@ function _coverageCheck(memberNo, amount, spec, guarantorNos) {
   }
   const needed = r2(amount * GUARANTOR_SAVINGS_RATIO);
   [...new Set((guarantorNos || []).map(g => String(g).trim()).filter(Boolean))].forEach(g => {
-    const m = _memberByNo(g);
-    const sav = m ? r2(_principalBalance(g)) : 0;
+    const m = memberByNo_(g);
+    const sav = m ? r2(principalBalance_(g)) : 0;
     const ok = sav >= needed;
     out.guarantors.push({ memberNo: g, name: m ? (m['Full Name'] || g) : g, savings: sav, needed, coveragePct: pct(sav),
       requiredPct: r2(GUARANTOR_SAVINGS_RATIO * 100), ok });
@@ -84,7 +84,7 @@ function _coverageCheck(memberNo, amount, spec, guarantorNos) {
 
 // Security details for a secured-loan request. Values are as declared by the applicant: nothing here
 // verifies the asset, its value or its ownership. Documents are https links (the app has no file upload).
-function _validateSecurity(s) {
+function validateSecurity_(s) {
   s = s || {};
   const t = v => String(v == null ? '' : v).trim();
   const bad = (field, error) => ({ ok: false, field, error });
@@ -106,7 +106,7 @@ function _validateSecurity(s) {
   return { ok: true, security: { type, otherType: type === 'Others' ? otherType : '', description, value, ownership, documents, justification } };
 }
 
-function _securityLabel(w) {
+function securityLabel_(w) {
   const type = String(w['Security Type'] || '');
   return type === 'Others' ? 'Others: ' + String(w['Security Type (Other)'] || '') : type;
 }
@@ -114,43 +114,43 @@ function _securityLabel(w) {
 // ── Records ───────────────────────────────────────────────────────────────────
 
 // The Loan Waivers row for a request, or null (a normal request has none)
-function _waiverFor(requestId) {
+function waiverFor_(requestId) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   if (!ss.getSheetByName(SH_WAIVERS)) return null;
   const id = String(requestId || '').trim();
-  return readSheet(SH_WAIVERS, 'requestid').rows.find(r => String(r['RequestID'] || '').trim() === id) || null;
+  return readSheet_(SH_WAIVERS, 'requestid').rows.find(r => String(r['RequestID'] || '').trim() === id) || null;
 }
 
 // { applicantLimit, guarantors } recorded at submission: the only checks the waiver may lift
-function _waivedChecks(w) {
+function waivedChecks_(w) {
   try { const v = JSON.parse(String(w['Waived Checks'] || '{}')); return { applicantLimit: !!v.applicantLimit, guarantors: (v.guarantors || []).map(String) }; }
   catch (e) { return { applicantLimit: false, guarantors: [] }; }
 }
 
 // What an APPROVED waiver lifts for this request; null when the request has no waiver.
 // { error } when it has one that is not (yet) approved, so callers stop rather than run the normal checks.
-function _approvedWaiverChecks(requestId) {
-  const w = _waiverFor(requestId);
+function approvedWaiverChecks_(requestId) {
+  const w = waiverFor_(requestId);
   if (!w) return null;
   if (String(w['Waiver Status'] || '').trim() !== WAIVER_STATUS.APPROVED)
     return { error: 'This is a secured-loan request and its waiver is ' + (String(w['Waiver Status'] || '').trim() || 'not decided') + '.' };
-  return _waivedChecks(w);
+  return waivedChecks_(w);
 }
 
-function _waiverDecisions(requestId) {
+function waiverDecisions_(requestId) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   if (!ss.getSheetByName(SH_WAIVER_DECISIONS)) return [];
   const id = String(requestId || '').trim();
-  return readSheet(SH_WAIVER_DECISIONS, 'requestid').rows
+  return readSheet_(SH_WAIVER_DECISIONS, 'requestid').rows
     .filter(r => String(r['RequestID'] || '').trim() === id)
     .map(r => ({ at: String(r['Timestamp'] || ''), adminNo: String(r['AdminNo'] || '').trim(), name: String(r['Admin Name'] || ''),
       role: String(r['Committee Role'] || '').trim(), decision: String(r['Decision'] || '').trim(), comment: String(r['Comment'] || '') }));
 }
 
-function _setWaiverStatus(requestId, status) {
-  const w = _waiverFor(requestId);
+function setWaiverStatus_(requestId, status) {
+  const w = waiverFor_(requestId);
   if (!w) return;
-  const { sh, headers } = readSheet(SH_WAIVERS, 'requestid');
+  const { sh, headers } = readSheet_(SH_WAIVERS, 'requestid');
   const set = (name, v) => { const c = ci(headers, name); if (c > -1) sh.getRange(w._row, c + 1).setValue(v); };
   set('waiver status', status); set('status updated at', now_ts());
 }
@@ -159,7 +159,7 @@ function _setWaiverStatus(requestId, status) {
 
 // How far the approvals have got. Each approval counts once, for its approver's group.
 // need: approvals still required from each group; free: further approvals any group can give.
-function _waiverProgress(decisions) {
+function waiverProgress_(decisions) {
   const approvals = decisions.filter(d => d.decision === 'Approved');
   const have = {};
   COMMITTEE_ROLES.forEach(r => { have[r] = 0; });
@@ -178,7 +178,7 @@ function _waiverProgress(decisions) {
 // applicant nor the person who submitted it, and has not already decided on it. An approval must also
 // fill a place still open (for example, a fourth Finance Committee approval cannot stand in for the
 // Chairperson's). Returns an error message, or '' when `me` (a Members row) may decide.
-function _waiverDeciderError(w, req, me, decisions, forApproval) {
+function waiverDeciderError_(w, req, me, decisions, forApproval) {
   if (!w) return 'This is not a secured-loan request.';
   const st = String(w['Waiver Status'] || '').trim();
   if ((st !== WAIVER_STATUS.PENDING && st !== WAIVER_STATUS.PARTIAL) || String(req['Status'] || '').trim() !== REQ_PENDING_WAIVER)
@@ -193,24 +193,24 @@ function _waiverDeciderError(w, req, me, decisions, forApproval) {
   if (no === String(w['Initiated By'] || req['Initiated By'] || '').trim()) return 'You submitted this request; other committee members must decide the waiver.';
   if (decisions.some(d => d.adminNo === no)) return 'You have already given your decision on this waiver; each administrator decides once.';
   if (forApproval) {
-    const p = _waiverProgress(decisions);
+    const p = waiverProgress_(decisions);
     if (!(p.need[role] > 0) && !(p.free > 0)) return 'The ' + role + ' approvals for this waiver are already complete. ' + p.stillNeeded;
   }
   return '';
 }
 
 // Active admins with a committee role who may decide this waiver (for the approval-request emails)
-function _waiverDeciders(applicantNo, initiatedBy) {
-  return readSheet(SH_MEMBERS, 'memberno').rows.filter(m =>
+function waiverDeciders_(applicantNo, initiatedBy) {
+  return readSheet_(SH_MEMBERS, 'memberno').rows.filter(m =>
     String(m['Role'] || '').trim().toLowerCase() === 'admin' && String(m['Status'] || '').trim().toLowerCase() === 'active'
     && COMMITTEE_ROLES.indexOf(String(m['Committee Role'] || '').trim()) > -1
     && [String(applicantNo).trim(), String(initiatedBy).trim()].indexOf(String(m['MemberNo'] || '').trim()) < 0);
 }
 
 // The waiver as the Loan Requests screens show it. viewer: the caller's Members row (admins), or null.
-function _waiverView(w, req, viewer) {
-  const decisions = _waiverDecisions(w['RequestID']);
-  const p = _waiverProgress(decisions);
+function waiverView_(w, req, viewer) {
+  const decisions = waiverDecisions_(w['RequestID']);
+  const p = waiverProgress_(decisions);
   let guarantorCoverage = [];
   try { guarantorCoverage = JSON.parse(String(w['Eligibility Snapshot'] || '{}')).guarantors || []; } catch (e) {}
   const view = {
@@ -218,14 +218,14 @@ function _waiverView(w, req, viewer) {
     failed: String(w['Failed Requirements'] || '').split('\n').filter(Boolean),
     applicantSavings: num(w['Applicant Principal Savings (UGX)']), applicantCoveragePct: num(w['Applicant Coverage (%)']), loanCap: num(w['Loan Cap (UGX)']),
     guarantorCoverage,
-    security: { type: _securityLabel(w), description: String(w['Security Description'] || ''), value: num(w['Estimated Value (UGX)']),
+    security: { type: securityLabel_(w), description: String(w['Security Description'] || ''), value: num(w['Estimated Value (UGX)']),
       ownership: String(w['Ownership Details'] || ''), documents: String(w['Supporting Documents'] || '').split('\n').filter(Boolean),
       justification: String(w['Justification'] || ''), verified: false },
     decisions, approvals: p.count, required: p.required, stillNeeded: p.stillNeeded
   };
   if (viewer) {
-    view.approveBlock = _waiverDeciderError(w, req, viewer, decisions, true);
-    view.rejectBlock = _waiverDeciderError(w, req, viewer, decisions, false);
+    view.approveBlock = waiverDeciderError_(w, req, viewer, decisions, true);
+    view.rejectBlock = waiverDeciderError_(w, req, viewer, decisions, false);
   }
   return view;
 }

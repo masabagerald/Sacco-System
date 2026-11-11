@@ -23,7 +23,7 @@ function setup(c) {
   sh.data.push(['M010', 'Ivy', IVY, '', 'Member', 'Founder Member', '2024-01-01', 'Active', '']);
   sh.data.push(['M011', 'Kim', KIM, '', 'Admin', 'Founder Member', '2024-01-01', 'Active', 'Finance Committee']);
   fakes.addSheet(val('SH_REPAY'), [['LoanID', 'Date', 'Timestamp', 'MemberNo', 'Amount (UGX)', 'Recorded By', 'Notes', 'Reference', 'Reverses']]);
-  g._sendEmail = (to, subject, rows, message) => { if (to) fakes.emails.push({ to, subject, rows, message }); };
+  g.sendEmail_ = (to, subject, rows, message) => { if (to) fakes.emails.push({ to, subject, rows, message }); };
   ctx.mail = re => fakes.emails.filter(e => re.test(e.subject));
   ctx.waivers = () => { const s = fakes.sheet(val('SH_WAIVERS')); return s ? s.records('requestid') : []; };
   ctx.decisions = () => { const s = fakes.sheet(val('SH_WAIVER_DECISIONS')); return s ? s.records('requestid') : []; };
@@ -58,7 +58,7 @@ function guarantorsConsent(ctx, id) {
   ['M004', 'M010'].forEach(no => {
     const row = ctx.guarantors().find(r => r.RequestID === id && r.GuarantorNo === no);
     assert.ok(row, 'guarantor row for ' + no);
-    ctx.g._guarantorHandle(row.Token, 'approve', '1', '');
+    ctx.g.guarantorHandle_(row.Token, 'approve', '1', '');
   });
 }
 
@@ -198,7 +198,7 @@ module.exports = {
       assert.ok(!r.ok && r.field === field && re.test(r.error), JSON.stringify(o) + ' -> ' + JSON.stringify(r));
     });
     assert.strictEqual(ctx.loanReqs().length, 0, 'nothing saved');
-    ['Car Logbook', 'Equipment'].forEach(t => assert.ok(g._validateSecurity(Object.assign({}, SECURITY, { type: t })).ok, t));
+    ['Car Logbook', 'Equipment'].forEach(t => assert.ok(g.validateSecurity_(Object.assign({}, SECURITY, { type: t })).ok, t));
     const id = ok(tryWith({ type: 'Others', otherType: 'Livestock (20 cattle)', documents: '' }), 'Others with a description').requestId;
     const w = ctx.waivers().find(x => x.RequestID === id);
     eq([w['Security Type'], w['Security Type (Other)'], w['Supporting Documents']], ['Others', 'Livestock (20 cattle)', '']);
@@ -258,7 +258,7 @@ module.exports = {
     ok(g.updateMember('M002', 'Admin', 'Founder Member', 'Active', '', 'Chairperson'), 'Bob made Chairperson');
     assert.ok(ctx.audit().some(a => a.Action === 'Member Updated' && /Committee role: none -> Chairperson/.test(a.Details)));
     ok(g.updateMember('M002', 'Admin', 'Founder Member', 'Active', ''), 'older callers leave the committee role alone');
-    assert.strictEqual(g._memberByNo('M002')['Committee Role'], 'Chairperson');
+    assert.strictEqual(g.memberByNo_('M002')['Committee Role'], 'Chairperson');
     ok(g.approveLoanWaiver(id, ''), 'Bob can now approve as Chairperson');
     ctx.as(FAY);
     const mine = ok(g.getMyLoanRequests(), 'mine').requests.find(r => r.requestId === id);

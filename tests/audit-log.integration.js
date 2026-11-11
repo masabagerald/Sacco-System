@@ -42,8 +42,8 @@ module.exports = {
     const ctx = seed(c), { g } = ctx;
     const sh = bigLog(ctx, 2000);
     watchReads(sh);
-    g.auditLog('Deposit', 'M004', 'M001', 'UGX 10,000', 'S1');
-    g.auditLog('Withdrawal', 'M004', 'M001', 'UGX 5,000', 'S2');
+    g.auditLog_('Deposit', 'M004', 'M001', 'UGX 10,000', 'S1');
+    g.auditLog_('Withdrawal', 'M004', 'M001', 'UGX 5,000', 'S2');
     const recs = sh.records('timestamp');
     assert.strictEqual(recs.length, 2002);
     assert.deepStrictEqual(recs.slice(-2).map(r => [r.Action, r['Member (Affected)'], r['Reference ID']]),
@@ -119,7 +119,7 @@ module.exports = {
       'Backup Created': ['System', true], 'Pending Action Reminders': ['System', false],
       'Something New': ['Other', false]
     };
-    Object.keys(expect).forEach(a => assert.deepStrictEqual([g._auditCategory(a), g._auditSensitive(a)], expect[a], a));
+    Object.keys(expect).forEach(a => assert.deepStrictEqual([g.auditCategory_(a), g.auditSensitive_(a)], expect[a], a));
   },
 
   'search, member, category and sensitive filters find entries across years, with names and paging'(c) {

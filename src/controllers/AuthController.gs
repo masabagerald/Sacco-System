@@ -12,7 +12,7 @@ function tryAutoDetect() {
 function confirmAutoDetect() {
   const email = tryAutoDetect().email;
   if (!email) return { ok: false, error: 'Your Google account could not be detected. Please sign in with your email instead.' };
-  const r = _lookupMember(email);
+  const r = lookupMember_(email);
   if (r.ok) r.sessionToken = startSession_(email);
   return r;
 }
@@ -21,14 +21,14 @@ function confirmAutoDetect() {
 function sendOtp(email) {
   email = String(email || '').trim().toLowerCase();
   if (!email) return { ok: false, error: 'Please enter your email address.' };
-  const r = _lookupMember(email);
+  const r = lookupMember_(email);
   if (!r.ok) return r;
 
   const code = String(Math.floor(100000 + Math.random() * 900000));
   Config.setScriptProp('otp_' + email, JSON.stringify({ code, expires: Date.now() + OTP_EXPIRY_MS, attempts: 0 }));
 
   try {
-    _sendHtmlEmail(email, '[' + SACCO_NAME + '] Your sign-in code', _otpEmailHtml(r.member.name, code));
+    sendHtmlEmail_(email, '[' + SACCO_NAME + '] Your sign-in code', otpEmailHtml_(r.member.name, code));
   } catch(e) { return { ok: false, error: 'Could not send email: ' + e.message }; }
 
   const at = email.indexOf('@');
@@ -60,7 +60,7 @@ function verifyOtp(email, code) {
     return { ok: false, error: 'Incorrect code. Please check your email.' };
   }
   Config.deleteScriptProp('otp_' + email);
-  const r = _lookupMember(email);
+  const r = lookupMember_(email);
   if (r.ok) r.sessionToken = startSession_(email);
   return r;
 }
@@ -72,4 +72,4 @@ function logout() {
 }
 
 // getCurrentMember: called by frontend on load
-function getCurrentMember() { return _caller(); }
+function getCurrentMember() { return caller_(); }

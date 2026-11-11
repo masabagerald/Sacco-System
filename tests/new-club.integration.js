@@ -11,7 +11,7 @@ function freshClub({ g, fakes, val }) { fakes.hostAs(HOST); return { g, fakes, v
 // Signs in and accepts the terms through the app, as a real first sign-in does
 function signInAndAccept(g, fakes, email) {
   fakes.signInAs(email);
-  const docs = g._termsDocuments();
+  const docs = g.termsDocuments_();
   const r = g.acceptTerms({ use: docs.use.version, admin: docs.admin.version });
   assert.ok(r.ok, 'accept terms: ' + JSON.stringify(r));
 }

@@ -39,7 +39,7 @@ const LOAN_TERMS = [
   { key: '3w', label: '3 weeks', days: 21, rate: 0.15 },
   { key: '1m', label: '1 month', days: 30, rate: 0.15 }
 ];
-function _termByKey(key) { return LOAN_TERMS.find(t => t.key === String(key||'').trim()) || null; }
+function termByKey_(key) { return LOAN_TERMS.find(t => t.key === String(key||'').trim()) || null; }
 const LOAN_FIRST_INSTALMENT_DAYS = 28;    // Sec 13: first instalment at week 4
 const LOAN_DURATION_DAYS         = 56;    // Sec 12/13: everything due by week 8
 const LATE_PENALTY_RATE          = 0.10;  // Sec 14: 10% if unpaid at week 8

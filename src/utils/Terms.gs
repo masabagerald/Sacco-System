@@ -8,7 +8,7 @@
 //   admin: Administrator Agreement    -- users with the Admin role, in addition to the Terms of Use
 // A function, not a constant, so SACCO_NAME (Config.gs) is read when it is called.
 
-function _defaultTermsDocuments() {
+function defaultTermsDocuments_() {
   const club = SACCO_NAME;
   return {
     use: {

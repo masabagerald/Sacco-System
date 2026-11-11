@@ -53,7 +53,7 @@ module.exports = {
 
   'rpc reaches public functions only'(c) {
     const ctx = seed(c), { g } = ctx;
-    ['_lookupMember', 'startSession_', 'doGet', 'setupNewClub', 'sendMonthlyStatements', 'rpc', 'eval', 'Function', 'parseInt', 'nope', 'constructor.x']
+    ['lookupMember_', 'startSession_', 'doGet', 'setupNewClub', 'sendMonthlyStatements', 'rpc', 'eval', 'Function', 'parseInt', 'nope', 'constructor.x']
       .forEach(fn => assert.throws(() => g.rpc('', fn, [ALICE]), /Unknown action/, fn));
     assert.strictEqual(g.rpc('', 'tryAutoDetect', []).detected, false);
   }

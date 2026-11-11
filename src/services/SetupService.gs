@@ -1,5 +1,5 @@
 // ── NEW CLUB SETUP ────────────────────────────────────────────────────────────
-// A club's spreadsheet sets itself up the first time the web app is opened (doGet → _ensureSetUp), so
+// A club's spreadsheet sets itself up the first time the web app is opened (doGet → ensureSetUp_), so
 // after deploying there is nothing to run by hand. setupNewClub() can also be run from the Apps Script
 // editor. Either way it:
 //   - creates every tab the app needs, with its header row, and adds any missing columns
@@ -7,7 +7,7 @@
 //   - schedules any job that has no trigger yet (SCHEDULED_JOBS in ScheduledJobs.gs);
 //   - if the Members tab is empty, adds the hosting account -- the Google account the app runs as -- as
 //     the first member: "System Administrator", an active Admin with no membership type. That account
-//     always stays an active Admin with no membership type (see _hostMemberError).
+//     always stays an active Admin with no membership type (see hostMemberError_).
 // Existing tabs, rows and columns are never changed or removed, so it is safe to run again.
 
 // Raise when a release needs setup to run again on clubs that are already live (new tabs or columns).
@@ -16,7 +16,7 @@ const HOST_MEMBER_NAME = 'System Administrator';
 
 // The core tabs, with every column the app uses. A function, not a constant: Config.gs (the SH_* names)
 // loads after this file.
-function _coreTabs() {
+function coreTabs_() {
   return [
     [SH_MEMBERS, 'memberno', ['MemberNo', 'Full Name', 'Email', 'Phone', 'Role', 'Membership Type', 'Date Joined', 'Status', 'Committee Role']],
     [SH_SAVINGS, 'memberno', ['Date', 'Timestamp', 'MemberNo', 'Deposit Type', 'Amount (UGX)', 'Recorded By', 'Reference', 'Notes',
@@ -35,13 +35,26 @@ function _coreTabs() {
 }
 
 // The Google account the app runs as (the one that deployed it), lower-cased; '' if it can't be read
-function _hostEmail() {
+function hostEmail_() {
   try { return String(Session.getEffectiveUser().getEmail() || '').trim().toLowerCase(); } catch (e) { return ''; }
+}
+
+// Scheduled jobs and editor-run tools keep public names (triggers call them by name; the editor lists
+// them), so a visitor could also call them with google.script.run. This lets through only a real
+// trigger of this project (its event carries the trigger's id) or the hosting account itself, as when
+// running from the Apps Script editor; anyone else gets an error.
+function ownerOrTrigger_(e) {
+  if (e && e.triggerUid && ScriptApp.getProjectTriggers().some(t => String(t.getUniqueId()) === String(e.triggerUid))) return;
+  let active = '';
+  try { active = String(Session.getActiveUser().getEmail() || '').trim().toLowerCase(); } catch (x) {}
+  const host = hostEmail_();
+  if (active && host && active === host) return;
+  throw new Error('This can only be run by its scheduled trigger or by the hosting account from the Apps Script editor.');
 }
 
 // Called by doGet: runs setup once per SETUP_VERSION. A failure is logged and the page still loads
 // (a live club keeps working); the next visit tries again.
-function _ensureSetUp() {
+function ensureSetUp_() {
   if (Config.getScriptProp('setupVersion') === SETUP_VERSION) return;
   try { setupNewClub(); }
   catch (e) { Logger.log('Automatic setup did not finish: ' + e); }
@@ -50,28 +63,28 @@ function _ensureSetUp() {
 function setupNewClub() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   if (!ss) throw new Error('This script is not attached to a spreadsheet. Create it from the spreadsheet: Extensions → Apps Script.');
-  return _withScriptLock(() => {
+  return withScriptLock_(() => {
     const created = [];
-    _coreTabs().forEach(([name, hint, headers]) => {
+    coreTabs_().forEach(([name, hint, headers]) => {
       if (!ss.getSheetByName(name)) created.push(name);
-      _ensureTab(name, hint, headers);
+      ensureTab_(name, hint, headers);
     });
     setupGuaranteeSchema();  // Guarantors, notices, loan fund, investments, waivers, assets, and any missing columns
 
-    const host = _hostEmail();
+    const host = hostEmail_();
     let first = '';
-    if (!readSheet(SH_MEMBERS, 'memberno').rows.some(r => String(r['MemberNo'] || '').trim())) {
+    if (!readSheet_(SH_MEMBERS, 'memberno').rows.some(r => String(r['MemberNo'] || '').trim())) {
       if (!host) throw new Error('Could not read the hosting account\'s email. Add it to the Members tab by hand: MemberNo ' + MEMBER_NO_PREFIX
         + '0001, Full Name ' + HOST_MEMBER_NAME + ', Role Admin, Membership Type blank, Status Active.');
-      first = _nextMemberNo();
-      _appendByHeaders(SH_MEMBERS, 'memberno', { 'MemberNo': first, 'Full Name': HOST_MEMBER_NAME, 'Email': host, 'Phone': '',
+      first = nextMemberNo_();
+      appendByHeaders_(SH_MEMBERS, 'memberno', { 'MemberNo': first, 'Full Name': HOST_MEMBER_NAME, 'Email': host, 'Phone': '',
         'Role': 'Admin', 'Membership Type': '', 'Date Joined': today(), 'Status': 'Active', 'Committee Role': '' });
-      auditLog('Club Set Up', first, 'System', 'Spreadsheet set up for ' + SACCO_NAME + '. Hosting account ' + host
+      auditLog_('Club Set Up', first, 'System', 'Spreadsheet set up for ' + SACCO_NAME + '. Hosting account ' + host
         + ' added as ' + first + ' (' + HOST_MEMBER_NAME + '): Admin, no membership type.', first);
     }
 
     let triggers = '';
-    const added = _ensureScheduledJobs();
+    const added = ensureScheduledJobs_();
     if (added.length) triggers = 'Scheduled jobs added: ' + added.join(', ') + '. ';
 
     Config.setScriptProp('setupVersion', SETUP_VERSION);
@@ -85,8 +98,8 @@ function setupNewClub() {
 
 // The hosting account's member record always stays an active Admin with no membership type: it runs the
 // app and must never be locked out or treated as an ordinary member. Returns an error message, or ''.
-function _hostMemberError(row, role, membershipType, status) {
-  const host = _hostEmail();
+function hostMemberError_(row, role, membershipType, status) {
+  const host = hostEmail_();
   if (!host || String(row['Email'] || '').trim().toLowerCase() !== host) return '';
   if (role !== 'Admin') return 'This is the hosting account (' + host + '), which runs the app. It must stay an Admin.';
   if (status !== 'Active') return 'This is the hosting account (' + host + '), which runs the app. It must stay Active.';

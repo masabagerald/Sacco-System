@@ -30,26 +30,26 @@ const ASSET_FIELDS = [
 
 // One-time setup (also run by setupGuaranteeSchema). The tabs are created on first use as well. Safe to run again.
 function setupAssetRegisterSchema() {
-  _ensureTab(SH_ASSETS, 'assetid', ASSET_HEADERS);
-  _ensureTab(SH_ASSET_REVIEWS, 'assetid', ASSET_REVIEW_HEADERS);
-  _ensureTab(SH_ASSET_HISTORY, 'assetid', ASSET_HISTORY_HEADERS);
+  ensureTab_(SH_ASSETS, 'assetid', ASSET_HEADERS);
+  ensureTab_(SH_ASSET_REVIEWS, 'assetid', ASSET_REVIEW_HEADERS);
+  ensureTab_(SH_ASSET_HISTORY, 'assetid', ASSET_HISTORY_HEADERS);
 }
 
-function _assetRows() {
+function assetRows_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   if (!ss.getSheetByName(SH_ASSETS)) return [];
-  return readSheet(SH_ASSETS, 'assetid').rows.filter(r => String(r['AssetID'] || '').trim());
+  return readSheet_(SH_ASSETS, 'assetid').rows.filter(r => String(r['AssetID'] || '').trim());
 }
 
-function _assetRowById(id) {
+function assetRowById_(id) {
   id = String(id || '').trim();
-  return _assetRows().find(r => String(r['AssetID']).trim() === id) || null;
+  return assetRows_().find(r => String(r['AssetID']).trim() === id) || null;
 }
 
 // ── Validation ────────────────────────────────────────────────────────────────
 
 // Checks an asset form. Returns { ok, asset } with cleaned values, or { ok:false, field, error }.
-function _validateAsset(d) {
+function validateAsset_(d) {
   d = d || {};
   const t = (v, max) => String(v == null ? '' : v).trim().slice(0, max || 200);
   const bad = (field, error) => ({ ok: false, field, error });
@@ -100,7 +100,7 @@ function _validateAsset(d) {
 
 // Asset tags and serial numbers identify one asset each (ignoring case and spaces at the ends).
 // Disposed assets keep theirs, so a tag is never reused. Returns { field, error } or null.
-function _assetDuplicateError(rows, a, excludeId) {
+function assetDuplicateError_(rows, a, excludeId) {
   const norm = v => String(v || '').trim().toLowerCase();
   const others = rows.filter(r => String(r['AssetID']).trim() !== String(excludeId || '').trim());
   const tagDup = a.tag && others.find(r => norm(r['Asset Tag']) === norm(a.tag));
@@ -110,32 +110,32 @@ function _assetDuplicateError(rows, a, excludeId) {
   return null;
 }
 
-// Cell value of a field, in the same form _validateAsset produces (for comparing and history)
-function _assetFieldValue(row, col) {
+// Cell value of a field, in the same form validateAsset_ produces (for comparing and history)
+function assetFieldValue_(row, col) {
   const v = row[col];
   if (col === 'Value (UGX)') return String(v === '' || v == null ? '' : r2(num(v)));
-  if (col === 'Date Acquired' || col === 'Disposal Date') return _dstr(v);
+  if (col === 'Date Acquired' || col === 'Disposal Date') return dstr_(v);
   return String(v == null ? '' : v).trim();
 }
 
 // [{ key, col, material, before, after }] for every field that differs
-function _assetChanges(row, a) {
+function assetChanges_(row, a) {
   return ASSET_FIELDS.map(([key, col, material]) => ({ key, col, material,
-    before: _assetFieldValue(row, col), after: col === 'Value (UGX)' ? String(a.value) : String(a[key] == null ? '' : a[key]) }))
+    before: assetFieldValue_(row, col), after: col === 'Value (UGX)' ? String(a.value) : String(a[key] == null ? '' : a[key]) }))
     .filter(c => c.before !== c.after);
 }
 
-function _nextAssetId(rows) { return _nextRef('asset', rows.map(r => r['AssetID'])); }
+function nextAssetId_(rows) { return nextRef_('asset', rows.map(r => r['AssetID'])); }
 
 // ── Views, filters, history ───────────────────────────────────────────────────
 
-function _assetView(r) {
+function assetView_(r) {
   const type = String(r['Asset Type'] || '');
   return { id: String(r['AssetID']).trim(), tag: String(r['Asset Tag'] || ''), type, otherType: String(r['Type (Other)'] || ''),
     typeLabel: type === 'Other' && r['Type (Other)'] ? 'Other: ' + r['Type (Other)'] : type,
     description: String(r['Description'] || ''), make: String(r['Make'] || ''), model: String(r['Model'] || ''), serial: String(r['Serial Number'] || ''),
-    value: num(r['Value (UGX)']), dateAcquired: _dstr(r['Date Acquired']), condition: String(r['Condition'] || ''),
-    availability: String(r['Availability'] || ''), location: String(r['Location'] || ''), disposalDate: _dstr(r['Disposal Date']),
+    value: num(r['Value (UGX)']), dateAcquired: dstr_(r['Date Acquired']), condition: String(r['Condition'] || ''),
+    availability: String(r['Availability'] || ''), location: String(r['Location'] || ''), disposalDate: dstr_(r['Disposal Date']),
     disposedTo: String(r['Disposed To'] || ''), recipientContact: String(r['Recipient Contact'] || ''),
     documents: String(r['Documents'] || '').split('\n').filter(Boolean), notes: String(r['Notes'] || ''),
     verification: String(r['Verification Status'] || ASSET_VERIFICATION.PENDING), version: num(r['Version']) || 1,
@@ -149,7 +149,7 @@ function _assetView(r) {
 // Filters: { q (ID, tag, serial, make, model or description), type, condition, availability, location,
 // from, to (date acquired), verification, disposal ('disposed' | 'held') }. Shared by the list and the
 // exports, so an export always matches the list on screen.
-function _cleanAssetFilters(f) {
+function cleanAssetFilters_(f) {
   f = f || {};
   const t = v => String(v == null ? '' : v).trim();
   const out = { q: t(f.q), type: t(f.type), condition: t(f.condition), availability: t(f.availability), location: t(f.location),
@@ -160,7 +160,7 @@ function _cleanAssetFilters(f) {
   return { ok: true, filters: out };
 }
 
-function _filterAssets(views, f) {
+function filterAssets_(views, f) {
   const q = f.q.toLowerCase(), loc = f.location.toLowerCase();
   return views.filter(a =>
     (!q || [a.id, a.tag, a.serial, a.make, a.model, a.description].some(v => String(v).toLowerCase().indexOf(q) > -1)) &&
@@ -169,11 +169,11 @@ function _filterAssets(views, f) {
     (!f.from || a.dateAcquired >= f.from) && (!f.to || a.dateAcquired <= f.to) &&
     (!f.verification || a.verification === f.verification) &&
     (!f.disposal || (f.disposal === 'disposed' ? a.disposed : !a.disposed)))
-    .sort((x, y) => _refSerial('asset', x.id) - _refSerial('asset', y.id) || x.id.localeCompare(y.id));  // by number: AST-0009 before AST-000010
+    .sort((x, y) => refSerial_('asset', x.id) - refSerial_('asset', y.id) || x.id.localeCompare(y.id));  // by number: AST-0009 before AST-000010
 }
 
 // Totals for a list. Only verified assets count towards the register's verified value.
-function _assetSummary(list) {
+function assetSummary_(list) {
   const by = s => list.filter(a => a.verification === s);
   const held = list.filter(a => !a.disposed);
   return { count: list.length, verified: by(ASSET_VERIFICATION.VERIFIED).length, pending: by(ASSET_VERIFICATION.PENDING).length,
@@ -182,14 +182,14 @@ function _assetSummary(list) {
     unverifiedValue: r2(held.filter(a => a.verification !== ASSET_VERIFICATION.VERIFIED).reduce((s, a) => s + a.value, 0)) };
 }
 
-function _assetLog(sheet, hint, id) {
+function assetLog_(sheet, hint, id) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   if (!ss.getSheetByName(sheet)) return [];
-  return readSheet(sheet, hint).rows.filter(r => String(r['AssetID'] || '').trim() === String(id).trim());
+  return readSheet_(sheet, hint).rows.filter(r => String(r['AssetID'] || '').trim() === String(id).trim());
 }
 
 // Why `me` may not verify or reject this asset ('' when they may)
-function _assetReviewBlock(r, me, version) {
+function assetReviewBlock_(r, me, version) {
   const st = String(r['Verification Status'] || '');
   if (st !== ASSET_VERIFICATION.PENDING) return 'This asset is ' + (st || 'not pending') + '; only a record pending verification can be reviewed.';
   if (version !== undefined && version !== null && String(version) !== '' && num(version) !== (num(r['Version']) || 1))
@@ -202,7 +202,7 @@ function _assetReviewBlock(r, me, version) {
 // ── Excel (.xlsx) ─────────────────────────────────────────────────────────────
 // A minimal Office Open XML workbook built by hand and zipped with Utilities.zip: no extra OAuth scope,
 // no temporary file in Drive. titleRows go above the bold, filterable header row; numeric cells stay numbers.
-function _xlsxBlob(fileName, sheetName, titleRows, header, rows, moneyCols) {
+function xlsxBlob_(fileName, sheetName, titleRows, header, rows, moneyCols) {
   const x = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
   const col = i => { let s = ''; i++; while (i > 0) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };

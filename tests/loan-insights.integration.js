@@ -52,7 +52,7 @@ module.exports = {
     const { g } = setup(c);
     const charges = [{ part: 'principal', date: '2025-01-10', amount: 100000 }, { part: 'fee', date: '2025-01-10', amount: 5000 },
       { part: 'interest', date: '2025-01-10', amount: 10000 }, { part: 'penalty', date: '2025-04-01', amount: 2000 }];
-    const a = g._allocateRepayments(charges, [{ date: '2025-02-01', ref: 'a', amount: 12000 }, { date: '2025-03-01', ref: 'b', amount: 108000 }]);
+    const a = g.allocateRepayments_(charges, [{ date: '2025-02-01', ref: 'a', amount: 12000 }, { date: '2025-03-01', ref: 'b', amount: 108000 }]);
     const pick = x => [x.cash, x.fee, x.interest, x.penalty, x.principal, x.overpaid];
     assert.deepStrictEqual(pick(a[0]), [12000, 5000, 7000, 0, 0, 0], 'fee first, then interest');
     assert.deepStrictEqual(pick(a[1]), [108000, 0, 3000, 0, 100000, 5000], 'the penalty is not yet charged, so the rest is held as credit');
@@ -233,7 +233,7 @@ module.exports = {
     const sum = (a, k) => a.reduce((s, x) => s + x[k], 0);
     const base = [{ part: 'principal', date: '2025-01-10', amount: 100000 }, { part: 'fee', date: '2025-01-10', amount: 5000 },
       { part: 'interest', date: '2025-01-10', amount: 10000 }];
-    const a = Array.from(g._allocateRepayments(base, [{ date: '2025-02-01', ref: 'A', amount: 12000 }, { date: '2025-02-10', ref: 'B', amount: 50000 },
+    const a = Array.from(g.allocateRepayments_(base, [{ date: '2025-02-01', ref: 'A', amount: 12000 }, { date: '2025-02-10', ref: 'B', amount: 50000 },
       { date: '2025-03-01', ref: 'RA', amount: -12000, reverses: 'A' }, { date: '2025-03-05', ref: 'C', amount: 20000 }]));
     assert.deepStrictEqual(pick(a[2]), [-12000, -5000, -7000, 0, 0, 0], 'A paid the fee and part of the interest; the reversal takes exactly that back');
     assert.deepStrictEqual(pick(a[3]), [20000, 5000, 7000, 0, 8000, 0], 'the reopened fee and interest are paid first again');
@@ -241,13 +241,13 @@ module.exports = {
 
     // A credit that already paid a later penalty is withdrawn: the borrower owes it again
     const pen = [{ part: 'principal', date: '2025-01-10', amount: 100 }, { part: 'penalty', date: '2025-02-01', amount: 20 }];
-    const b = Array.from(g._allocateRepayments(pen, [{ date: '2025-01-20', ref: 'P', amount: 110 }, { date: '2025-03-01', ref: 'RP', amount: -110, reverses: 'P' },
+    const b = Array.from(g.allocateRepayments_(pen, [{ date: '2025-01-20', ref: 'P', amount: 110 }, { date: '2025-03-01', ref: 'RP', amount: -110, reverses: 'P' },
       { date: '2025-03-02', ref: 'Q', amount: 120 }]));
     assert.deepStrictEqual(pick(b[2]), [-110, 0, 0, 0, -100, -10], 'the credit that paid the penalty is withdrawn');
     const bd = { charges: pen, allocations: b.slice(0, 3) };
-    assert.strictEqual(g._loanOutstandingAt(bd, '2025-03-01'), 120, 'everything is owed again, including the penalty');
+    assert.strictEqual(g.loanOutstandingAt_(bd, '2025-03-01'), 120, 'everything is owed again, including the penalty');
     assert.deepStrictEqual(pick(b[3]), [120, 0, 0, 10, 100, 10], 'the next payment makes the withdrawn credit good first, then the rest of the penalty, then principal');
-    assert.strictEqual(g._loanOutstandingAt({ charges: pen, allocations: b }, '2025-03-02'), 0);
+    assert.strictEqual(g.loanOutstandingAt_({ charges: pen, allocations: b }, '2025-03-02'), 0);
   },
 
   'existing repayments get references once, in date order'(c) {

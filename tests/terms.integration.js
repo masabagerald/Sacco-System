@@ -9,7 +9,7 @@ const eq = (a, b, msg) => assert.strictEqual(JSON.stringify(a), JSON.stringify(b
 
 function setup(c) {
   const ctx = seed(c);
-  ctx.docs = () => ctx.g._termsDocuments();
+  ctx.docs = () => ctx.g.termsDocuments_();
   ctx.terms = () => { const s = ctx.fakes.sheet(ctx.val('SH_TERMS')); return s ? s.records('memberno') : []; };
   return ctx;
 }
@@ -66,8 +66,8 @@ module.exports = {
     const ctx = setup(c), { g } = ctx;
     ctx.signInWithoutTerms(DAN);
     ok(g.acceptTerms({ use: ctx.docs().use.version }), 'v1');
-    const original = g._termsDocuments;
-    g._termsDocuments = () => { const d = original(); d.use.version = '2'; return d; };
+    const original = g.termsDocuments_;
+    g.termsDocuments_ = () => { const d = original(); d.use.version = '2'; return d; };
     fails(g.getMySavings(), /accept the Terms of Use/, 'new version needed');
     ok(g.acceptTerms({ use: '2' }), 'v2');
     ok(g.getMySavings(), 'allowed again');
@@ -90,12 +90,12 @@ module.exports = {
 
   'the editing text format keeps every heading and point of the starting text'(c) {
     const { g } = setup(c);
-    const defaults = g._defaultTermsDocuments();
+    const defaults = g.defaultTermsDocuments_();
     ['use', 'admin'].forEach(k => {
-      const d = defaults[k], back = g._termsFromText(g._termsToText(d));
+      const d = defaults[k], back = g.termsFromText_(g.termsToText_(d));
       eq([back.intro, back.sections], [d.intro, d.sections], k + ' round trip');
     });
-    const p = g._termsFromText('Intro line one\ncontinues here.\n\n## First\n- point a\n  wraps on\n* point b\n\n# Second\nplain line as a point');
+    const p = g.termsFromText_('Intro line one\ncontinues here.\n\n## First\n- point a\n  wraps on\n* point b\n\n# Second\nplain line as a point');
     eq(p, { intro: 'Intro line one continues here.', sections: [{ heading: 'First', points: ['point a wraps on', 'point b'] },
       { heading: 'Second', points: ['plain line as a point'] }] });
   },

@@ -96,7 +96,7 @@ function openTermsView(){
 }
 
 // ── Admins: edit and publish the terms ──
-// Same reading of the text as the server (_termsFromText in TermsService.gs), for the preview
+// Same reading of the text as the server (termsFromText_ in TermsService.gs), for the preview
 function termsFromText(text){
   const intro=[],sections=[];let cur=null,last=null;
   String(text||'').replace(/\r/g,'').split('\n').forEach(raw=>{

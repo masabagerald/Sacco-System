@@ -80,7 +80,7 @@ function buildAppPage() {
   return include('src/webapp/index')
     .replace(/<\?!=\s*JSON\.stringify\(guideUrl\)\s*\?>/, JSON.stringify('#guide'))
     .replace(/<\?(!?)=\s*([\s\S]*?)\s*\?>/g, (_, raw, expr) => raw ? String(srv.val(expr)) : escHtml(srv.val(expr)))
-    .replace('<head>', '<head>\n<script>window.TERMS_DOCS = ' + JSON.stringify(srv.val('_termsDocuments()')) + ';window.TERMS_TEXT = ' + JSON.stringify({ use: srv.val('_termsToText(_termsDocuments().use)'), admin: srv.val('_termsToText(_termsDocuments().admin)') }) + ';</script>\n<script>window.FINANCE_MOCK = ' + JSON.stringify(buildFinanceData(loadServer)).replace(/<\//g, '<\\/') + ';</script>\n<script>' + read('mock-data.js') + '</script>')
+    .replace('<head>', '<head>\n<script>window.TERMS_DOCS = ' + JSON.stringify(srv.val('termsDocuments_()')) + ';window.TERMS_TEXT = ' + JSON.stringify({ use: srv.val('termsToText_(termsDocuments_().use)'), admin: srv.val('termsToText_(termsDocuments_().admin)') }) + ';</script>\n<script>window.FINANCE_MOCK = ' + JSON.stringify(buildFinanceData(loadServer)).replace(/<\//g, '<\\/') + ';</script>\n<script>' + read('mock-data.js') + '</script>')
     .replace('</body>', '<script>' + read('scenes.js') + '</script>\n</body>');
 }
 
@@ -96,7 +96,7 @@ function buildGuarantorPage() {
   fakes.signInAs('nan@x.org');
   const req = g.requestLoan(100000, '2w', 'Stock for shop', ['M004', 'M007']);
   const tok = ctx.guarantors().find(r => r.RequestID === req.requestId && r.GuarantorNo === 'M007').Token;
-  return g._guarantorHandle(tok, 'decline', '', '').getContent();
+  return g.guarantorHandle_(tok, 'decline', '', '').getContent();
 }
 
 function shoot(file, url, w, h) {

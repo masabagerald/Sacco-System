@@ -12,13 +12,13 @@ function setup(c) {
   const ctx = seed(c), { g, fakes, val } = ctx;
   fakes.addSheet(val('SH_REPAY'), [['LoanID', 'Date', 'Timestamp', 'MemberNo', 'Amount (UGX)', 'Recorded By', 'Notes', 'Reference', 'Reverses']]);
   g.setupFinanceSchema();
-  g._sendEmail = (to, subject, rows, message) => { if (to) fakes.emails.push({ to, subject, rows, message }); };
+  g.sendEmail_ = (to, subject, rows, message) => { if (to) fakes.emails.push({ to, subject, rows, message }); };
   ctx.as = e => fakes.signInAs(e);
   ctx.later = () => Date.now() + 13 * HOUR;
-  ctx.waiting = () => { const p = g._pendingActions(ctx.later()); const out = {}; Object.keys(p.admins).sort().forEach(k => { out[k] = p.admins[k].map(i => i.id).sort(); }); return out; };
+  ctx.waiting = () => { const p = g.pendingActions_(ctx.later()); const out = {}; Object.keys(p.admins).sort().forEach(k => { out[k] = p.admins[k].map(i => i.id).sort(); }); return out; };
   ctx.respond = (requestId, no, decide) => {
     const row = ctx.guarantors().find(r => r.RequestID === requestId && r.GuarantorNo === no);
-    g._guarantorHandle(row.Token, decide, '1', decide === 'decline' ? 'Cannot' : '');
+    g.guarantorHandle_(row.Token, decide, '1', decide === 'decline' ? 'Cannot' : '');
   };
   ['M001', 'M002', 'M004', 'M007'].forEach(no => { ctx.as(ALICE); ok(g.recordSavings(no, 'Deposit', 200000, 'Principal', 'Monthly Premium', '', '', '2024-01-01'), 'fund ' + no); });
   return ctx;
@@ -29,13 +29,13 @@ module.exports = {
     const ctx = setup(c), { g, fakes } = ctx;
     ctx.as(FAY);
     const id = ok(g.requestLoan(50000, 3, 'Stock', ['M001', 'M004']), 'request').requestId;
-    const now = g._pendingActions(Date.now());
+    const now = g.pendingActions_(Date.now());
     eq([Object.keys(now.admins).length, now.guarantors.length], [0, 0], 'nothing new is reminded the same day it was sent');
-    const p = g._pendingActions(ctx.later());
+    const p = g.pendingActions_(ctx.later());
     eq(p.guarantors.map(x => x.guarantorNo).sort(), ['M001', 'M004'], 'both guarantors still to respond');
     eq(Object.keys(p.admins), [], 'admins are not asked before the guarantors agree');
     const before = fakes.emails.length;
-    g._sendPendingActionReminders(ctx.later());
+    g.sendPendingActionReminders_(ctx.later());
     const sent = fakes.emails.slice(before);
     eq(sent.map(e => e.to).sort(), [ALICE, DAN], 'one reminder per guarantor');
     assert.ok(sent.every(e => /Reminder: please respond to guarantor request/.test(e.subject) && /decide=approve/.test(e.html) && /decide=decline/.test(e.html)), 'with their links');
@@ -44,7 +44,7 @@ module.exports = {
     eq(ctx.waiting(), { M001: [id], M002: [id], M003: [id] }, 'every admin who may approve (the applicant is not an admin)');
     ctx.as(BOB); ok(g.approveLoanRequest(id, ''), 'first approval');
     eq(ctx.waiting(), { M001: [id], M003: [id] }, 'not the admin who gave the first approval');
-    const item = g._pendingActions(ctx.later()).admins.M003[0];
+    const item = g.pendingActions_(ctx.later()).admins.M003[0];
     eq([item.kind, item.action], ['Loan request', 'Second approval']);
     ctx.as(CAROL); ok(g.approveLoanRequest(id, ''), 'second approval issues the loan');
     eq(ctx.waiting(), {}, 'nothing left once it is decided');
@@ -64,7 +64,7 @@ module.exports = {
     const w = ctx.waiting();
     eq(w.M001, [asset, lfe, lr, wd].filter(x => x !== asset && x !== lfe).sort(), 'Alice: not her own asset or fund entry');
     eq(w.M002, [asset, lfe, lr, wd].sort(), 'Bob: everything');
-    const declined = g._pendingActions(ctx.later()).admins.M002.find(i => i.id === lr);
+    const declined = g.pendingActions_(ctx.later()).admins.M002.find(i => i.id === lr);
     assert.strictEqual(declined.action, 'Reject (a guarantor declined)');
 
     ctx.as(ALICE); ok(g.approveWithdrawal(wd), 'Alice gives the first withdrawal approval');
@@ -74,7 +74,7 @@ module.exports = {
 
     // One email per admin, listing all their items
     const before = fakes.emails.length;
-    const res = g._sendPendingActionReminders(ctx.later());
+    const res = g.sendPendingActionReminders_(ctx.later());
     const mails = fakes.emails.slice(before).filter(e => /Waiting for your action/.test(e.subject));
     eq(mails.map(e => e.to).sort(), [ALICE, BOB], 'one email each');
     const bob = mails.find(e => e.to === BOB);
@@ -87,16 +87,21 @@ module.exports = {
 
   'the job runs once a day, and a live club gets the new job added without duplicating the others'(c) {
     const ctx = setup(c), { g, fakes } = ctx;
-    g.sendPendingActionReminders();
-    g.sendPendingActionReminders();
+    // Jobs run only from their own trigger or by the hosting account -- never by a visitor
+    fakes.signInAs(EMAIL.DAN);
+    assert.throws(() => g.createAllTriggers(), /only be run by its scheduled trigger/, 'a visitor cannot reschedule jobs');
+    assert.throws(() => g.sendPendingActionReminders({ triggerUid: 'made-up' }), /only be run/, 'a made-up trigger id is refused');
+    fakes.asOwner(() => g.createAllTriggers());
+    assert.strictEqual(fakes.triggers.length, 7);
+    const trigger = { triggerUid: fakes.triggers.find(t => t.fn === 'sendPendingActionReminders').getUniqueId() };
+    g.sendPendingActionReminders(trigger);
+    g.sendPendingActionReminders(trigger);
     assert.ok(fakes.logs.some(l => /sendPendingActionReminders already ran today/.test(l)), 'second run skipped');
 
-    g.createAllTriggers();
-    assert.strictEqual(fakes.triggers.length, 7);
     g.ScriptApp.deleteTrigger(fakes.triggers.find(t => t.fn === 'sendPendingActionReminders'));  // a club set up before this job existed
-    eq(g._ensureScheduledJobs(), ['sendPendingActionReminders'], 'only the missing job is added');
+    eq(g.ensureScheduledJobs_(), ['sendPendingActionReminders'], 'only the missing job is added');
     assert.strictEqual(fakes.triggers.length, 7);
-    eq(g._ensureScheduledJobs(), [], 'nothing more on a second run');
+    eq(g.ensureScheduledJobs_(), [], 'nothing more on a second run');
     assert.ok(fakes.triggers.find(t => t.fn === 'sendPendingActionReminders').schedule.join(' ').indexOf('everyDays(1)') > -1, 'daily');
   }
 };

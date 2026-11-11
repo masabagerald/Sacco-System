@@ -192,6 +192,8 @@
     return new Proxy({}, { get(_, fn) {
       if (fn === 'withSuccessHandler') return h => runner(h, onFail);
       if (fn === 'withFailureHandler') return h => runner(onOk, h);
+      // The page sends every call as rpc(token, name, args) (AuthService.gs): answer the named call
+      if (fn === 'rpc') return (token, name, args) => runner(onOk, onFail)[name](...(args || []));
       return (...args) => setTimeout(() => {
         // Loan Insights / Investments: recorded from the real server (finance-data.js), as admin or as a Founder Member
         const fin = window.FINANCE_MOCK && (window.FINANCE_MOCK[window.SCENE_WHO || 'admin'] || {})[fn];

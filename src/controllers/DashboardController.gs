@@ -1,19 +1,19 @@
 // ── ADMIN DASHBOARD & AUDIT LOG VIEWER ────────────────────────────────────────
 
 function getAdminDashboard() {
-  const auth = _adminCaller(); if (!auth.ok) return auth;
-  const { rows: members }  = readSheet(SH_MEMBERS,'memberno');
-  const { rows: loans }    = readSheet(SH_LOANS,'loanid');
-  const { rows: reps }     = readSheet(SH_REPAY,'loanid');
-  const { rows: fines }    = readSheet(SH_FINES,'fineid');
-  const { rows: loanReqs } = readSheet(SH_LOAN_REQ,'requestid');
-  const { rows: wdReqs }   = readSheet(SH_WD_REQ,'requestid');
-  const { rows: savRows }  = readSheet(SH_SAVINGS,'memberno');
+  const auth = adminCaller_(); if (!auth.ok) return auth;
+  const { rows: members }  = readSheet_(SH_MEMBERS,'memberno');
+  const { rows: loans }    = readSheet_(SH_LOANS,'loanid');
+  const { rows: reps }     = readSheet_(SH_REPAY,'loanid');
+  const { rows: fines }    = readSheet_(SH_FINES,'fineid');
+  const { rows: loanReqs } = readSheet_(SH_LOAN_REQ,'requestid');
+  const { rows: wdReqs }   = readSheet_(SH_WD_REQ,'requestid');
+  const { rows: savRows }  = readSheet_(SH_SAVINGS,'memberno');
   const month = fmt_date(new Date()).slice(0,7);  // yyyy-MM
   const active = members.filter(m=>String(m['MemberNo']||'').trim()!=='');
-  const totalSavings = active.reduce((s,m)=>s+_accountBalancesFromRows(savRows,m['MemberNo']).total,0);
+  const totalSavings = active.reduce((s,m)=>s+accountBalancesFromRows_(savRows,m['MemberNo']).total,0);
   const nameOf = {}; active.forEach(m => { nameOf[String(m['MemberNo']).trim()] = m['Full Name'] || ''; });
-  const computedLoans = loans.filter(l=>String(l['LoanID']||'').trim()!=='').map(l=>_computeLoan(l,reps));
+  const computedLoans = loans.filter(l=>String(l['LoanID']||'').trim()!=='').map(l=>computeLoan_(l,reps));
   const activeLoans = computedLoans.filter(l=>l.status==='Active');
   const totalOutstanding = activeLoans.reduce((s,l)=>s+l.outstandingBalance,0);
   const overdueLoans = activeLoans.filter(l=>l.overdue);
@@ -34,7 +34,7 @@ function getAdminDashboard() {
   byCategory['Uncategorised'] = 0;
   savRows.filter(r => String(r['Date']||'').indexOf(month) === 0).forEach(r => {
     const amt = num(r['Amount (UGX)']);
-    const t = _txType(r).toLowerCase();
+    const t = txType_(r).toLowerCase();
     if (t === 'deposit' || t === 'deposit reversal') {
       const signed = t === 'deposit' ? amt : -amt;
       deposits += signed;
@@ -45,7 +45,7 @@ function getAdminDashboard() {
     else if (t === 'withdrawal reversal') withdrawals -= amt;
   });
   const repaid = reps.filter(r => String(r['Date']||'').indexOf(month) === 0)
-    .reduce((s,r) => s + num(_pick(r,['Amount (UGX)','Total Amount Paid'])), 0);
+    .reduce((s,r) => s + num(pick_(r,['Amount (UGX)','Total Amount Paid'])), 0);
   const issuedThisMonth = loans.filter(l => String(l['Date Issued']||'').indexOf(month) === 0 && String(l['LoanID']||'').trim() !== '');
   const overdueAmount = overdueLoans.reduce((s,l) => s + l.outstandingBalance, 0);
   const unpaidFineCount = unpaidFineItems.length;
@@ -55,11 +55,11 @@ function getAdminDashboard() {
     loansIssuedAmountThisMonth: r2(issuedThisMonth.reduce((s,l) => s + num(l['Principal (UGX)']), 0)),
     overdueCount: overdueLoans.length, overdueAmount: r2(overdueAmount), unpaidSurchargeCount: unpaidFineCount,
     categoryTotals: Object.keys(byCategory).map(k => ({ category: k, amount: r2(byCategory[k]) })),
-    depositAccounts: _depositAccountSummary(savRows, nameOf, month),
+    depositAccounts: depositAccountSummary_(savRows, nameOf, month),
     totalLoansOutstanding:r2(totalOutstanding), activeLoanCount:activeLoans.length,
     unpaidFinesTotal:r2(unpaidFines), paidFinesTotal:r2(paidFines), paidSurchargeCount:paidFineItems.length, pendingLoanRequests:pendingLoanReqs, pendingWithdrawalRequests:pendingWdReqs,
     overdueLoans:overdueLoans.map(l=>({loanId:l.loanId,memberNo:l.memberNo,
-      memberName:(_memberByNo(l.memberNo)||{})['Full Name']||l.memberNo,
+      memberName:(memberByNo_(l.memberNo)||{})['Full Name']||l.memberNo,
       outstandingBalance:l.outstandingBalance,progressLabel:l.progressLabel})) };
 }
 
@@ -68,14 +68,14 @@ function getAdminDashboard() {
 // page (0 = newest), pageSize }, or just a page size. Timestamps are 'yyyy-MM-dd HH:mm:ss' in the script
 // timezone (the zone now_ts() writes in); entries made on the same second keep their sheet order (later row first).
 function getAuditLog(filters) {
-  const auth = _adminCaller(); if (!auth.ok) return auth;
+  const auth = adminCaller_(); if (!auth.ok) return auth;
   if (!filters || typeof filters !== 'object') filters = { pageSize: filters };
-  const f = _auditFilters(filters); if (f.error) return { ok:false, error:f.error };
+  const f = auditFilters_(filters); if (f.error) return { ok:false, error:f.error };
   const pageSize = Math.min(500, Math.max(1, Math.floor(num(filters.pageSize)) || 100));
   const page = Math.max(0, Math.floor(num(filters.page)));
-  const sh = getSheet(SH_AUDIT), members = _auditMembers(), names = _auditNameMap(members);
-  const hits = _auditFind(sh, f, names).sort((a,b)=>b.ts.localeCompare(a.ts) || b.row-a.row);
-  const entries = _auditRead(sh, hits.slice(page * pageSize, (page + 1) * pageSize)).map(e => _auditView(e, names));
+  const sh = getSheet_(SH_AUDIT), members = auditMembers_(), names = auditNameMap_(members);
+  const hits = auditFind_(sh, f, names).sort((a,b)=>b.ts.localeCompare(a.ts) || b.row-a.row);
+  const entries = auditRead_(sh, hits.slice(page * pageSize, (page + 1) * pageSize)).map(e => auditView_(e, names));
   return { ok:true, entries, total: hits.length, page, pageSize, timeZone: Session.getScriptTimeZone(),
     categories: AUDIT_CATEGORY_NAMES, members };
 }

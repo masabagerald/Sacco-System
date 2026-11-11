@@ -152,7 +152,7 @@ module.exports = {
   'upcoming maturities'(c) {
     const ctx = setup(c), { g, fakes } = ctx;
     fakes.signInAs(ALICE);
-    const soon = g.fmt_date(g._addDays(new Date(), 30)), far = g.fmt_date(g._addDays(new Date(), 200));
+    const soon = g.fmt_date(g.addDays_(new Date(), 30)), far = g.fmt_date(g.addDays_(new Date(), 200));
     ok(g.createInvestment({ name: 'FD 1', type: 'Fixed Deposit', provider: 'Stanbic', startDate: '2025-01-01', maturityDate: soon, fundSource: 'Welfare' }), 'fd1');
     ok(g.createInvestment({ name: 'Bond', type: 'Treasury Bond', provider: 'BoU', startDate: '2025-01-01', maturityDate: far, fundSource: 'Principal' }), 'bond');
     fails(g.createInvestment({ name: 'FD 1', type: 'Fixed Deposit', provider: 'Stanbic', startDate: '2025-01-01', fundSource: 'Welfare' }), /already exists/, 'duplicate record');
