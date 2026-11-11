@@ -1,19 +1,25 @@
 <script>
 // ── SERVER CALL WRAPPERS (google.script.run) ──────────────────────────────────
+// The sign-in token from verifyOtp/confirmAutoDetect. Kept in memory only (a reload signs in again, as
+// before), so it never depends on cookies or storage that Chrome/Firefox may block in the sandbox frame.
+let SESSION_TOKEN = '';
 function callServer(fnName, args, onSuccess, onFailure) {
   let call = google.script.run;
-  // New terms to accept (e.g. a new version while signed in): show the terms page instead
-  if (onSuccess) call = call.withSuccessHandler(res => {
+  call = call.withSuccessHandler(res => {
+    if (res && res.sessionToken) { SESSION_TOKEN = res.sessionToken; delete res.sessionToken; }
+    if (fnName === 'logout' || fnName === 'declineTerms') SESSION_TOKEN = '';
+    if (!onSuccess) return;
+    // New terms to accept (e.g. a new version while signed in): show the terms page instead
     if (res && res.termsRequired && typeof showTermsAgain === 'function') return showTermsAgain();
     onSuccess(res);
   });
   if (onFailure) call = call.withFailureHandler(onFailure);
-  call[fnName].apply(call, args);
+  call.rpc(SESSION_TOKEN, fnName, args);
 }
 
 const Api = {
   tryAutoDetect: (onSuccess, onFailure) => callServer('tryAutoDetect', [], onSuccess, onFailure),
-  confirmAutoDetect: (email, onSuccess, onFailure) => callServer('confirmAutoDetect', [email], onSuccess, onFailure),
+  confirmAutoDetect: (email, onSuccess, onFailure) => callServer('confirmAutoDetect', [], onSuccess, onFailure),
   sendOtp: (email, onSuccess, onFailure) => callServer('sendOtp', [email], onSuccess, onFailure),
   verifyOtp: (email, code, onSuccess, onFailure) => callServer('verifyOtp', [email, code], onSuccess, onFailure),
   logout: (onSuccess, onFailure) => callServer('logout', [], onSuccess, onFailure),

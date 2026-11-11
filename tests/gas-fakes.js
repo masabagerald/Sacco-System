@@ -85,6 +85,7 @@ function createGasFakes() {
   const logs = [];
   const emails = [];
   const props = {};
+  const cache = {};
   let currentUser = '';
   let hostUser = '';            // the account the web app runs as (Session.getEffectiveUser)
   const triggers = [];
@@ -118,6 +119,7 @@ function createGasFakes() {
       getScriptProperties: () => ({ getProperty: k => props[k] || null, setProperty: (k, v) => { props[k] = v; }, deleteProperty: k => { delete props[k]; } }),
       getUserProperties: () => ({ getProperty: () => null, setProperty() {}, deleteProperty() {} })
     },
+    CacheService: { getScriptCache: () => ({ get: k => (k in cache ? cache[k] : null), put: (k, v) => { cache[k] = String(v); }, remove: k => { delete cache[k]; } }) },
     Logger: { log: m => logs.push(String(m)) },
     MailApp: { sendEmail: o => emails.push(o) }
   };

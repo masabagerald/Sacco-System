@@ -89,6 +89,6 @@ function declineTerms() {
     auditLog('Terms Declined', r.member.memberNo, r.member.memberNo,
       missing.map(k => docs[k].title + ' (version ' + docs[k].version + ')').join(' and ') + ' declined; signed out.', '');
   }
-  Config.deleteUserProp('sacco_email');
+  endSession_();
   return { ok: true };
 }

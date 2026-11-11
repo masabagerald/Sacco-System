@@ -7,10 +7,13 @@ function tryAutoDetect() {
   return { detected: !!email, email };
 }
 
-// Step 2: user confirmed auto-detected email
-function confirmAutoDetect(email) {
+// Step 2: user confirmed auto-detected email. The email is re-read from the Google session here --
+// never taken from the page, or anyone could sign in as anyone.
+function confirmAutoDetect() {
+  const email = tryAutoDetect().email;
+  if (!email) return { ok: false, error: 'Your Google account could not be detected. Please sign in with your email instead.' };
   const r = _lookupMember(email);
-  if (r.ok) { _storeSession(email); }
+  if (r.ok) r.sessionToken = startSession_(email);
   return r;
 }
 
@@ -22,7 +25,7 @@ function sendOtp(email) {
   if (!r.ok) return r;
 
   const code = String(Math.floor(100000 + Math.random() * 900000));
-  Config.setScriptProp('otp_' + email, JSON.stringify({ code, expires: Date.now() + OTP_EXPIRY_MS }));
+  Config.setScriptProp('otp_' + email, JSON.stringify({ code, expires: Date.now() + OTP_EXPIRY_MS, attempts: 0 }));
 
   try {
     _sendHtmlEmail(email, '[' + SACCO_NAME + '] Your sign-in code', _otpEmailHtml(r.member.name, code));
@@ -47,16 +50,24 @@ function verifyOtp(email, code) {
     Config.deleteScriptProp('otp_' + email);
     return { ok: false, expired: true, error: 'Code expired. Please request a new one.' };
   }
-  if (payload.code !== code) return { ok: false, error: 'Incorrect code. Please check your email.' };
+  if (payload.code !== code) {
+    payload.attempts = (payload.attempts || 0) + 1;
+    if (payload.attempts >= OTP_MAX_ATTEMPTS) {
+      Config.deleteScriptProp('otp_' + email);
+      return { ok: false, expired: true, error: 'Too many incorrect codes. Please request a new one.' };
+    }
+    Config.setScriptProp('otp_' + email, JSON.stringify(payload));
+    return { ok: false, error: 'Incorrect code. Please check your email.' };
+  }
   Config.deleteScriptProp('otp_' + email);
   const r = _lookupMember(email);
-  if (r.ok) _storeSession(email);
+  if (r.ok) r.sessionToken = startSession_(email);
   return r;
 }
 
 // Logout
 function logout() {
-  Config.deleteUserProp('sacco_email');
+  endSession_();
   return { ok: true };
 }
 
