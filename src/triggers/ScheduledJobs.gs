@@ -1,6 +1,7 @@
 // ── SCHEDULED FUNCTIONS ───────────────────────────────────────────────────────
 
-function sendMonthlyStatements(e) { ownerOrTrigger_(e);
+function sendMonthlyStatements(e) { ownerOrTrigger_(e); timedJob_('sendMonthlyStatements', sendMonthlyStatements_); }
+function sendMonthlyStatements_() {
   const { rows: members } = readSheet_(SH_MEMBERS,'memberno');
   const { rows: loans }   = readSheet_(SH_LOANS,'loanid');
   const { rows: reps }    = readSheet_(SH_REPAY,'loanid');
@@ -29,7 +30,7 @@ function oncePerDay_(jobName, fn) {
 // Generic monthly/overdue nudge for older loan models (reducing-balance, Article 4 flat) which
 // have no single due date. Member/Soft-Loan due-date logic lives in processLoanDueDates() below.
 // Registered both monthly (25th) and daily, so it is guarded to run once per day.
-function sendRepaymentReminders(e) { ownerOrTrigger_(e); oncePerDay_('sendRepaymentReminders', sendRepaymentReminders_); }
+function sendRepaymentReminders(e) { ownerOrTrigger_(e); timedJob_('sendRepaymentReminders', () => oncePerDay_('sendRepaymentReminders', sendRepaymentReminders_)); }
 
 function sendRepaymentReminders_() {
   const { rows: members } = readSheet_(SH_MEMBERS,'memberno');
@@ -74,7 +75,8 @@ function sendRepaymentReminders_() {
 // The surcharge is applied at most once per loan -- computeSingleDue_ reads it back from the
 // sheet rather than recalculating it. Each loan's "Last Notice" cell records the day it was last
 // emailed, so re-running this job on the same day (a retry) sends nothing twice.
-function processLoanDueDates(e) { ownerOrTrigger_(e);
+function processLoanDueDates(e) { ownerOrTrigger_(e); timedJob_('processLoanDueDates', processLoanDueDates_); }
+function processLoanDueDates_() {
   const loanRd = readSheet_(SH_LOANS,'loanid');
   const { rows: loans, sh: loanSh, headers } = loanRd;
   const { rows: reps }  = readSheet_(SH_REPAY,'loanid');
@@ -147,7 +149,8 @@ function processLoanDueDates(e) { ownerOrTrigger_(e);
     ],'Automatic loan due-date processing ran today.');
 }
 
-function backupSpreadsheet(e) { ownerOrTrigger_(e);
+function backupSpreadsheet(e) { ownerOrTrigger_(e); timedJob_('backupSpreadsheet', backupSpreadsheet_); }
+function backupSpreadsheet_() {
   const ss=SpreadsheetApp.getActiveSpreadsheet();
   const folderName=SACCO_NAME+' Backups';
   const fileName=SACCO_NAME+' Backup '+today();
@@ -166,7 +169,10 @@ function backupSpreadsheet(e) { ownerOrTrigger_(e);
 }
 
 // Daily: one email per person with everything waiting for their approval, review or consent (ReminderService.gs)
-function sendPendingActionReminders(e) { ownerOrTrigger_(e); oncePerDay_('sendPendingActionReminders', () => sendPendingActionReminders_(Date.now())); }
+function sendPendingActionReminders(e) { ownerOrTrigger_(e); timedJob_('sendPendingActionReminders', () => oncePerDay_('sendPendingActionReminders', () => sendPendingActionReminders_(Date.now()))); }
+
+// Daily: compares the club's size with the capacity limits and warns the admins before they are reached (CapacityService.gs)
+function checkCapacity(e) { ownerOrTrigger_(e); return runCapacityCheck_(); }
 
 // The scheduled jobs: [function, schedule]. A function may appear more than once.
 const SCHEDULED_JOBS = [
@@ -176,6 +182,7 @@ const SCHEDULED_JOBS = [
   ['sendRepaymentReminders', t => t.timeBased().everyDays(1).atHour(9)],
   ['processLoanDueDates', t => t.timeBased().everyDays(1).atHour(7)],
   ['sendPendingActionReminders', t => t.timeBased().everyDays(1).atHour(8)],
+  ['checkCapacity', t => t.timeBased().everyDays(1).atHour(4)],
   ['backupSpreadsheet', t => t.timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(6)]
 ];
 

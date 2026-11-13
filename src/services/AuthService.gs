@@ -44,7 +44,7 @@ function endSession_() {
 // The single entry point the page calls: rpc(token, 'getMySavings', []). Only public functions can be
 // reached -- names starting or ending with '_' (helpers), the web-app/trigger entry points and setup are refused.
 const RPC_BLOCKED = ['rpc', 'doGet', 'doPost', 'include', 'setupNewClub', 'setupGuaranteeSchema', 'createAllTriggers',
-  'sendMonthlyStatements', 'sendRepaymentReminders', 'processLoanDueDates', 'backupSpreadsheet', 'sendPendingActionReminders'];
+  'sendMonthlyStatements', 'sendRepaymentReminders', 'processLoanDueDates', 'backupSpreadsheet', 'sendPendingActionReminders', 'checkCapacity'];
 function rpc(token, fnName, args) {
   fnName = String(fnName || '');
   const fn = globalThis[fnName];
@@ -54,7 +54,9 @@ function rpc(token, fnName, args) {
     throw new Error('Unknown action: ' + fnName);
   }
   REQUEST_SESSION_TOKEN_ = String(token || '');
-  return fn.apply(null, Array.isArray(args) ? args : []);
+  const t0 = Date.now();
+  try { return fn.apply(null, Array.isArray(args) ? args : []); }
+  finally { noteCallTime_(fnName, Date.now() - t0); }   // slow requests feed the capacity watch (CapacityService.gs)
 }
 
 // Guards every protected function: the signed-in member, who must also have accepted the current terms

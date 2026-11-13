@@ -233,7 +233,8 @@ function prevMonthPrefix_() {
   return Utilities.formatDate(d, Session.getScriptTimeZone(), "yyyy-MM");
 }
 
-function sendMonthlyAuditReport(e) { ownerOrTrigger_(e);
+function sendMonthlyAuditReport(e) { ownerOrTrigger_(e); timedJob_('sendMonthlyAuditReport', sendMonthlyAuditReport_); }
+function sendMonthlyAuditReport_() {
   const prefix = prevMonthPrefix_();
   const { rows: loanReqs } = readSheet_(SH_LOAN_REQ, "requestid");
   const { rows: wdReqs }   = readSheet_(SH_WD_REQ, "requestid");

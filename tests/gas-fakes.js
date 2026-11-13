@@ -26,6 +26,7 @@ class FakeSheet {
   _width() { return this.data.reduce((w, r) => Math.max(w, r.length), 0); }
   _get(row, col) { const r = this.data[row - 1]; return r && r[col - 1] !== undefined ? r[col - 1] : ''; }
   getMaxRows() { return this.maxRows === null ? Math.max(1000, this.data.length) : this.maxRows; }
+  getMaxColumns() { return Math.max(26, this._width()); }
   insertRowsAfter(after, n) { if (this.maxRows !== null) this.maxRows += n; return this; }
   _set(row, col, v) {
     if (this.maxRows !== null && row > this.maxRows) throw new Error('The coordinates of the range are outside the dimensions of the sheet.');
@@ -122,12 +123,13 @@ function createGasFakes() {
       getScriptTimeZone: () => 'Africa/Nairobi' },
     LockService: { getScriptLock: () => ({ waitLock() { lockCount++; }, releaseLock() {} }) },
     PropertiesService: {
-      getScriptProperties: () => ({ getProperty: k => props[k] || null, setProperty: (k, v) => { props[k] = v; }, deleteProperty: k => { delete props[k]; } }),
+      getScriptProperties: () => ({ getProperty: k => props[k] || null, setProperty: (k, v) => { props[k] = v; }, deleteProperty: k => { delete props[k]; },
+        getKeys: () => Object.keys(props) }),
       getUserProperties: () => ({ getProperty: () => null, setProperty() {}, deleteProperty() {} })
     },
     CacheService: { getScriptCache: () => ({ get: k => (k in cache ? cache[k] : null), put: (k, v) => { cache[k] = String(v); }, remove: k => { delete cache[k]; } }) },
     Logger: { log: m => logs.push(String(m)) },
-    MailApp: { sendEmail: o => emails.push(o) }
+    MailApp: { sendEmail: o => emails.push(o), getRemainingDailyQuota: () => 100 }
   };
 
   return {

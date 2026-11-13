@@ -6671,6 +6671,4736 @@
     "LR": 864,
     "F": 498
    }
+  },
+  {
+   "members": 250,
+   "years": 3,
+   "cells": {
+    "used": 1527363,
+    "grid": 4687746,
+    "rows": 169841
+   },
+   "savingsRows": 52416,
+   "sheets": {
+    "Members": {
+     "rows": 250,
+     "cols": 9,
+     "usedCells": 2259,
+     "gridCells": 26000
+    },
+    "Savings": {
+     "rows": 52416,
+     "cols": 12,
+     "usedCells": 629004,
+     "gridCells": 1362842
+    },
+    "Loans": {
+     "rows": 2592,
+     "cols": 17,
+     "usedCells": 44081,
+     "gridCells": 67418
+    },
+    "Loan Repayments": {
+     "rows": 6844,
+     "cols": 9,
+     "usedCells": 61605,
+     "gridCells": 177970
+    },
+    "Surcharge": {
+     "rows": 1494,
+     "cols": 8,
+     "usedCells": 11960,
+     "gridCells": 38870
+    },
+    "Loan Requests": {
+     "rows": 2592,
+     "cols": 19,
+     "usedCells": 49267,
+     "gridCells": 67418
+    },
+    "Withdrawal Requests": {
+     "rows": 2016,
+     "cols": 14,
+     "usedCells": 28238,
+     "gridCells": 52442
+    },
+    "Audit Log": {
+     "rows": 77746,
+     "cols": 6,
+     "usedCells": 466482,
+     "gridCells": 2021422
+    },
+    "Guarantors": {
+     "rows": 5184,
+     "cols": 9,
+     "usedCells": 46665,
+     "gridCells": 134810
+    },
+    "Guarantor Notifications": {
+     "rows": 18328,
+     "cols": 10,
+     "usedCells": 183290,
+     "gridCells": 476554
+    },
+    "Loan Fund Ledger": {
+     "rows": 12,
+     "cols": 18,
+     "usedCells": 234,
+     "gridCells": 26000
+    },
+    "Investments": {
+     "rows": 3,
+     "cols": 17,
+     "usedCells": 68,
+     "gridCells": 26000
+    },
+    "Investment Transactions": {
+     "rows": 108,
+     "cols": 19,
+     "usedCells": 2071,
+     "gridCells": 26000
+    },
+    "Loan Waivers": {
+     "rows": 0,
+     "cols": 23,
+     "usedCells": 23,
+     "gridCells": 26000
+    },
+    "Waiver Decisions": {
+     "rows": 0,
+     "cols": 7,
+     "usedCells": 7,
+     "gridCells": 26000
+    },
+    "Assets": {
+     "rows": 0,
+     "cols": 28,
+     "usedCells": 28,
+     "gridCells": 28000
+    },
+    "Asset Reviews": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    },
+    "Asset History": {
+     "rows": 0,
+     "cols": 9,
+     "usedCells": 9,
+     "gridCells": 26000
+    },
+    "Terms Acceptance": {
+     "rows": 256,
+     "cols": 8,
+     "usedCells": 2056,
+     "gridCells": 26000
+    },
+    "Terms Versions": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    }
+   },
+   "buildMs": 481.8084999999992,
+   "ops": {
+    "auth": {
+     "name": "Sign-in check on every request (getCurrentMember)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 3.606100000004517,
+     "cpuMs": 2.635500000003958,
+     "model": {
+      "low": 392.77000000000794,
+      "central": 788.9045000000119,
+      "high": 1910.2335000000198
+     },
+     "counters": {
+      "readCalls": 3,
+      "cellsRead": 4323,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 6,
+      "fmtDate": 506,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 0.9706000000005588
+     },
+     "payload": 252
+    },
+    "mySavings": {
+     "name": "My savings (getMySavings)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 801.001700000008,
+     "cpuMs": 571.1897999975045,
+     "model": {
+      "low": 4216.940599995009,
+      "central": 7888.691399992514,
+      "high": 16750.29299998752
+     },
+     "counters": {
+      "readCalls": 9,
+      "cellsRead": 661837,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 26,
+      "fmtDate": 111410,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 229.81190000250353
+     },
+     "payload": 42288
+    },
+    "myLoans": {
+     "name": "My loans (getMyLoans)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 123.67770000000019,
+     "cpuMs": 81.29379999842786,
+     "model": {
+      "low": 1022.5895999968558,
+      "central": 1973.8853999952837,
+      "high": 4436.42699999214
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 110009,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 10,
+      "fmtDate": 21995,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 40.61310000157391
+     },
+     "payload": 7928
+    },
+    "myPage": {
+     "name": "Member home page: 5 calls in parallel (slowest)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 810.167100000006,
+     "cpuMs": 567.9057999985671,
+     "model": {
+      "low": 4210.372599997134,
+      "central": 7878.839399995702,
+      "high": 16733.872999992833
+     },
+     "counters": {
+      "readCalls": 9,
+      "cellsRead": 661837,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 26,
+      "fmtDate": 111410,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 242.26130000143894
+     },
+     "payload": 42288,
+     "slowest": "getMySavings",
+     "parts": [
+      {
+       "name": "getMySavings",
+       "model": 7878.839399995702,
+       "aborted": false
+      },
+      {
+       "name": "getMyLoans",
+       "model": 1957.5410999982262,
+       "aborted": false
+      },
+      {
+       "name": "getMyLoanRequests",
+       "model": 1364.0561999999704,
+       "aborted": false
+      },
+      {
+       "name": "getMyWithdrawalRequests",
+       "model": 1128.656800000169,
+       "aborted": false
+      },
+      {
+       "name": "getMyFines",
+       "model": 969.046000000083,
+       "aborted": false
+      }
+     ],
+     "sumModel": 13298.139499994148
+    },
+    "statement": {
+     "name": "Member statement data (getMemberStatementData, before PDF)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 988.3631999999925,
+     "cpuMs": 687.134999994174,
+     "model": {
+      "low": 5369.862999988348,
+      "central": 10090.590999982522,
+      "high": 21481.16699997087
+     },
+     "counters": {
+      "readCalls": 15,
+      "cellsRead": 857011,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 38,
+      "fmtDate": 149712,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 301.2282000058185
+     },
+     "payload": 55236
+    },
+    "dashboard": {
+     "name": "Admin dashboard (getAdminDashboard)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1248.0247999999847,
+     "cpuMs": 918.2420999981114,
+     "model": {
+      "low": 5669.0681999962235,
+      "central": 10446.894299994336,
+      "high": 21902.476499990556
+     },
+     "counters": {
+      "readCalls": 12,
+      "cellsRead": 830873,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 27,
+      "fmtDate": 149193,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 329.7827000018733
+     },
+     "payload": 93067
+    },
+    "members": {
+     "name": "Members list with balances (getAllMembersSummary)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 741.0486999999848,
+     "cpuMs": 523.6163999979617,
+     "model": {
+      "low": 3899.9307999959233,
+      "central": 7285.245199993885,
+      "high": 15447.753999989807
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 635586,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 105588,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 217.4323000020231
+     },
+     "payload": 70670
+    },
+    "loanReqs": {
+     "name": "Loan requests list (getLoanRequests)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 979.6798000000126,
+     "cpuMs": 671.1064000023762,
+     "model": {
+      "low": 4891.357800004753,
+      "central": 9129.60920000713,
+      "high": 19321.612000011883
+     },
+     "counters": {
+      "readCalls": 10,
+      "cellsRead": 780465,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 18,
+      "fmtDate": 134350,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 308.57339999763644
+     },
+     "payload": 2339616
+    },
+    "activeLoans": {
+     "name": "Active loans / portfolio (getActiveLoans)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 436.48119999998016,
+     "cpuMs": 305.0797000002058,
+     "model": {
+      "low": 2409.9884000004117,
+      "central": 4530.897100000618,
+      "high": 9699.03450000103
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 342223,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 16,
+      "fmtDate": 56232,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 131.4014999997744
+     },
+     "payload": 156871
+    },
+    "repayments": {
+     "name": "Repayments list (getRepayments)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 115.9151000000129,
+     "cpuMs": 88.71699999884004,
+     "model": {
+      "low": 872.2149999976801,
+      "central": 1664.7129999965202,
+      "high": 3730.1489999942005
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 68187,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 14444,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 27.19810000117286
+     },
+     "payload": 1600934
+    },
+    "wdReqs": {
+     "name": "Withdrawal requests (getWithdrawalRequests)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 925.9637000000221,
+     "cpuMs": 691.9847999936319,
+     "model": {
+      "low": 4432.089599987264,
+      "central": 8191.1943999808955,
+      "high": 17201.88399996816
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 663960,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 19,
+      "fmtDate": 111648,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 233.97890000639018
+     },
+     "payload": 943512
+    },
+    "fines": {
+     "name": "Surcharges list (getAllFinesForAdmin)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 36.04899999999907,
+     "cpuMs": 25.06500000061351,
+     "model": {
+      "low": 542.476000001227,
+      "central": 1068.8870000018405,
+      "high": 2495.1490000030676
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 18542,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 3744,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 10.98399999938556
+     },
+     "payload": 242111
+    },
+    "savingsTx": {
+     "name": "Savings ledger, unfiltered (getSavingsTransactions)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1266.8174,
+     "cpuMs": 979.3592000031495,
+     "model": {
+      "low": 4811.416400006299,
+      "central": 8652.473600009449,
+      "high": 17726.468000015746
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 635586,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 105588,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 287.45819999685045
+     },
+     "payload": 14559589
+    },
+    "insights": {
+     "name": "Loan Insights, all time (getLoanInsights)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1958.4297000000079,
+     "cpuMs": 1656.8978000048373,
+     "model": {
+      "low": 6691.438600009675,
+      "central": 11740.979400014512,
+      "high": 23526.311000024187
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 741506,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 15,
+      "fmtDate": 132625,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 301.53189999517053
+     },
+     "payload": 996940
+    },
+    "fundLedger": {
+     "name": "Loan fund trace, all time (getLoanFundLedger)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1678.8538000000117,
+     "cpuMs": 1279.1257000016922,
+     "model": {
+      "low": 5935.5244000033845,
+      "central": 10606.923100005077,
+      "high": 21635.23050000846
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 741506,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 15,
+      "fmtDate": 132551,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 399.7280999983195
+     },
+     "payload": 7838011
+    },
+    "auditLog": {
+     "name": "Audit log, first page (getAuditLog)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 358.9731000000029,
+     "cpuMs": 116.77620000194293,
+     "model": {
+      "low": 1385.781400003886,
+      "central": 2664.786600005829,
+      "high": 6350.667000009715
+     },
+     "counters": {
+      "readCalls": 9,
+      "cellsRead": 86098,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 10,
+      "fmtDate": 78787,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 242.19689999805996
+     },
+     "payload": 40289
+    },
+    "csv": {
+     "name": "Ledger CSV export (exportAdminCSV)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1842.1083999999973,
+     "cpuMs": 1431.1737999963807,
+     "model": {
+      "low": 6397.431599992761,
+      "central": 11369.689399989142,
+      "high": 23194.974999981903
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 753232,
+      "writeCalls": 0,
+      "cellsWritten": 6,
+      "appends": 1,
+      "light": 16,
+      "fmtDate": 140677,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 410.93460000361665
+     },
+     "payload": 4587636
+    },
+    "recordSavings": {
+     "name": "Post a deposit (recordSavings)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 781.8714999999793,
+     "cpuMs": 539.877099995414,
+     "model": {
+      "low": 4259.517199990828,
+      "central": 7984.157299986242,
+      "high": 17164.35749997707
+     },
+     "counters": {
+      "readCalls": 6,
+      "cellsRead": 635598,
+      "writeCalls": 1,
+      "cellsWritten": 18,
+      "appends": 1,
+      "light": 10,
+      "fmtDate": 105592,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 1,
+      "fakeMs": 241.99440000456525
+     },
+     "payload": 82,
+     "lockModel": 6479.574499986226
+    },
+    "recordRepayment": {
+     "name": "Post a loan repayment (recordRepayment)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 581.113400000002,
+     "cpuMs": 398.71480000403244,
+     "model": {
+      "low": 4257.848100008065,
+      "central": 8115.981400012098,
+      "high": 18046.968000020162
+     },
+     "counters": {
+      "readCalls": 14,
+      "cellsRead": 511847,
+      "writeCalls": 1,
+      "cellsWritten": 35,
+      "appends": 3,
+      "light": 24,
+      "fmtDate": 86372,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 3,
+      "fakeMs": 182.39859999596956
+     },
+     "payload": 870,
+     "lockModel": 1342.4156000083763
+    },
+    "requestWithdrawal": {
+     "name": "Member requests a withdrawal (requestWithdrawal)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 744.2344999999914,
+     "cpuMs": 482.9741000038339,
+     "model": {
+      "low": 5284.854200007669,
+      "central": 10093.734300011503,
+      "high": 22510.87450001917
+     },
+     "counters": {
+      "readCalls": 7,
+      "cellsRead": 663902,
+      "writeCalls": 1,
+      "cellsWritten": 20,
+      "appends": 1,
+      "light": 12,
+      "fmtDate": 111638,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 6,
+      "fakeMs": 261.2603999961575
+     },
+     "payload": 36,
+     "lockModel": 9273.937600010324
+    },
+    "requestLoan": {
+     "name": "Member requests a loan (requestLoan)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 1284.0206999999937,
+     "cpuMs": 891.8805999936012,
+     "model": {
+      "low": 7805.790699987203,
+      "central": 14743.700799980805,
+      "high": 32447.120999968007
+     },
+     "counters": {
+      "readCalls": 15,
+      "cellsRead": 937736,
+      "writeCalls": 2,
+      "cellsWritten": 43,
+      "appends": 1,
+      "light": 24,
+      "fmtDate": 169160,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 8,
+      "fakeMs": 392.14010000639246
+     },
+     "payload": 51,
+     "lockModel": 13924.26589998345
+    },
+    "approveLoan": {
+     "name": "Final loan approval, issues the loan (approveLoanRequest)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 1548.9036999999953,
+     "cpuMs": 1057.4638000019768,
+     "model": {
+      "low": 20282.860200025192,
+      "central": 39679.00730003779,
+      "high": 88543.63150006297
+     },
+     "counters": {
+      "readCalls": 54,
+      "cellsRead": 3379242,
+      "writeCalls": 17,
+      "cellsWritten": 86,
+      "appends": 3,
+      "light": 89,
+      "fmtDate": 574133,
+      "cache": 0,
+      "props": 0,
+      "locks": 3,
+      "emails": 16,
+      "fakeMs": 1343.782899988175
+     },
+     "payload": 48,
+     "lockModel": 15203.049800038109
+    },
+    "issueFine": {
+     "name": "Record a surcharge (issueFine)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 981.3549999999814,
+     "cpuMs": 654.1353999998828,
+     "model": {
+      "low": 6966.013799999765,
+      "central": 13270.892199999647,
+      "high": 29376.048999999413
+     },
+     "counters": {
+      "readCalls": 22,
+      "cellsRead": 894172,
+      "writeCalls": 1,
+      "cellsWritten": 54,
+      "appends": 5,
+      "light": 38,
+      "fmtDate": 146840,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 5,
+      "fakeMs": 327.2196000000986
+     },
+     "payload": 33,
+     "lockModel": 253.97120000077086
+    },
+    "jobStatements": {
+     "name": "Monthly statements job (sendMonthlyStatements)",
+     "web": false,
+     "write": false,
+     "n": 3,
+     "nodeMs": 961.1783999999752,
+     "cpuMs": 665.5340000022843,
+     "model": {
+      "low": 54372.98900000457,
+      "central": 108089.44400000686,
+      "high": 266911.9140000114
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 749047,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 135356,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 250,
+      "fakeMs": 295.6443999976909
+     },
+     "payload": 0
+    },
+    "jobDueDates": {
+     "name": "Daily due-date job (processLoanDueDates)",
+     "web": false,
+     "write": false,
+     "n": 3,
+     "nodeMs": 195.73849999997765,
+     "cpuMs": 143.25290000080713,
+     "model": {
+      "low": 815.7648000016143,
+      "central": 1493.2767000024214,
+      "high": 3138.6805000040354
+     },
+     "counters": {
+      "readCalls": 3,
+      "cellsRead": 108023,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 5,
+      "fmtDate": 27038,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 52.48559999917052
+     },
+     "payload": 0
+    },
+    "jobPending": {
+     "name": "Daily pending-action reminders (sendPendingActionReminders_)",
+     "web": false,
+     "write": false,
+     "n": 3,
+     "nodeMs": 322.953600000008,
+     "cpuMs": 258.5951999978279,
+     "model": {
+      "low": 1252.9743999956556,
+      "central": 2265.3535999934834,
+      "high": 4613.831999989139
+     },
+     "counters": {
+      "readCalls": 9,
+      "cellsRead": 131308,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 18,
+      "fmtDate": 25172,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 64.35840000218013
+     },
+     "payload": 37
+    },
+    "jobRepayRem": {
+     "name": "Daily repayment reminders (sendRepaymentReminders_)",
+     "web": false,
+     "write": false,
+     "n": 3,
+     "nodeMs": 431.3370999999752,
+     "cpuMs": 374.04389999900013,
+     "model": {
+      "low": 1277.3367999980003,
+      "central": 2185.6296999970004,
+      "high": 4292.575499995
+     },
+     "counters": {
+      "readCalls": 3,
+      "cellsRead": 108023,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 5,
+      "fmtDate": 27036,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 57.29320000097505
+     },
+     "payload": 0
+    },
+    "adminPage": {
+     "name": "Admin page: 7 calls in parallel (slowest)",
+     "web": true,
+     "derived": true,
+     "slowest": "Admin dashboard (getAdminDashboard)",
+     "extrapolated": false,
+     "model": {
+      "low": 5669.0681999962235,
+      "central": 10446.894299994336,
+      "high": 21902.476499990556
+     }
+    }
+   },
+   "sizes": {
+    "M": 250,
+    "S": 52416,
+    "L": 2592,
+    "R": 6844,
+    "LR": 2592,
+    "F": 1494
+   }
+  },
+  {
+   "members": 500,
+   "years": 1,
+   "cells": {
+    "used": 1038889,
+    "grid": 3265910,
+    "rows": 115574
+   },
+   "savingsRows": 35022,
+   "sheets": {
+    "Members": {
+     "rows": 500,
+     "cols": 9,
+     "usedCells": 4509,
+     "gridCells": 26000
+    },
+    "Savings": {
+     "rows": 35022,
+     "cols": 12,
+     "usedCells": 420276,
+     "gridCells": 910598
+    },
+    "Loans": {
+     "rows": 1864,
+     "cols": 17,
+     "usedCells": 31705,
+     "gridCells": 48490
+    },
+    "Loan Repayments": {
+     "rows": 4674,
+     "cols": 9,
+     "usedCells": 42075,
+     "gridCells": 121550
+    },
+    "Surcharge": {
+     "rows": 998,
+     "cols": 8,
+     "usedCells": 7992,
+     "gridCells": 26000
+    },
+    "Loan Requests": {
+     "rows": 1864,
+     "cols": 19,
+     "usedCells": 35435,
+     "gridCells": 48490
+    },
+    "Withdrawal Requests": {
+     "rows": 1347,
+     "cols": 14,
+     "usedCells": 18872,
+     "gridCells": 35048
+    },
+    "Audit Log": {
+     "rows": 52708,
+     "cols": 6,
+     "usedCells": 316254,
+     "gridCells": 1370434
+    },
+    "Guarantors": {
+     "rows": 3728,
+     "cols": 9,
+     "usedCells": 33561,
+     "gridCells": 96954
+    },
+    "Guarantor Notifications": {
+     "rows": 12320,
+     "cols": 10,
+     "usedCells": 123210,
+     "gridCells": 320346
+    },
+    "Loan Fund Ledger": {
+     "rows": 4,
+     "cols": 18,
+     "usedCells": 90,
+     "gridCells": 26000
+    },
+    "Investments": {
+     "rows": 3,
+     "cols": 17,
+     "usedCells": 68,
+     "gridCells": 26000
+    },
+    "Investment Transactions": {
+     "rows": 36,
+     "cols": 19,
+     "usedCells": 703,
+     "gridCells": 26000
+    },
+    "Loan Waivers": {
+     "rows": 0,
+     "cols": 23,
+     "usedCells": 23,
+     "gridCells": 26000
+    },
+    "Waiver Decisions": {
+     "rows": 0,
+     "cols": 7,
+     "usedCells": 7,
+     "gridCells": 26000
+    },
+    "Assets": {
+     "rows": 0,
+     "cols": 28,
+     "usedCells": 28,
+     "gridCells": 28000
+    },
+    "Asset Reviews": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    },
+    "Asset History": {
+     "rows": 0,
+     "cols": 9,
+     "usedCells": 9,
+     "gridCells": 26000
+    },
+    "Terms Acceptance": {
+     "rows": 506,
+     "cols": 8,
+     "usedCells": 4056,
+     "gridCells": 26000
+    },
+    "Terms Versions": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    }
+   },
+   "buildMs": 319.86740000001737,
+   "ops": {
+    "auth": {
+     "name": "Sign-in check on every request (getCurrentMember)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 7.923700000013923,
+     "cpuMs": 5.765899999852991,
+     "model": {
+      "low": 414.280799999706,
+      "central": 828.795699999559,
+      "high": 1991.885499999265
+     },
+     "counters": {
+      "readCalls": 3,
+      "cellsRead": 8573,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 6,
+      "fmtDate": 1006,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 2.1578000001609325
+     },
+     "payload": 252
+    },
+    "mySavings": {
+     "name": "My savings (getMySavings)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 668.0645000000077,
+     "cpuMs": 467.5901000002341,
+     "model": {
+      "low": 3186.7342000004683,
+      "central": 5931.878300000702,
+      "high": 12577.316500001172
+     },
+     "counters": {
+      "readCalls": 9,
+      "cellsRead": 447993,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 26,
+      "fmtDate": 75115,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 184.42619999975432
+     },
+     "payload": 14314
+    },
+    "myLoans": {
+     "name": "My loans (getMyLoans)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 137.95249999998487,
+     "cpuMs": 90.88950000115437,
+     "model": {
+      "low": 928.6080000023087,
+      "central": 1776.326500003463,
+      "high": 3971.3035000057716
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 82353,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 10,
+      "fmtDate": 15954,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 47.06299999883049
+     },
+     "payload": 2621
+    },
+    "myPage": {
+     "name": "Member home page: 5 calls in parallel (slowest)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 646.0135000000009,
+     "cpuMs": 449.9353999970772,
+     "model": {
+      "low": 3151.4247999941545,
+      "central": 5878.914199991232,
+      "high": 12489.042999985388
+     },
+     "counters": {
+      "readCalls": 9,
+      "cellsRead": 447993,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 26,
+      "fmtDate": 75115,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 194.30140000293613
+     },
+     "payload": 14314,
+     "slowest": "getMySavings",
+     "parts": [
+      {
+       "name": "getMySavings",
+       "model": 5878.914199991232,
+       "aborted": false
+      },
+      {
+       "name": "getMyLoans",
+       "model": 1714.5501999974117,
+       "aborted": false
+      },
+      {
+       "name": "getMyLoanRequests",
+       "model": 1281.0307999996028,
+       "aborted": false
+      },
+      {
+       "name": "getMyWithdrawalRequests",
+       "model": 1077.642599998901,
+       "aborted": false
+      },
+      {
+       "name": "getMyFines",
+       "model": 972.1147000004677,
+       "aborted": false
+      }
+     ],
+     "sumModel": 10924.252499987613
+    },
+    "statement": {
+     "name": "Member statement data (getMemberStatementData, before PDF)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 856.4427000000142,
+     "cpuMs": 591.8228000093368,
+     "model": {
+      "low": 4120.395600018674,
+      "central": 7686.96840002801,
+      "high": 16289.044000046684
+     },
+     "counters": {
+      "readCalls": 15,
+      "cellsRead": 584095,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 38,
+      "fmtDate": 101693,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 264.61989999067737
+     },
+     "payload": 18706
+    },
+    "dashboard": {
+     "name": "Admin dashboard (getAdminDashboard)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1038.5118000000075,
+     "cpuMs": 763.4907999979041,
+     "model": {
+      "low": 4339.370599995808,
+      "central": 7942.250399993713,
+      "high": 16575.34999998952
+     },
+     "counters": {
+      "readCalls": 12,
+      "cellsRead": 569573,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 27,
+      "fmtDate": 101934,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 275.0210000021034
+     },
+     "payload": 158484
+    },
+    "members": {
+     "name": "Members list with balances (getAllMembersSummary)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 580.9659000000102,
+     "cpuMs": 405.11160000177915,
+     "model": {
+      "low": 2886.0472000035584,
+      "central": 5375.982800005338,
+      "high": 11407.354000008896
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 433358,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 71550,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 175.854299998231
+     },
+     "payload": 141320
+    },
+    "loanReqs": {
+     "name": "Loan requests list (getLoanRequests)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 808.9415000000154,
+     "cpuMs": 558.758000001777,
+     "model": {
+      "low": 3737.6270000035543,
+      "central": 6934.496000005332,
+      "high": 14625.774000008885
+     },
+     "counters": {
+      "readCalls": 10,
+      "cellsRead": 540447,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 18,
+      "fmtDate": 92554,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 254.2691999982053
+     },
+     "payload": 1681605
+    },
+    "activeLoans": {
+     "name": "Active loans / portfolio (getActiveLoans)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 340.1676999999909,
+     "cpuMs": 240.39130000199657,
+     "model": {
+      "low": 1903.801600003993,
+      "central": 3583.2119000059893,
+      "high": 7706.272500009983
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 243633,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 16,
+      "fmtDate": 40024,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 99.75919999802136
+     },
+     "payload": 218464
+    },
+    "repayments": {
+     "name": "Repayments list (getRepayments)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 96.125,
+     "cpuMs": 72.60569999786094,
+     "model": {
+      "low": 782.9523999957219,
+      "central": 1502.2990999935828,
+      "high": 3385.5324999893046
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 55157,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 10854,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 24.654300002148375
+     },
+     "payload": 1093303
+    },
+    "wdReqs": {
+     "name": "Withdrawal requests (getWithdrawalRequests)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 661.4214000000211,
+     "cpuMs": 481.90539999632165,
+     "model": {
+      "low": 3196.923799992643,
+      "central": 5930.942199988965,
+      "high": 12531.008999981608
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 452366,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 19,
+      "fmtDate": 75603,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 179.51600000369945
+     },
+     "payload": 630420
+    },
+    "fines": {
+     "name": "Surcharges list (getAllFinesForAdmin)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 36.493900000001304,
+     "cpuMs": 26.043500000290805,
+     "model": {
+      "low": 550.8190000005816,
+      "central": 1084.5945000008724,
+      "high": 2523.1655000014543
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 21074,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 3502,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 10.450399999710498
+     },
+     "payload": 161843
+    },
+    "savingsTx": {
+     "name": "Savings ledger, unfiltered (getSavingsTransactions)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 719.4862999999896,
+     "cpuMs": 548.7033999993873,
+     "model": {
+      "low": 3173.2307999987747,
+      "central": 5806.758199998162,
+      "high": 12125.312999996937
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 433358,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 71550,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 170.78290000060224
+     },
+     "payload": 9728070
+    },
+    "insights": {
+     "name": "Loan Insights, all time (getLoanInsights)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 984.1302999999898,
+     "cpuMs": 764.6852999942203,
+     "model": {
+      "low": 3993.1095999884406,
+      "central": 7236.533899982661,
+      "high": 14987.492499971102
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 507228,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 15,
+      "fmtDate": 90411,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 219.44500000576954
+     },
+     "payload": 712899
+    },
+    "fundLedger": {
+     "name": "Loan fund trace, all time (getLoanFundLedger)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1129.9256999999925,
+     "cpuMs": 857.0775999989419,
+     "model": {
+      "low": 4177.764199997884,
+      "central": 7513.450799996826,
+      "high": 15448.67399999471
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 507228,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 15,
+      "fmtDate": 90385,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 272.8481000010506
+     },
+     "payload": 5277003
+    },
+    "auditLog": {
+     "name": "Audit log, first page (getAuditLog)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 286.77820000000065,
+     "cpuMs": 106.62400000414345,
+     "model": {
+      "low": 1188.423000008287,
+      "central": 2280.2220000124307,
+      "high": 5348.810000020718
+     },
+     "counters": {
+      "readCalls": 9,
+      "cellsRead": 67560,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 10,
+      "fmtDate": 54499,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 180.1541999958572
+     },
+     "payload": 51790
+    },
+    "csv": {
+     "name": "Ledger CSV export (exportAdminCSV)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1196.3538000000117,
+     "cpuMs": 929.7445999986085,
+     "model": {
+      "low": 4457.357199997217,
+      "central": 7990.969799995826,
+      "high": 16493.144999993045
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 515130,
+      "writeCalls": 0,
+      "cellsWritten": 6,
+      "appends": 1,
+      "light": 16,
+      "fmtDate": 96095,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 266.6092000014032
+     },
+     "payload": 3104165
+    },
+    "recordSavings": {
+     "name": "Post a deposit (recordSavings)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 565.6293000000005,
+     "cpuMs": 394.17400000125053,
+     "model": {
+      "low": 3191.273000002501,
+      "central": 5993.372000003751,
+      "high": 12988.11000000625
+     },
+     "counters": {
+      "readCalls": 6,
+      "cellsRead": 433382,
+      "writeCalls": 1,
+      "cellsWritten": 18,
+      "appends": 1,
+      "light": 10,
+      "fmtDate": 71554,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 1,
+      "fakeMs": 164.58449999874574
+     },
+     "payload": 82,
+     "lockModel": 4456.823600001879
+    },
+    "recordRepayment": {
+     "name": "Post a loan repayment (recordRepayment)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 532.3956999999937,
+     "cpuMs": 367.287300004944,
+     "model": {
+      "low": 3625.125100009888,
+      "central": 6881.962900014832,
+      "high": 15357.278500024719
+     },
+     "counters": {
+      "readCalls": 14,
+      "cellsRead": 364071,
+      "writeCalls": 1,
+      "cellsWritten": 35,
+      "appends": 3,
+      "light": 24,
+      "fmtDate": 61064,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 3,
+      "fakeMs": 165.1083999950497
+     },
+     "payload": 870,
+     "lockModel": 1079.0748000105896
+    },
+    "requestWithdrawal": {
+     "name": "Member requests a withdrawal (requestWithdrawal)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 566.0892999999924,
+     "cpuMs": 372.6878999985929,
+     "model": {
+      "low": 4249.274799997186,
+      "central": 8132.861699995779,
+      "high": 18338.965499992966
+     },
+     "counters": {
+      "readCalls": 7,
+      "cellsRead": 452308,
+      "writeCalls": 1,
+      "cellsWritten": 20,
+      "appends": 1,
+      "light": 12,
+      "fmtDate": 75593,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 6,
+      "fakeMs": 193.40140000139945
+     },
+     "payload": 36,
+     "lockModel": 7271.143699992926
+    },
+    "requestLoan": {
+     "name": "Member requests a loan (requestLoan)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 985.1919000000053,
+     "cpuMs": 704.45410000626,
+     "model": {
+      "low": 6321.80170001252,
+      "central": 11963.14930001878,
+      "high": 26555.7645000313
+     },
+     "counters": {
+      "readCalls": 15,
+      "cellsRead": 654304,
+      "writeCalls": 2,
+      "cellsWritten": 43,
+      "appends": 1,
+      "light": 24,
+      "fmtDate": 117392,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 8,
+      "fakeMs": 280.7377999937453
+     },
+     "payload": 51,
+     "lockModel": 11103.144600019947
+    },
+    "approveLoan": {
+     "name": "Final loan approval, issues the loan (approveLoanRequest)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 1483.4198000000033,
+     "cpuMs": 1010.5812999904156,
+     "model": {
+      "low": 16199.438200005396,
+      "central": 31590.277300008092,
+      "high": 70694.4655000135
+     },
+     "counters": {
+      "readCalls": 54,
+      "cellsRead": 2361814,
+      "writeCalls": 17,
+      "cellsWritten": 86,
+      "appends": 3,
+      "light": 89,
+      "fmtDate": 399151,
+      "cache": 0,
+      "props": 0,
+      "locks": 3,
+      "emails": 16,
+      "fakeMs": 2067.0662000004086
+     },
+     "payload": 48,
+     "lockModel": 11798.356100007084
+    },
+    "issueFine": {
+     "name": "Record a surcharge (issueFine)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 1274.7473000000173,
+     "cpuMs": 840.4375000013388,
+     "model": {
+      "low": 6340.390000002677,
+      "central": 11833.342500004015,
+      "high": 25884.707500006694
+     },
+     "counters": {
+      "readCalls": 22,
+      "cellsRead": 633086,
+      "writeCalls": 1,
+      "cellsWritten": 54,
+      "appends": 5,
+      "light": 38,
+      "fmtDate": 103846,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 5,
+      "fakeMs": 434.3097999986785
+     },
+     "payload": 33,
+     "lockModel": 239.0331000015987
+    },
+    "jobStatements": {
+     "name": "Monthly statements job (sendMonthlyStatements)",
+     "web": false,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1096.015699999989,
+     "cpuMs": 763.3592000136268,
+     "model": {
+      "low": 103626.24340002725,
+      "central": 206498.12760004087,
+      "high": 513200.7760000681
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 506695,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 92288,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 500,
+      "fakeMs": 332.6564999863622
+     },
+     "payload": 0
+    },
+    "jobDueDates": {
+     "name": "Daily due-date job (processLoanDueDates)",
+     "web": false,
+     "write": false,
+     "n": 3,
+     "nodeMs": 218.93379999999888,
+     "cpuMs": 159.66449999518227,
+     "model": {
+      "low": 720.6799999903645,
+      "central": 1286.6954999855468,
+      "high": 2631.2264999759113
+     },
+     "counters": {
+      "readCalls": 3,
+      "cellsRead": 78367,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 5,
+      "fmtDate": 19250,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 58.64560000482015
+     },
+     "payload": 0
+    },
+    "jobPending": {
+     "name": "Daily pending-action reminders (sendPendingActionReminders_)",
+     "web": false,
+     "write": false,
+     "n": 3,
+     "nodeMs": 758.755999999994,
+     "cpuMs": 671.1835000001593,
+     "model": {
+      "low": 1943.5940000003184,
+      "central": 3234.0045000004775,
+      "high": 6069.315500000796
+     },
+     "counters": {
+      "readCalls": 9,
+      "cellsRead": 97994,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 18,
+      "fmtDate": 18249,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 87.57249999983469
+     },
+     "payload": 37
+    },
+    "jobRepayRem": {
+     "name": "Daily repayment reminders (sendRepaymentReminders_)",
+     "web": false,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1016.6747000000323,
+     "cpuMs": 939.0380000060541,
+     "model": {
+      "low": 2279.4170000121085,
+      "central": 3624.7960000181624,
+      "high": 6528.03400003027
+     },
+     "counters": {
+      "readCalls": 3,
+      "cellsRead": 78367,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 5,
+      "fmtDate": 19248,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 77.63669999397825
+     },
+     "payload": 0
+    },
+    "adminPage": {
+     "name": "Admin page: 7 calls in parallel (slowest)",
+     "web": true,
+     "derived": true,
+     "slowest": "Admin dashboard (getAdminDashboard)",
+     "extrapolated": false,
+     "model": {
+      "low": 4339.370599995808,
+      "central": 7942.250399993713,
+      "high": 16575.34999998952
+     }
+    }
+   },
+   "sizes": {
+    "M": 500,
+    "S": 35022,
+    "L": 1864,
+    "R": 4674,
+    "LR": 1864,
+    "F": 998
+   }
+  },
+  {
+   "members": 500,
+   "years": 3,
+   "cells": {
+    "used": 3139058,
+    "grid": 9336260,
+    "rows": 349130
+   },
+   "savingsRows": 105066,
+   "sheets": {
+    "Members": {
+     "rows": 500,
+     "cols": 9,
+     "usedCells": 4509,
+     "gridCells": 26000
+    },
+    "Savings": {
+     "rows": 105066,
+     "cols": 12,
+     "usedCells": 1260804,
+     "gridCells": 2731742
+    },
+    "Loans": {
+     "rows": 5592,
+     "cols": 17,
+     "usedCells": 95081,
+     "gridCells": 145418
+    },
+    "Loan Repayments": {
+     "rows": 14853,
+     "cols": 9,
+     "usedCells": 133686,
+     "gridCells": 386204
+    },
+    "Surcharge": {
+     "rows": 2994,
+     "cols": 8,
+     "usedCells": 23960,
+     "gridCells": 77870
+    },
+    "Loan Requests": {
+     "rows": 5592,
+     "cols": 19,
+     "usedCells": 106267,
+     "gridCells": 145418
+    },
+    "Withdrawal Requests": {
+     "rows": 4041,
+     "cols": 14,
+     "usedCells": 56588,
+     "gridCells": 105092
+    },
+    "Audit Log": {
+     "rows": 158955,
+     "cols": 6,
+     "usedCells": 953736,
+     "gridCells": 4132856
+    },
+    "Guarantors": {
+     "rows": 11184,
+     "cols": 9,
+     "usedCells": 100665,
+     "gridCells": 290810
+    },
+    "Guarantor Notifications": {
+     "rows": 39724,
+     "cols": 10,
+     "usedCells": 397250,
+     "gridCells": 1032850
+    },
+    "Loan Fund Ledger": {
+     "rows": 12,
+     "cols": 18,
+     "usedCells": 234,
+     "gridCells": 26000
+    },
+    "Investments": {
+     "rows": 3,
+     "cols": 17,
+     "usedCells": 68,
+     "gridCells": 26000
+    },
+    "Investment Transactions": {
+     "rows": 108,
+     "cols": 19,
+     "usedCells": 2071,
+     "gridCells": 26000
+    },
+    "Loan Waivers": {
+     "rows": 0,
+     "cols": 23,
+     "usedCells": 23,
+     "gridCells": 26000
+    },
+    "Waiver Decisions": {
+     "rows": 0,
+     "cols": 7,
+     "usedCells": 7,
+     "gridCells": 26000
+    },
+    "Assets": {
+     "rows": 0,
+     "cols": 28,
+     "usedCells": 28,
+     "gridCells": 28000
+    },
+    "Asset Reviews": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    },
+    "Asset History": {
+     "rows": 0,
+     "cols": 9,
+     "usedCells": 9,
+     "gridCells": 26000
+    },
+    "Terms Acceptance": {
+     "rows": 506,
+     "cols": 8,
+     "usedCells": 4056,
+     "gridCells": 26000
+    },
+    "Terms Versions": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    }
+   },
+   "buildMs": 1632.9005999999936,
+   "ops": {
+    "auth": {
+     "name": "Sign-in check on every request (getCurrentMember)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 19.368199999968056,
+     "cpuMs": 13.839599999773782,
+     "model": {
+      "low": 430.4281999995476,
+      "central": 853.0167999993214,
+      "high": 2032.253999998869
+     },
+     "counters": {
+      "readCalls": 3,
+      "cellsRead": 8573,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 6,
+      "fmtDate": 1006,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 5.528600000194274
+     },
+     "payload": 252
+    },
+    "mySavings": {
+     "name": "My savings (getMySavings)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 2200.002700000012,
+     "cpuMs": 1544.964899987157,
+     "model": {
+      "low": 8717.065799974314,
+      "central": 15915.166699961472,
+      "high": 32948.218499935785
+     },
+     "counters": {
+      "readCalls": 9,
+      "cellsRead": 1326237,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 26,
+      "fmtDate": 223285,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 655.0378000128549
+     },
+     "payload": 42289
+    },
+    "myLoans": {
+     "name": "My loans (getMyLoans)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 393.5263000000268,
+     "cpuMs": 255.54210001090541,
+     "model": {
+      "low": 1880.6692000218109,
+      "central": 3515.7963000327163,
+      "high": 7601.180500054526
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 237340,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 10,
+      "fmtDate": 47513,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 137.9841999891214
+     },
+     "payload": 7928
+    },
+    "myPage": {
+     "name": "Member home page: 5 calls in parallel (slowest)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 2154.79859999998,
+     "cpuMs": 1515.1167000087444,
+     "model": {
+      "low": 8657.36940001749,
+      "central": 15825.622100026234,
+      "high": 32798.97750004372
+     },
+     "counters": {
+      "readCalls": 9,
+      "cellsRead": 1326237,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 26,
+      "fmtDate": 223285,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 639.6818999912357
+     },
+     "payload": 42289,
+     "slowest": "getMySavings",
+     "parts": [
+      {
+       "name": "getMySavings",
+       "model": 15825.622100026234,
+       "aborted": false
+      },
+      {
+       "name": "getMyLoans",
+       "model": 3502.2918000029913,
+       "aborted": false
+      },
+      {
+       "name": "getMyLoanRequests",
+       "model": 2060.640500012356,
+       "aborted": false
+      },
+      {
+       "name": "getMyWithdrawalRequests",
+       "model": 1510.7850000078383,
+       "aborted": false
+      },
+      {
+       "name": "getMyFines",
+       "model": 1161.7484999945964,
+       "aborted": false
+      }
+     ],
+     "sumModel": 24061.087900044018
+    },
+    "statement": {
+     "name": "Member statement data (getMemberStatementData, before PDF)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 2807.9687000000267,
+     "cpuMs": 1924.257100009825,
+     "model": {
+      "low": 11273.44020001965,
+      "central": 20660.623300029474,
+      "high": 42933.789500049126
+     },
+     "counters": {
+      "readCalls": 15,
+      "cellsRead": 1741842,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 38,
+      "fmtDate": 304680,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 879.4058999901754
+     },
+     "payload": 55236
+    },
+    "dashboard": {
+     "name": "Admin dashboard (getAdminDashboard)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 3278.533999999985,
+     "cpuMs": 2388.0128000012483,
+     "model": {
+      "low": 11961.277600002497,
+      "central": 21561.542400003746,
+      "high": 44214.95200000624
+     },
+     "counters": {
+      "readCalls": 12,
+      "cellsRead": 1689604,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 27,
+      "fmtDate": 304488,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 890.5211999987368
+     },
+     "payload": 187755
+    },
+    "members": {
+     "name": "Members list with balances (getAllMembersSummary)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 2032.4619999999995,
+     "cpuMs": 1428.7577000066522,
+     "model": {
+      "low": 8155.363400013304,
+      "central": 14890.969100019956,
+      "high": 30814.560500033258
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 1273886,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 211638,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 603.7042999933474
+     },
+     "payload": 141320
+    },
+    "loanReqs": {
+     "name": "Loan requests list (getLoanRequests)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 2628.9435999999987,
+     "cpuMs": 1814.9304000167758,
+     "model": {
+      "low": 10292.155800033552,
+      "central": 18787.381200050328,
+      "high": 38886.33200008388
+     },
+     "counters": {
+      "readCalls": 10,
+      "cellsRead": 1586015,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 18,
+      "fmtDate": 273650,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 814.0131999832229
+     },
+     "payload": 5048001
+    },
+    "activeLoans": {
+     "name": "Active loans / portfolio (getActiveLoans)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1252.7353000000003,
+     "cpuMs": 872.9182000196888,
+     "model": {
+      "low": 5064.868400039377,
+      "central": 9272.818600059067,
+      "high": 19268.199000098444
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 739764,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 16,
+      "fmtDate": 121548,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 379.81709998031147
+     },
+     "payload": 336482
+    },
+    "repayments": {
+     "name": "Repayments list (getRepayments)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 346.62880000000587,
+     "cpuMs": 256.87660000269534,
+     "model": {
+      "low": 1528.1172000053907,
+      "central": 2808.357800008086,
+      "high": 6016.959000013477
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 146768,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 31212,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 89.75219999731053
+     },
+     "payload": 3474257
+    },
+    "wdReqs": {
+     "name": "Withdrawal requests (getWithdrawalRequests)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 2421.255999999994,
+     "cpuMs": 1768.0715000022901,
+     "model": {
+      "low": 9144.83800000458,
+      "central": 16540.60450000687,
+      "high": 33945.867500011445
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 1330610,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 19,
+      "fmtDate": 223773,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 653.1844999977038
+     },
+     "payload": 1891212
+    },
+    "fines": {
+     "name": "Surcharges list (getAllFinesForAdmin)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 73.44389999995474,
+     "cpuMs": 47.50430000014603,
+     "model": {
+      "low": 661.6046000002921,
+      "central": 1284.704900000438,
+      "high": 2941.8455000007298
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 37042,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 7494,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 25.939599999808706
+     },
+     "payload": 485195
+    },
+    "savingsTx": {
+     "name": "Savings ledger, unfiltered (getSavingsTransactions)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 2400.4065999999875,
+     "cpuMs": 1766.110800018825,
+     "model": {
+      "low": 8830.06960003765,
+      "central": 15903.028400056475,
+      "high": 32501.326000094123
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 1273886,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 211638,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 561.8507999811554
+     },
+     "payload": 29184139
+    },
+    "insights": {
+     "name": "Loan Insights, all time (getLoanInsights)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 4454.181500000006,
+     "cpuMs": 3379.1407999828807,
+     "model": {
+      "low": 13106.927599965762,
+      "central": 22849.714399948643,
+      "high": 45395.25799991441
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 1502887,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 15,
+      "fmtDate": 269997,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 1075.0407000171253
+     },
+     "payload": 2133793
+    },
+    "fundLedger": {
+     "name": "Loan fund trace, all time (getLoanFundLedger)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 3427.1767999999574,
+     "cpuMs": 2547.7483000025386,
+     "model": {
+      "low": 11443.772600005077,
+      "central": 20354.796900007615,
+      "high": 41236.075500012696
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 1502887,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 15,
+      "fmtDate": 269923,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 879.4284999974188
+     },
+     "payload": 16043389
+    },
+    "auditLog": {
+     "name": "Audit log, first page (getAuditLog)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 759.3766000000178,
+     "cpuMs": 258.22130000655307,
+     "model": {
+      "low": 2341.593600013106,
+      "central": 4434.965900019659,
+      "high": 10569.170500032766
+     },
+     "counters": {
+      "readCalls": 9,
+      "cellsRead": 173807,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 10,
+      "fmtDate": 160746,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 501.1552999934647
+     },
+     "payload": 51789
+    },
+    "csv": {
+     "name": "Ledger CSV export (exportAdminCSV)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 4913.195999999996,
+     "cpuMs": 3767.341899988998,
+     "model": {
+      "low": 14121.770799977998,
+      "central": 24482.199699966997,
+      "high": 48547.547499944994
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 1526613,
+      "writeCalls": 0,
+      "cellsWritten": 6,
+      "appends": 1,
+      "light": 16,
+      "fmtDate": 287049,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 1145.854100010998
+     },
+     "payload": 9216484
+    },
+    "recordSavings": {
+     "name": "Post a deposit (recordSavings)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 2252.0478000000003,
+     "cpuMs": 1515.048000005656,
+     "model": {
+      "low": 8655.045000011312,
+      "central": 15800.042000016967,
+      "high": 32881.45600002828
+     },
+     "counters": {
+      "readCalls": 6,
+      "cellsRead": 1273910,
+      "writeCalls": 1,
+      "cellsWritten": 18,
+      "appends": 1,
+      "light": 10,
+      "fmtDate": 211642,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 1,
+      "fakeMs": 736.9997999943444
+     },
+     "payload": 82,
+     "lockModel": 14165.969000014014
+    },
+    "recordRepayment": {
+     "name": "Post a loan repayment (recordRepayment)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 1725.6493999999948,
+     "cpuMs": 1177.7802999924752,
+     "model": {
+      "low": 8103.22909998495,
+      "central": 15027.677899977425,
+      "high": 32095.795499962376
+     },
+     "counters": {
+      "readCalls": 14,
+      "cellsRead": 1106847,
+      "writeCalls": 1,
+      "cellsWritten": 35,
+      "appends": 3,
+      "light": 24,
+      "fmtDate": 186822,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 3,
+      "fakeMs": 547.8691000075196
+     },
+     "payload": 870,
+     "lockModel": 2910.2576999857997
+    },
+    "requestWithdrawal": {
+     "name": "Member requests a withdrawal (requestWithdrawal)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 1742.4263999999966,
+     "cpuMs": 1150.5980999938329,
+     "model": {
+      "low": 9180.635199987666,
+      "central": 17217.6722999815,
+      "high": 37212.37649996916
+     },
+     "counters": {
+      "readCalls": 7,
+      "cellsRead": 1330538,
+      "writeCalls": 1,
+      "cellsWritten": 20,
+      "appends": 1,
+      "light": 12,
+      "fmtDate": 223763,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 6,
+      "fakeMs": 591.8283000061638
+     },
+     "payload": 36,
+     "lockModel": 16354.938499978332
+    },
+    "requestLoan": {
+     "name": "Member requests a loan (requestLoan)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 3239.7465000000084,
+     "cpuMs": 2230.827200007334,
+     "model": {
+      "low": 14346.370900014668,
+      "central": 26485.914600022003,
+      "high": 56389.802000036674
+     },
+     "counters": {
+      "readCalls": 46,
+      "cellsRead": 6086435,
+      "writeCalls": 10,
+      "cellsWritten": 98,
+      "appends": 3,
+      "light": 75,
+      "fmtDate": 1068506,
+      "cache": 0,
+      "props": 0,
+      "locks": 3,
+      "emails": 23,
+      "fakeMs": 3036.1298000079696
+     },
+     "payload": 51,
+     "lockModel": 25626.036200022798
+    },
+    "approveLoan": {
+     "name": "Final loan approval, issues the loan (approveLoanRequest)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 4235.583299999998,
+     "cpuMs": 2886.255399988673,
+     "model": {
+      "low": 37878.57339996571,
+      "central": 73038.94159994856,
+      "high": 159596.10799991427
+     },
+     "counters": {
+      "readCalls": 54,
+      "cellsRead": 6996135,
+      "writeCalls": 17,
+      "cellsWritten": 86,
+      "appends": 3,
+      "light": 89,
+      "fmtDate": 1190543,
+      "cache": 0,
+      "props": 0,
+      "locks": 3,
+      "emails": 16,
+      "fakeMs": 3456.7753000208177
+     },
+     "payload": 48,
+     "lockModel": 31953.156599947102
+    },
+    "issueFine": {
+     "name": "Record a surcharge (issueFine)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 2773.9529999999795,
+     "cpuMs": 1836.9180000070482,
+     "model": {
+      "low": 13290.548000014098,
+      "central": 24737.178000021147,
+      "high": 52826.79800003525
+     },
+     "counters": {
+      "readCalls": 22,
+      "cellsRead": 1930335,
+      "writeCalls": 1,
+      "cellsWritten": 54,
+      "appends": 5,
+      "light": 38,
+      "fmtDate": 316936,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 5,
+      "fakeMs": 925.003699992958
+     },
+     "payload": 33,
+     "lockModel": 408.4546999984155
+    },
+    "jobStatements": {
+     "name": "Monthly statements job (sendMonthlyStatements)",
+     "web": false,
+     "write": false,
+     "n": 3,
+     "nodeMs": 2481.5998000000254,
+     "cpuMs": 1767.2686000016984,
+     "model": {
+      "low": 109584.9512000034,
+      "central": 217411.6338000051,
+      "high": 535856.7590000085
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 1518178,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 275576,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 500,
+      "fakeMs": 714.3311999983271
+     },
+     "payload": 0
+    },
+    "jobDueDates": {
+     "name": "Daily due-date job (processLoanDueDates)",
+     "web": false,
+     "write": false,
+     "n": 3,
+     "nodeMs": 513.6289999999572,
+     "cpuMs": 374.362199992931,
+     "model": {
+      "low": 1969.613399985291,
+      "central": 3490.5960999779363,
+      "high": 7137.141499963227
+     },
+     "counters": {
+      "readCalls": 3,
+      "cellsRead": 233354,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 5,
+      "fmtDate": 58458,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 164.5634000073769
+     },
+     "payload": 0
+    },
+    "jobPending": {
+     "name": "Daily pending-action reminders (sendPendingActionReminders_)",
+     "web": false,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1196.946100000001,
+     "cpuMs": 1032.609100002097,
+     "model": {
+      "low": 3370.427200004194,
+      "central": 5726.2453000062915,
+      "high": 11037.351500010485
+     },
+     "counters": {
+      "readCalls": 9,
+      "cellsRead": 275158,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 18,
+      "fmtDate": 52747,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 164.33699999790406
+     },
+     "payload": 37
+    },
+    "jobRepayRem": {
+     "name": "Daily repayment reminders (sendRepaymentReminders_)",
+     "web": false,
+     "write": false,
+     "n": 3,
+     "nodeMs": 2066.595900000015,
+     "cpuMs": 1925.1418999917805,
+     "model": {
+      "low": 4912.625799983561,
+      "central": 7905.109699975342,
+      "high": 14494.637499958902
+     },
+     "counters": {
+      "readCalls": 102,
+      "cellsRead": 233974,
+      "writeCalls": 0,
+      "cellsWritten": 273,
+      "appends": 22,
+      "light": 50,
+      "fmtDate": 58458,
+      "cache": 0,
+      "props": 1,
+      "locks": 1,
+      "emails": 0,
+      "fakeMs": 141.5425000084797
+     },
+     "payload": 0
+    },
+    "adminPage": {
+     "name": "Admin page: 7 calls in parallel (slowest)",
+     "web": true,
+     "derived": true,
+     "slowest": "Admin dashboard (getAdminDashboard)",
+     "extrapolated": false,
+     "model": {
+      "low": 11961.277600002497,
+      "central": 21561.542400003746,
+      "high": 44214.95200000624
+     }
+    }
+   },
+   "sizes": {
+    "M": 500,
+    "S": 105066,
+    "L": 5592,
+    "R": 14853,
+    "LR": 5592,
+    "F": 2994
+   }
+  },
+  {
+   "members": 1000,
+   "years": 1,
+   "cells": {
+    "used": 2104554,
+    "grid": 6323640,
+    "rows": 234172
+   },
+   "savingsRows": 70122,
+   "sheets": {
+    "Members": {
+     "rows": 1000,
+     "cols": 9,
+     "usedCells": 9009,
+     "gridCells": 26026
+    },
+    "Savings": {
+     "rows": 70122,
+     "cols": 12,
+     "usedCells": 841476,
+     "gridCells": 1823198
+    },
+    "Loans": {
+     "rows": 3864,
+     "cols": 17,
+     "usedCells": 65705,
+     "gridCells": 100490
+    },
+    "Loan Repayments": {
+     "rows": 9717,
+     "cols": 9,
+     "usedCells": 87462,
+     "gridCells": 252668
+    },
+    "Surcharge": {
+     "rows": 1998,
+     "cols": 8,
+     "usedCells": 15992,
+     "gridCells": 51974
+    },
+    "Loan Requests": {
+     "rows": 3864,
+     "cols": 19,
+     "usedCells": 73435,
+     "gridCells": 100490
+    },
+    "Withdrawal Requests": {
+     "rows": 2697,
+     "cols": 14,
+     "usedCells": 37772,
+     "gridCells": 70148
+    },
+    "Audit Log": {
+     "rows": 106551,
+     "cols": 6,
+     "usedCells": 639312,
+     "gridCells": 2770352
+    },
+    "Guarantors": {
+     "rows": 7728,
+     "cols": 9,
+     "usedCells": 69561,
+     "gridCells": 200954
+    },
+    "Guarantor Notifications": {
+     "rows": 25582,
+     "cols": 10,
+     "usedCells": 255830,
+     "gridCells": 665158
+    },
+    "Loan Fund Ledger": {
+     "rows": 4,
+     "cols": 18,
+     "usedCells": 90,
+     "gridCells": 26000
+    },
+    "Investments": {
+     "rows": 3,
+     "cols": 17,
+     "usedCells": 68,
+     "gridCells": 26000
+    },
+    "Investment Transactions": {
+     "rows": 36,
+     "cols": 19,
+     "usedCells": 703,
+     "gridCells": 26000
+    },
+    "Loan Waivers": {
+     "rows": 0,
+     "cols": 23,
+     "usedCells": 23,
+     "gridCells": 26000
+    },
+    "Waiver Decisions": {
+     "rows": 0,
+     "cols": 7,
+     "usedCells": 7,
+     "gridCells": 26000
+    },
+    "Assets": {
+     "rows": 0,
+     "cols": 28,
+     "usedCells": 28,
+     "gridCells": 28000
+    },
+    "Asset Reviews": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    },
+    "Asset History": {
+     "rows": 0,
+     "cols": 9,
+     "usedCells": 9,
+     "gridCells": 26000
+    },
+    "Terms Acceptance": {
+     "rows": 1006,
+     "cols": 8,
+     "usedCells": 8056,
+     "gridCells": 26182
+    },
+    "Terms Versions": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    }
+   },
+   "buildMs": 861.1655000000028,
+   "ops": {
+    "auth": {
+     "name": "Sign-in check on every request (getCurrentMember)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 23.223700000031386,
+     "cpuMs": 17.269200000504497,
+     "model": {
+      "low": 467.787400001009,
+      "central": 924.3056000015135,
+      "high": 2181.4020000025225
+     },
+     "counters": {
+      "readCalls": 3,
+      "cellsRead": 17073,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 6,
+      "fmtDate": 2006,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 5.954499999526888
+     },
+     "payload": 252
+    },
+    "mySavings": {
+     "name": "My savings (getMySavings)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1460.751500000013,
+     "cpuMs": 1023.074000017019,
+     "model": {
+      "low": 6019.752000034038,
+      "central": 11042.430000051058,
+      "high": 22995.436000085097
+     },
+     "counters": {
+      "readCalls": 9,
+      "cellsRead": 896593,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 26,
+      "fmtDate": 150365,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 437.67749998299405
+     },
+     "payload": 14315
+    },
+    "myLoans": {
+     "name": "My loans (getMyLoans)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 252.69759999995586,
+     "cpuMs": 166.429599995201,
+     "model": {
+      "low": 1428.779199990402,
+      "central": 2701.128799985603,
+      "high": 5916.227999976005
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 170240,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 10,
+      "fmtDate": 33040,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 86.26800000475487
+     },
+     "payload": 2621
+    },
+    "myPage": {
+     "name": "Member home page: 5 calls in parallel (slowest)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1384.4896999999764,
+     "cpuMs": 1003.0624000056414,
+     "model": {
+      "low": 5979.728800011283,
+      "central": 10982.395200016925,
+      "high": 22895.37800002821
+     },
+     "counters": {
+      "readCalls": 9,
+      "cellsRead": 896593,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 26,
+      "fmtDate": 150365,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 381.42729999433504
+     },
+     "payload": 14315,
+     "slowest": "getMySavings",
+     "parts": [
+      {
+       "name": "getMySavings",
+       "model": 10982.395200016925,
+       "aborted": false
+      },
+      {
+       "name": "getMyLoans",
+       "model": 2660.95699999508,
+       "aborted": false
+      },
+      {
+       "name": "getMyLoanRequests",
+       "model": 1756.4538000024938,
+       "aborted": false
+      },
+      {
+       "name": "getMyWithdrawalRequests",
+       "model": 1355.2858000066108,
+       "aborted": false
+      },
+      {
+       "name": "getMyFines",
+       "model": 1134.8397999994595,
+       "aborted": false
+      }
+     ],
+     "sumModel": 17889.93160002057
+    },
+    "statement": {
+     "name": "Member statement data (getMemberStatementData, before PDF)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1684.833099999989,
+     "cpuMs": 1163.4049999929848,
+     "model": {
+      "low": 7559.15099998597,
+      "central": 13992.896999978955,
+      "high": 29363.178999964923
+     },
+     "counters": {
+      "readCalls": 15,
+      "cellsRead": 1176982,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 38,
+      "fmtDate": 205079,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 521.4281000070041
+     },
+     "payload": 18706
+    },
+    "dashboard": {
+     "name": "Admin dashboard (getAdminDashboard)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 2105.615300000005,
+     "cpuMs": 1560.5540000060573,
+     "model": {
+      "low": 8188.573000012115,
+      "central": 14843.592000018172,
+      "high": 30620.200000030287
+     },
+     "counters": {
+      "readCalls": 12,
+      "cellsRead": 1148060,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 27,
+      "fmtDate": 205857,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 545.0612999939476
+     },
+     "payload": 317666
+    },
+    "members": {
+     "name": "Members list with balances (getAllMembersSummary)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1293.5652999999584,
+     "cpuMs": 891.272900003707,
+     "model": {
+      "low": 5519.469800007414,
+      "central": 10156.666700011121,
+      "high": 21199.560500018535
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 867558,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 143250,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 402.29239999625133
+     },
+     "payload": 282620
+    },
+    "loanReqs": {
+     "name": "Loan requests list (getLoanRequests)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1764.737599999993,
+     "cpuMs": 1235.937700009148,
+     "model": {
+      "low": 7209.086400018297,
+      "central": 13200.235100027447,
+      "high": 27422.072500045742
+     },
+     "counters": {
+      "readCalls": 10,
+      "cellsRead": 1089147,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 18,
+      "fmtDate": 186754,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 516.6966999908327
+     },
+     "payload": 3485974
+    },
+    "activeLoans": {
+     "name": "Active loans / portfolio (getActiveLoans)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 818.210299999977,
+     "cpuMs": 576.0915999984718,
+     "model": {
+      "low": 3572.8981999969437,
+      "central": 6585.704799995416,
+      "high": 13804.90799999236
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 504640,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 16,
+      "fmtDate": 82959,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 242.1187000015052
+     },
+     "payload": 456460
+    },
+    "repayments": {
+     "name": "Repayments list (getRepayments)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 221.92410000000382,
+     "cpuMs": 169.65089999733027,
+     "model": {
+      "low": 1210.1337999946606,
+      "central": 2259.616699991991,
+      "high": 4918.982499986651
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 113544,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 22440,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 60.211300002702046
+     },
+     "payload": 2272829
+    },
+    "wdReqs": {
+     "name": "Withdrawal requests (getWithdrawalRequests)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1573.2775000000256,
+     "cpuMs": 1138.1926999948919,
+     "model": {
+      "low": 6247.548399989784,
+      "central": 11375.904099984677,
+      "high": 23522.14549997446
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 905466,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 19,
+      "fmtDate": 151353,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 435.08480000513373
+     },
+     "payload": 1262220
+    },
+    "fines": {
+     "name": "Surcharges list (getAllFinesForAdmin)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 57.115300000004936,
+     "cpuMs": 40.64729999838164,
+     "model": {
+      "low": 660.5265999967633,
+      "central": 1289.4058999951449,
+      "high": 2953.184499991908
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 42074,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 7002,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 16.828900001652073
+     },
+     "payload": 324009
+    },
+    "savingsTx": {
+     "name": "Savings ledger, unfiltered (getSavingsTransactions)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1779.7326999999932,
+     "cpuMs": 1340.5170000049984,
+     "model": {
+      "low": 6417.958000009997,
+      "central": 11504.399000014995,
+      "high": 23445.781000024992
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 867558,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 143250,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 439.2156999949948
+     },
+     "payload": 19477771
+    },
+    "insights": {
+     "name": "Loan Insights, all time (getLoanInsights)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 2278.9790000000503,
+     "cpuMs": 1708.045899994555,
+     "model": {
+      "low": 7880.391799989109,
+      "central": 14067.737699983663,
+      "high": 28626.139499972775
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 1020815,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 15,
+      "fmtDate": 182371,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 570.9331000054954
+     },
+     "payload": 1471270
+    },
+    "fundLedger": {
+     "name": "Loan fund trace, all time (getLoanFundLedger)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 2108.6219000000274,
+     "cpuMs": 1608.0099000030896,
+     "model": {
+      "low": 7680.189800006179,
+      "central": 13767.369700009269,
+      "high": 28125.179500015445
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 1020815,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 15,
+      "fmtDate": 182345,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 500.6119999969378
+     },
+     "payload": 10674241
+    },
+    "auditLog": {
+     "name": "Audit log, first page (getAuditLog)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 514.7187999999151,
+     "cpuMs": 183.6964000032749,
+     "model": {
+      "low": 1819.92680000655,
+      "central": 3466.157200009825,
+      "high": 8197.088000016374
+     },
+     "counters": {
+      "readCalls": 9,
+      "cellsRead": 134433,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 10,
+      "fmtDate": 109847,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 331.02239999664016
+     },
+     "payload": 74790
+    },
+    "csv": {
+     "name": "Ledger CSV export (exportAdminCSV)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 2603.290500000003,
+     "cpuMs": 2075.67100000591,
+     "model": {
+      "low": 8803.77100001182,
+      "central": 15537.871000017729,
+      "high": 31420.621000029547
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 1036717,
+      "writeCalls": 0,
+      "cellsWritten": 6,
+      "appends": 1,
+      "light": 16,
+      "fmtDate": 194055,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 527.6194999940926
+     },
+     "payload": 6221989
+    },
+    "recordSavings": {
+     "name": "Post a deposit (recordSavings)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 1288.0878999999259,
+     "cpuMs": 900.1706000120612,
+     "model": {
+      "low": 5864.366200024122,
+      "central": 10833.561800036183,
+      "high": 22879.493000060305
+     },
+     "counters": {
+      "readCalls": 6,
+      "cellsRead": 867582,
+      "writeCalls": 1,
+      "cellsWritten": 18,
+      "appends": 1,
+      "light": 10,
+      "fmtDate": 143254,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 1,
+      "fakeMs": 387.9172999878647
+     },
+     "payload": 82,
+     "lockModel": 9118.429400042805
+    },
+    "recordRepayment": {
+     "name": "Post a loan repayment (recordRepayment)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 1233.8179000000237,
+     "cpuMs": 850.8562999843853,
+     "model": {
+      "low": 6090.706099968771,
+      "central": 11329.555899953157,
+      "high": 24424.095499921925
+     },
+     "counters": {
+      "readCalls": 14,
+      "cellsRead": 754352,
+      "writeCalls": 1,
+      "cellsWritten": 35,
+      "appends": 3,
+      "light": 24,
+      "fmtDate": 126584,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 3,
+      "fakeMs": 382.9616000156384
+     },
+     "payload": 870,
+     "lockModel": 2029.475100000702
+    },
+    "requestWithdrawal": {
+     "name": "Member requests a withdrawal (requestWithdrawal)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 1218.0877000000328,
+     "cpuMs": 800.3138000146719,
+     "model": {
+      "low": 6842.4926000293435,
+      "central": 12891.671400044015,
+      "high": 28186.45900007336
+     },
+     "counters": {
+      "readCalls": 7,
+      "cellsRead": 905380,
+      "writeCalls": 1,
+      "cellsWritten": 20,
+      "appends": 1,
+      "light": 12,
+      "fmtDate": 151343,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 6,
+      "fakeMs": 417.7738999853609
+     },
+     "payload": 36,
+     "lockModel": 11937.329800042366
+    },
+    "requestLoan": {
+     "name": "Member requests a loan (requestLoan)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 2215.949499999988,
+     "cpuMs": 1532.8046999870567,
+     "model": {
+      "low": 10594.850899974113,
+      "central": 19680.89709996117,
+      "high": 42371.639499935285
+     },
+     "counters": {
+      "readCalls": 46,
+      "cellsRead": 4182767,
+      "writeCalls": 10,
+      "cellsWritten": 98,
+      "appends": 3,
+      "light": 75,
+      "fmtDate": 729249,
+      "cache": 0,
+      "props": 0,
+      "locks": 3,
+      "emails": 23,
+      "fakeMs": 2122.985100032529
+     },
+     "payload": 51,
+     "lockModel": 18720.552199950107
+    },
+    "approveLoan": {
+     "name": "Final loan approval, issues the loan (approveLoanRequest)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 3687.550099999993,
+     "cpuMs": 2432.892900011153,
+     "model": {
+      "low": 26780.807599854485,
+      "central": 52151.76589978173,
+      "high": 115347.32249963621
+     },
+     "counters": {
+      "readCalls": 54,
+      "cellsRead": 4799582,
+      "writeCalls": 17,
+      "cellsWritten": 86,
+      "appends": 3,
+      "light": 89,
+      "fmtDate": 812264,
+      "cache": 0,
+      "props": 0,
+      "locks": 3,
+      "emails": 16,
+      "fakeMs": 2333.712400069111
+     },
+     "payload": 48,
+     "lockModel": 21105.243599780675
+    },
+    "issueFine": {
+     "name": "Record a surcharge (issueFine)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 2083.202900000033,
+     "cpuMs": 1387.8763999841176,
+     "model": {
+      "low": 10023.616799968235,
+      "central": 18652.357199952356,
+      "high": 40088.11799992059
+     },
+     "counters": {
+      "readCalls": 22,
+      "cellsRead": 1310399,
+      "writeCalls": 1,
+      "cellsWritten": 54,
+      "appends": 5,
+      "light": 38,
+      "fmtDate": 215128,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 5,
+      "fakeMs": 695.3265000159154
+     },
+     "payload": 33,
+     "lockModel": 311.48539999864437
+    },
+    "jobStatements": {
+     "name": "Monthly statements job (sendMonthlyStatements)",
+     "web": false,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1682.0380000000587,
+     "cpuMs": 1166.6472000075737,
+     "model": {
+      "low": 206441.44540001516,
+      "central": 411725.24360002275,
+      "high": 1024190.4500000379
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 1019782,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 186161,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 1000,
+      "fakeMs": 515.390799992485
+     },
+     "payload": 0
+    },
+    "jobDueDates": {
+     "name": "Daily due-date job (processLoanDueDates)",
+     "web": false,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1125.2730000000447,
+     "cpuMs": 710.3968000097666,
+     "model": {
+      "low": 2533.4526000087135,
+      "central": 4183.3674000130695,
+      "high": 7902.427000021782
+     },
+     "counters": {
+      "readCalls": 3,
+      "cellsRead": 162254,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 5,
+      "fmtDate": 39923,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 356.13299999560695
+     },
+     "payload": 0
+    },
+    "jobPending": {
+     "name": "Daily pending-action reminders (sendPendingActionReminders_)",
+     "web": false,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1562.6442999999272,
+     "cpuMs": 1445.413200003677,
+     "model": {
+      "low": 3893.003400007354,
+      "central": 6358.5936000110305,
+      "high": 11734.764000018384
+     },
+     "counters": {
+      "readCalls": 9,
+      "cellsRead": 199894,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 18,
+      "fmtDate": 37299,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 117.23109999625012
+     },
+     "payload": 37
+    },
+    "jobRepayRem": {
+     "name": "Daily repayment reminders (sendRepaymentReminders_)",
+     "web": false,
+     "write": false,
+     "n": 3,
+     "nodeMs": 2062.8889999999665,
+     "cpuMs": 1976.0781999897445,
+     "model": {
+      "low": 4708.523399979489,
+      "central": 7445.968599969234,
+      "high": 13340.068999948722
+     },
+     "counters": {
+      "readCalls": 3,
+      "cellsRead": 162254,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 5,
+      "fmtDate": 39921,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 86.81080001022201
+     },
+     "payload": 0
+    },
+    "adminPage": {
+     "name": "Admin page: 7 calls in parallel (slowest)",
+     "web": true,
+     "derived": true,
+     "slowest": "Admin dashboard (getAdminDashboard)",
+     "extrapolated": false,
+     "model": {
+      "low": 8188.573000012115,
+      "central": 14843.592000018172,
+      "high": 30620.200000030287
+     }
+    }
+   },
+   "sizes": {
+    "M": 1000,
+    "S": 70122,
+    "L": 3864,
+    "R": 9717,
+    "LR": 3864,
+    "F": 1998
+   }
+  },
+  {
+   "members": 1000,
+   "years": 3,
+   "cells": {
+    "used": 6362643,
+    "grid": 18634120,
+    "rows": 707732
+   },
+   "savingsRows": 210366,
+   "sheets": {
+    "Members": {
+     "rows": 1000,
+     "cols": 9,
+     "usedCells": 9009,
+     "gridCells": 26026
+    },
+    "Savings": {
+     "rows": 210366,
+     "cols": 12,
+     "usedCells": 2524404,
+     "gridCells": 5469542
+    },
+    "Loans": {
+     "rows": 11592,
+     "cols": 17,
+     "usedCells": 197081,
+     "gridCells": 301418
+    },
+    "Loan Repayments": {
+     "rows": 30880,
+     "cols": 9,
+     "usedCells": 277929,
+     "gridCells": 802906
+    },
+    "Surcharge": {
+     "rows": 5994,
+     "cols": 8,
+     "usedCells": 47960,
+     "gridCells": 155870
+    },
+    "Loan Requests": {
+     "rows": 11592,
+     "cols": 19,
+     "usedCells": 220267,
+     "gridCells": 301418
+    },
+    "Withdrawal Requests": {
+     "rows": 8091,
+     "cols": 14,
+     "usedCells": 113288,
+     "gridCells": 210392
+    },
+    "Audit Log": {
+     "rows": 321382,
+     "cols": 6,
+     "usedCells": 1928298,
+     "gridCells": 8355958
+    },
+    "Guarantors": {
+     "rows": 23184,
+     "cols": 9,
+     "usedCells": 208665,
+     "gridCells": 602810
+    },
+    "Guarantor Notifications": {
+     "rows": 82522,
+     "cols": 10,
+     "usedCells": 825230,
+     "gridCells": 2145598
+    },
+    "Loan Fund Ledger": {
+     "rows": 12,
+     "cols": 18,
+     "usedCells": 234,
+     "gridCells": 26000
+    },
+    "Investments": {
+     "rows": 3,
+     "cols": 17,
+     "usedCells": 68,
+     "gridCells": 26000
+    },
+    "Investment Transactions": {
+     "rows": 108,
+     "cols": 19,
+     "usedCells": 2071,
+     "gridCells": 26000
+    },
+    "Loan Waivers": {
+     "rows": 0,
+     "cols": 23,
+     "usedCells": 23,
+     "gridCells": 26000
+    },
+    "Waiver Decisions": {
+     "rows": 0,
+     "cols": 7,
+     "usedCells": 7,
+     "gridCells": 26000
+    },
+    "Assets": {
+     "rows": 0,
+     "cols": 28,
+     "usedCells": 28,
+     "gridCells": 28000
+    },
+    "Asset Reviews": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    },
+    "Asset History": {
+     "rows": 0,
+     "cols": 9,
+     "usedCells": 9,
+     "gridCells": 26000
+    },
+    "Terms Acceptance": {
+     "rows": 1006,
+     "cols": 8,
+     "usedCells": 8056,
+     "gridCells": 26182
+    },
+    "Terms Versions": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    }
+   },
+   "buildMs": 2176.118700000108,
+   "ops": {
+    "auth": {
+     "name": "Sign-in check on every request (getCurrentMember)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 23.072099999990314,
+     "cpuMs": 16.61009999678936,
+     "model": {
+      "low": 466.46919999357874,
+      "central": 922.3282999903681,
+      "high": 2178.106499983947
+     },
+     "counters": {
+      "readCalls": 3,
+      "cellsRead": 17073,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 6,
+      "fmtDate": 2006,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 6.462000003200956
+     },
+     "payload": 252
+    },
+    "mySavings": {
+     "name": "My savings (getMySavings)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 3574.185499999905,
+     "cpuMs": 2479.5751999967033,
+     "model": {
+      "low": 15691.436399993407,
+      "central": 28929.29759999011,
+      "high": 60279.36999998352
+     },
+     "counters": {
+      "readCalls": 9,
+      "cellsRead": 2655037,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 26,
+      "fmtDate": 447035,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 1017.6659000033978
+     },
+     "payload": 42290
+    },
+    "myLoans": {
+     "name": "My loans (getMyLoans)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 582.8789000000106,
+     "cpuMs": 381.2495999617968,
+     "model": {
+      "low": 3151.5831999235934,
+      "central": 5931.91679988539,
+      "high": 12818.253999808983
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 492083,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 10,
+      "fmtDate": 98567,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 201.62930003821384
+     },
+     "payload": 7928
+    },
+    "myPage": {
+     "name": "Member home page: 5 calls in parallel (slowest)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 3391.536899999948,
+     "cpuMs": 2415.3965999531792,
+     "model": {
+      "low": 15563.079199906359,
+      "central": 28736.761799859538,
+      "high": 59958.4769997659
+     },
+     "counters": {
+      "readCalls": 9,
+      "cellsRead": 2655037,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 26,
+      "fmtDate": 447035,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 976.140300046769
+     },
+     "payload": 42290,
+     "slowest": "getMySavings",
+     "parts": [
+      {
+       "name": "getMySavings",
+       "model": 28736.761799859538,
+       "aborted": false
+      },
+      {
+       "name": "getMyLoans",
+       "model": 5961.032699990605,
+       "aborted": false
+      },
+      {
+       "name": "getMyLoanRequests",
+       "model": 3154.0371000173986,
+       "aborted": false
+      },
+      {
+       "name": "getMyWithdrawalRequests",
+       "model": 2107.179100022646,
+       "aborted": false
+      },
+      {
+       "name": "getMyFines",
+       "model": 1594.4958999948224,
+       "aborted": false
+      }
+     ],
+     "sumModel": 41553.506599885004
+    },
+    "statement": {
+     "name": "Member statement data (getMemberStatementData, before PDF)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 4489.088100000052,
+     "cpuMs": 3097.9305000215536,
+     "model": {
+      "low": 20479.78600004311,
+      "central": 37899.64150006467,
+      "high": 79337.69250010778
+     },
+     "counters": {
+      "readCalls": 15,
+      "cellsRead": 3511585,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 38,
+      "fmtDate": 614634,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 1391.1575999784982
+     },
+     "payload": 55236
+    },
+    "dashboard": {
+     "name": "Admin dashboard (getAdminDashboard)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 5599.302400000044,
+     "cpuMs": 4070.4868000020506,
+     "model": {
+      "low": 22031.8946000041,
+      "central": 40020.30240000615,
+      "high": 82556.07800001025
+     },
+     "counters": {
+      "readCalls": 12,
+      "cellsRead": 3407147,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 27,
+      "fmtDate": 615096,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 1528.8155999979936
+     },
+     "payload": 377120
+    },
+    "members": {
+     "name": "Members list with balances (getAllMembersSummary)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 4330.461400000029,
+     "cpuMs": 3020.037299986114,
+     "model": {
+      "low": 16228.222599972229,
+      "central": 29445.407899958343,
+      "high": 60453.15849993057
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 2550486,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 423738,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 1310.4241000139154
+     },
+     "payload": 282620
+    },
+    "loanReqs": {
+     "name": "Loan requests list (getLoanRequests)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 4596.079499999993,
+     "cpuMs": 3175.6030999694485,
+     "model": {
+      "low": 19239.8011999389,
+      "central": 35321.99929990835,
+      "high": 73380.89549984725
+     },
+     "counters": {
+      "readCalls": 10,
+      "cellsRead": 3197115,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 18,
+      "fmtDate": 552250,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 1420.476400030544
+     },
+     "payload": 10464962
+    },
+    "activeLoans": {
+     "name": "Active loans / portfolio (getActiveLoans)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 2400.8790000000736,
+     "cpuMs": 1688.4855999890715,
+     "model": {
+      "low": 9734.952199978143,
+      "central": 17797.418799967214,
+      "high": 36808.39199994536
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 1534987,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 16,
+      "fmtDate": 252204,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 712.3934000110021
+     },
+     "payload": 698962
+    },
+    "repayments": {
+     "name": "Repayments list (getRepayments)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 569.9522000000579,
+     "cpuMs": 422.20800000044983,
+     "model": {
+      "low": 2498.2790000008995,
+      "central": 4583.350000001349,
+      "high": 9737.152000002248
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 304011,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 64766,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 147.7441999996081
+     },
+     "payload": 7222889
+    },
+    "wdReqs": {
+     "name": "Withdrawal requests (getWithdrawalRequests)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 5521.487099999911,
+     "cpuMs": 3968.48369998869,
+     "model": {
+      "low": 18666.81239997738,
+      "central": 33384.14109996607,
+      "high": 67675.02849994345
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 2663910,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 19,
+      "fmtDate": 448023,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 1553.003400011221
+     },
+     "payload": 3786612
+    },
+    "fines": {
+     "name": "Surcharges list (getAllFinesForAdmin)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 91.20880000002217,
+     "cpuMs": 62.84970000281464,
+     "model": {
+      "low": 840.7954000056293,
+      "central": 1627.741100008444,
+      "high": 3687.5725000140733
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 74042,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 14994,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 26.435299997217953
+     },
+     "payload": 971361
+    },
+    "savingsTx": {
+     "name": "Savings ledger, unfiltered (getSavingsTransactions)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 4412.388400000054,
+     "cpuMs": 3436.0381999415113,
+     "model": {
+      "low": 17060.224399883024,
+      "central": 30693.410599824536,
+      "high": 62533.16299970756
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 2550486,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 423738,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 975.9929000585107
+     },
+     "payload": 58433239
+    },
+    "insights": {
+     "name": "Loan Insights, all time (getLoanInsights)",
+     "web": true,
+     "write": false,
+     "n": 1,
+     "nodeMs": 8209.290999999968,
+     "cpuMs": 6649.173100058455,
+     "model": {
+      "low": 25589.33120011691,
+      "central": 44544.489300175366,
+      "high": 88262.39550029229
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 3025730,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 15,
+      "fmtDate": 544759,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 1560.1178999415133
+     },
+     "payload": 4407669
+    },
+    "fundLedger": {
+     "name": "Loan fund trace, all time (getLoanFundLedger)",
+     "web": true,
+     "write": false,
+     "n": 2,
+     "nodeMs": 7067.225700000068,
+     "cpuMs": 5675.470399948885,
+     "model": {
+      "low": 23641.55579989777,
+      "central": 41622.64119984666,
+      "high": 83391.66199974444
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 3025730,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 15,
+      "fmtDate": 544685,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 1391.7553000511834
+     },
+     "payload": 32461278
+    },
+    "auditLog": {
+     "name": "Audit log, first page (getAuditLog)",
+     "web": true,
+     "write": false,
+     "n": 3,
+     "nodeMs": 1958.7134999999544,
+     "cpuMs": 639.1379000375746,
+     "model": {
+      "low": 4449.342800075149,
+      "central": 8269.547700112724,
+      "high": 19496.687500187873
+     },
+     "counters": {
+      "readCalls": 9,
+      "cellsRead": 349234,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 10,
+      "fmtDate": 324673,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 1319.5755999623798
+     },
+     "payload": 74792
+    },
+    "csv": {
+     "name": "Ledger CSV export (exportAdminCSV)",
+     "web": true,
+     "write": false,
+     "n": 1,
+     "nodeMs": 7681.642499999958,
+     "cpuMs": 6159.8283999986015,
+     "model": {
+      "low": 25011.082799997206,
+      "central": 43868.33719999581,
+      "high": 87854.95599999302
+     },
+     "counters": {
+      "readCalls": 8,
+      "cellsRead": 3073456,
+      "writeCalls": 0,
+      "cellsWritten": 6,
+      "appends": 1,
+      "light": 16,
+      "fmtDate": 579811,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 1521.8141000013566
+     },
+     "payload": 18474347
+    },
+    "recordSavings": {
+     "name": "Post a deposit (recordSavings)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 3101.5444000000134,
+     "cpuMs": 2170.2900000115624,
+     "model": {
+      "low": 14855.865000023125,
+      "central": 27546.440000034687,
+      "high": 57840.01000005781
+     },
+     "counters": {
+      "readCalls": 6,
+      "cellsRead": 2550522,
+      "writeCalls": 1,
+      "cellsWritten": 18,
+      "appends": 1,
+      "light": 10,
+      "fmtDate": 423742,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 1,
+      "fakeMs": 931.254399988451
+     },
+     "payload": 82,
+     "lockModel": 25748.381000034664
+    },
+    "recordRepayment": {
+     "name": "Post a loan repayment (recordRepayment)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 2885.4963999999454,
+     "cpuMs": 1966.370600003167,
+     "model": {
+      "low": 14255.836700006335,
+      "central": 26544.302800009504,
+      "high": 56350.05500001584
+     },
+     "counters": {
+      "readCalls": 14,
+      "cellsRead": 2297056,
+      "writeCalls": 1,
+      "cellsWritten": 35,
+      "appends": 3,
+      "light": 24,
+      "fmtDate": 387782,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 3,
+      "fakeMs": 919.1257999967784
+     },
+     "payload": 870,
+     "lockModel": 5561.454800052357
+    },
+    "requestWithdrawal": {
+     "name": "Member requests a withdrawal (requestWithdrawal)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 3229.0842999999877,
+     "cpuMs": 2131.7160999665502,
+     "model": {
+      "low": 16264.063199933102,
+      "central": 30403.410299899653,
+      "high": 64845.23449983275
+     },
+     "counters": {
+      "readCalls": 7,
+      "cellsRead": 2663852,
+      "writeCalls": 1,
+      "cellsWritten": 20,
+      "appends": 1,
+      "light": 12,
+      "fmtDate": 448013,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 6,
+      "fakeMs": 1097.3682000334375
+     },
+     "payload": 36,
+     "lockModel": 29457.28839989918
+    },
+    "requestLoan": {
+     "name": "Member requests a loan (requestLoan)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 5244.221400000039,
+     "cpuMs": 3687.7357999493834,
+     "model": {
+      "low": 24985.007099898765,
+      "central": 46306.27839984815,
+      "high": 98168.20099974691
+     },
+     "counters": {
+      "readCalls": 46,
+      "cellsRead": 12345464,
+      "writeCalls": 10,
+      "cellsWritten": 98,
+      "appends": 3,
+      "light": 75,
+      "fmtDate": 2170380,
+      "cache": 0,
+      "props": 0,
+      "locks": 3,
+      "emails": 23,
+      "fakeMs": 5070.762600030168
+     },
+     "payload": 51,
+     "lockModel": 45369.52429984908
+    },
+    "approveLoan": {
+     "name": "Final loan approval, issues the loan (approveLoanRequest)",
+     "web": true,
+     "write": true,
+     "n": 1,
+     "nodeMs": 7672.859499999904,
+     "cpuMs": 5222.771500023548,
+     "model": {
+      "low": 33830.11450004709,
+      "central": 62510.457500070646,
+      "high": 130311.79350011774
+     },
+     "counters": {
+      "readCalls": 23,
+      "cellsRead": 5785577,
+      "writeCalls": 9,
+      "cellsWritten": 31,
+      "appends": 1,
+      "light": 38,
+      "fmtDate": 961365,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 1,
+      "fakeMs": 2450.0879999763565
+     },
+     "payload": 48,
+     "lockModel": 61573.95240007607
+    },
+    "issueFine": {
+     "name": "Record a surcharge (issueFine)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 4880.636200000066,
+     "cpuMs": 3270.9442999510793,
+     "model": {
+      "low": 24077.21959990216,
+      "central": 44876.49489985324,
+      "high": 95073.98549975539
+     },
+     "counters": {
+      "readCalls": 22,
+      "cellsRead": 4002778,
+      "writeCalls": 1,
+      "cellsWritten": 54,
+      "appends": 5,
+      "light": 38,
+      "fmtDate": 657194,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 5,
+      "fakeMs": 1609.691900048987
+     },
+     "payload": 33,
+     "lockModel": 667.7222000209
+    },
+    "jobStatements": {
+     "name": "Monthly statements job (sendMonthlyStatements)",
+     "web": false,
+     "write": false,
+     "n": 3,
+     "nodeMs": 4149.0158999999985,
+     "cpuMs": 2951.8041000275407,
+     "model": {
+      "low": 217971.2192000551,
+      "central": 432999.63430008263,
+      "high": 1068652.7645001377
+     },
+     "counters": {
+      "readCalls": 5,
+      "cellsRead": 3056487,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 9,
+      "fmtDate": 556030,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 1000,
+      "fakeMs": 1197.2117999724578
+     },
+     "payload": 0
+    },
+    "jobDueDates": {
+     "name": "Daily due-date job (processLoanDueDates)",
+     "web": false,
+     "write": false,
+     "n": 3,
+     "nodeMs": 928.3617000000086,
+     "cpuMs": 677.355400013621,
+     "model": {
+      "low": 3537.522000016576,
+      "central": 6375.657500024864,
+      "high": 13285.048500041441
+     },
+     "counters": {
+      "readCalls": 3,
+      "cellsRead": 484063,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 5,
+      "fmtDate": 121312,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 254.8374999917578
+     },
+     "payload": 0
+    },
+    "jobPending": {
+     "name": "Daily pending-action reminders (sendPendingActionReminders_)",
+     "web": false,
+     "write": false,
+     "n": 3,
+     "nodeMs": 3614.1707999999635,
+     "cpuMs": 3317.2824000095716,
+     "model": {
+      "low": 9078.401800019145,
+      "central": 14857.521200028714,
+      "high": 27566.730000047857
+     },
+     "counters": {
+      "readCalls": 9,
+      "cellsRead": 562784,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 18,
+      "fmtDate": 107897,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 296.8883999903919
+     },
+     "payload": 37
+    },
+    "jobRepayRem": {
+     "name": "Daily repayment reminders (sendRepaymentReminders_)",
+     "web": false,
+     "write": false,
+     "n": 3,
+     "nodeMs": 6628.751900000032,
+     "cpuMs": 6383.242599995458,
+     "model": {
+      "low": 14895.224199990915,
+      "central": 23412.205799986372,
+      "high": 41679.26899997729
+     },
+     "counters": {
+      "readCalls": 3,
+      "cellsRead": 484063,
+      "writeCalls": 0,
+      "cellsWritten": 0,
+      "appends": 0,
+      "light": 5,
+      "fmtDate": 121310,
+      "cache": 0,
+      "props": 0,
+      "locks": 0,
+      "emails": 0,
+      "fakeMs": 245.50930000457447
+     },
+     "payload": 0
+    },
+    "adminPage": {
+     "name": "Admin page: 7 calls in parallel (slowest)",
+     "web": true,
+     "derived": true,
+     "slowest": "Admin dashboard (getAdminDashboard)",
+     "extrapolated": false,
+     "model": {
+      "low": 22031.8946000041,
+      "central": 40020.30240000615,
+      "high": 82556.07800001025
+     }
+    }
+   },
+   "sizes": {
+    "M": 1000,
+    "S": 210366,
+    "L": 11592,
+    "R": 30880,
+    "LR": 11592,
+    "F": 5994
+   }
   }
  ],
  "concurrency": []

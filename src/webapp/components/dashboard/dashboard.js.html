@@ -3,6 +3,7 @@
 function loadAdmin(){
   Api.getAdminDashboard(res=>{
     if(!res.ok)return;
+    renderCapacity(res.capacity);
     $('#d_mem').textContent=res.totalMembers;$('#d_sav').textContent=fmt(res.totalSavings);
     $('#d_out').textContent=fmt(res.totalLoansOutstanding);$('#d_lc').textContent=res.activeLoanCount+' active';
     $('#d_fin').textContent=fmt(res.unpaidFinesTotal);$('#d_plr').textContent=res.pendingLoanRequests;
@@ -24,6 +25,17 @@ function loadAdmin(){
     ot.innerHTML=res.overdueLoans.length?res.overdueLoans.map(l=>'<tr><td>'+esc(l.loanId)+'</td><td>'+esc(l.memberName)+'</td><td class="r">'+Math.round(l.outstandingBalance).toLocaleString('en-US')+'</td><td>'+esc(l.progressLabel)+'</td></tr>').join(''):'<tr class="empty"><td colspan="4">None &mdash; all good.</td></tr>';
   });
   loadMembers(); loadActiveLoansAdmin(); loadRepaymentsAdmin(); loadLoanReqAdmin(); loadWdReqAdmin(); loadFinesAdmin();
+}
+
+// ── CAPACITY BANNER: shown when the daily capacity check is not OK (CapacityService.gs) ─────────
+function renderCapacity(c){
+  const el=$('#d_cap');
+  if(!c||c.level==='ok'){el.classList.add('hidden');return;}
+  const items=(c.items||[]).filter(i=>i.level!=='ok');
+  el.className='cap-banner '+(c.level==='critical'?'critical':'warning');
+  el.innerHTML='<strong>'+(c.level==='critical'?'Capacity critical':'Capacity warning')+'</strong>'
+    +' <span class="cap-at">checked '+esc(hdt(c.at))+'</span>'
+    +'<ul>'+items.map(i=>'<li><b>'+esc(i.label)+':</b> '+esc(i.value)+'<br><span class="cap-adv">'+esc(i.advice)+'</span></li>').join('')+'</ul>';
 }
 
 // ── DEPOSIT ACCOUNT TABS (Principal / Operations / Welfare) ───────────────────

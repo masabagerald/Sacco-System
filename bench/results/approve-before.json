@@ -1,0 +1,1087 @@
+{
+ "generated": "2026-11-13T10:46:54.568Z",
+ "endYmd": "2026-11-13",
+ "cost": {
+  "low": {
+   "cpuFactor": 2,
+   "readCall": 20,
+   "readCell": 0.003,
+   "writeCall": 10,
+   "writeCell": 0.0005,
+   "append": 80,
+   "light": 2,
+   "fmtDate": 0.005,
+   "cache": 8,
+   "prop": 10,
+   "lock": 15,
+   "email": 200,
+   "rtt": 300
+  },
+  "central": {
+   "cpuFactor": 3,
+   "readCall": 40,
+   "readCell": 0.006,
+   "writeCall": 25,
+   "writeCell": 0.001,
+   "append": 150,
+   "light": 5,
+   "fmtDate": 0.01,
+   "cache": 15,
+   "prop": 20,
+   "lock": 30,
+   "email": 400,
+   "rtt": 600
+  },
+  "high": {
+   "cpuFactor": 5,
+   "readCall": 80,
+   "readCell": 0.012,
+   "writeCall": 60,
+   "writeCell": 0.002,
+   "append": 400,
+   "light": 15,
+   "fmtDate": 0.03,
+   "cache": 40,
+   "prop": 50,
+   "lock": 80,
+   "email": 1000,
+   "rtt": 1500
+  }
+ },
+ "nodeBudgetMs": 30000,
+ "tiers": [
+  {
+   "members": 50,
+   "years": 0.5,
+   "cells": {
+    "used": 47190,
+    "grid": 577172,
+    "rows": 5209
+   },
+   "savingsRows": 1716,
+   "sheets": {
+    "Members": {
+     "rows": 50,
+     "cols": 9,
+     "usedCells": 459,
+     "gridCells": 26000
+    },
+    "Savings": {
+     "rows": 1716,
+     "cols": 12,
+     "usedCells": 20604,
+     "gridCells": 44642
+    },
+    "Loans": {
+     "rows": 70,
+     "cols": 17,
+     "usedCells": 1207,
+     "gridCells": 26000
+    },
+    "Loan Repayments": {
+     "rows": 157,
+     "cols": 9,
+     "usedCells": 1422,
+     "gridCells": 26000
+    },
+    "Surcharge": {
+     "rows": 49,
+     "cols": 8,
+     "usedCells": 400,
+     "gridCells": 26000
+    },
+    "Loan Requests": {
+     "rows": 70,
+     "cols": 19,
+     "usedCells": 1349,
+     "gridCells": 26000
+    },
+    "Withdrawal Requests": {
+     "rows": 66,
+     "cols": 14,
+     "usedCells": 938,
+     "gridCells": 26000
+    },
+    "Audit Log": {
+     "rows": 2404,
+     "cols": 6,
+     "usedCells": 14430,
+     "gridCells": 62530
+    },
+    "Guarantors": {
+     "rows": 140,
+     "cols": 9,
+     "usedCells": 1269,
+     "gridCells": 26000
+    },
+    "Guarantor Notifications": {
+     "rows": 408,
+     "cols": 10,
+     "usedCells": 4090,
+     "gridCells": 26000
+    },
+    "Loan Fund Ledger": {
+     "rows": 2,
+     "cols": 18,
+     "usedCells": 54,
+     "gridCells": 26000
+    },
+    "Investments": {
+     "rows": 3,
+     "cols": 17,
+     "usedCells": 68,
+     "gridCells": 26000
+    },
+    "Investment Transactions": {
+     "rows": 18,
+     "cols": 19,
+     "usedCells": 361,
+     "gridCells": 26000
+    },
+    "Loan Waivers": {
+     "rows": 0,
+     "cols": 23,
+     "usedCells": 23,
+     "gridCells": 26000
+    },
+    "Waiver Decisions": {
+     "rows": 0,
+     "cols": 7,
+     "usedCells": 7,
+     "gridCells": 26000
+    },
+    "Assets": {
+     "rows": 0,
+     "cols": 28,
+     "usedCells": 28,
+     "gridCells": 28000
+    },
+    "Asset Reviews": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    },
+    "Asset History": {
+     "rows": 0,
+     "cols": 9,
+     "usedCells": 9,
+     "gridCells": 26000
+    },
+    "Terms Acceptance": {
+     "rows": 56,
+     "cols": 8,
+     "usedCells": 456,
+     "gridCells": 26000
+    },
+    "Terms Versions": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    }
+   },
+   "buildMs": 99.6113,
+   "ops": {
+    "approveLoan": {
+     "name": "Final loan approval, issues the loan (approveLoanRequest)",
+     "web": true,
+     "write": true,
+     "n": 1,
+     "nodeMs": 314.44460000000004,
+     "cpuMs": 221.73270000002083,
+     "model": {
+      "low": 3834.843400000042,
+      "central": 7672.954100000063,
+      "high": 16992.065500000106
+     },
+     "counters": {
+      "readCalls": 71,
+      "cellsRead": 234973,
+      "writeCalls": 22,
+      "cellsWritten": 28,
+      "appends": 1,
+      "light": 125,
+      "fmtDate": 40289,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 1,
+      "fakeMs": 92.71189999997921
+     },
+     "payload": 48,
+     "lockModel": 6882.6703000000625
+    }
+   },
+   "sizes": {
+    "M": 50,
+    "S": 1716,
+    "L": 70,
+    "R": 157,
+    "LR": 70,
+    "F": 49
+   }
+  },
+  {
+   "members": 50,
+   "years": 1,
+   "cells": {
+    "used": 94403,
+    "grid": 684968,
+    "rows": 10445
+   },
+   "savingsRows": 3432,
+   "sheets": {
+    "Members": {
+     "rows": 50,
+     "cols": 9,
+     "usedCells": 459,
+     "gridCells": 26000
+    },
+    "Savings": {
+     "rows": 3432,
+     "cols": 12,
+     "usedCells": 41196,
+     "gridCells": 89258
+    },
+    "Loans": {
+     "rows": 140,
+     "cols": 17,
+     "usedCells": 2397,
+     "gridCells": 26000
+    },
+    "Loan Repayments": {
+     "rows": 340,
+     "cols": 9,
+     "usedCells": 3069,
+     "gridCells": 26000
+    },
+    "Surcharge": {
+     "rows": 98,
+     "cols": 8,
+     "usedCells": 792,
+     "gridCells": 26000
+    },
+    "Loan Requests": {
+     "rows": 140,
+     "cols": 19,
+     "usedCells": 2679,
+     "gridCells": 26000
+    },
+    "Withdrawal Requests": {
+     "rows": 132,
+     "cols": 14,
+     "usedCells": 1862,
+     "gridCells": 26000
+    },
+    "Audit Log": {
+     "rows": 4834,
+     "cols": 6,
+     "usedCells": 29010,
+     "gridCells": 125710
+    },
+    "Guarantors": {
+     "rows": 280,
+     "cols": 9,
+     "usedCells": 2529,
+     "gridCells": 26000
+    },
+    "Guarantor Notifications": {
+     "rows": 900,
+     "cols": 10,
+     "usedCells": 9010,
+     "gridCells": 26000
+    },
+    "Loan Fund Ledger": {
+     "rows": 4,
+     "cols": 18,
+     "usedCells": 90,
+     "gridCells": 26000
+    },
+    "Investments": {
+     "rows": 3,
+     "cols": 17,
+     "usedCells": 68,
+     "gridCells": 26000
+    },
+    "Investment Transactions": {
+     "rows": 36,
+     "cols": 19,
+     "usedCells": 703,
+     "gridCells": 26000
+    },
+    "Loan Waivers": {
+     "rows": 0,
+     "cols": 23,
+     "usedCells": 23,
+     "gridCells": 26000
+    },
+    "Waiver Decisions": {
+     "rows": 0,
+     "cols": 7,
+     "usedCells": 7,
+     "gridCells": 26000
+    },
+    "Assets": {
+     "rows": 0,
+     "cols": 28,
+     "usedCells": 28,
+     "gridCells": 28000
+    },
+    "Asset Reviews": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    },
+    "Asset History": {
+     "rows": 0,
+     "cols": 9,
+     "usedCells": 9,
+     "gridCells": 26000
+    },
+    "Terms Acceptance": {
+     "rows": 56,
+     "cols": 8,
+     "usedCells": 456,
+     "gridCells": 26000
+    },
+    "Terms Versions": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    }
+   },
+   "buildMs": 125.5080999999999,
+   "ops": {
+    "approveLoan": {
+     "name": "Final loan approval, issues the loan (approveLoanRequest)",
+     "web": true,
+     "write": true,
+     "n": 1,
+     "nodeMs": 628.2831999999999,
+     "cpuMs": 466.75540000004,
+     "model": {
+      "low": 5222.88880000008,
+      "central": 10204.02220000012,
+      "high": 22213.419000000198
+     },
+     "counters": {
+      "readCalls": 71,
+      "cellsRead": 466933,
+      "writeCalls": 22,
+      "cellsWritten": 28,
+      "appends": 1,
+      "light": 125,
+      "fmtDate": 80713,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 1,
+      "fakeMs": 161.52779999995983
+     },
+     "payload": 48,
+     "lockModel": 9415.268700000122
+    }
+   },
+   "sizes": {
+    "M": 50,
+    "S": 3432,
+    "L": 140,
+    "R": 340,
+    "LR": 140,
+    "F": 98
+   }
+  },
+  {
+   "members": 75,
+   "years": 1,
+   "cells": {
+    "used": 140904,
+    "grid": 802670,
+    "rows": 15630
+   },
+   "savingsRows": 5226,
+   "sheets": {
+    "Members": {
+     "rows": 75,
+     "cols": 9,
+     "usedCells": 684,
+     "gridCells": 26000
+    },
+    "Savings": {
+     "rows": 5226,
+     "cols": 12,
+     "usedCells": 62724,
+     "gridCells": 135902
+    },
+    "Loans": {
+     "rows": 200,
+     "cols": 17,
+     "usedCells": 3417,
+     "gridCells": 26000
+    },
+    "Loan Repayments": {
+     "rows": 490,
+     "cols": 9,
+     "usedCells": 4419,
+     "gridCells": 26000
+    },
+    "Surcharge": {
+     "rows": 148,
+     "cols": 8,
+     "usedCells": 1192,
+     "gridCells": 26000
+    },
+    "Loan Requests": {
+     "rows": 200,
+     "cols": 19,
+     "usedCells": 3819,
+     "gridCells": 26000
+    },
+    "Withdrawal Requests": {
+     "rows": 201,
+     "cols": 14,
+     "usedCells": 2828,
+     "gridCells": 26000
+    },
+    "Audit Log": {
+     "rows": 7266,
+     "cols": 6,
+     "usedCells": 43602,
+     "gridCells": 188942
+    },
+    "Guarantors": {
+     "rows": 400,
+     "cols": 9,
+     "usedCells": 3609,
+     "gridCells": 26000
+    },
+    "Guarantor Notifications": {
+     "rows": 1300,
+     "cols": 10,
+     "usedCells": 13010,
+     "gridCells": 33826
+    },
+    "Loan Fund Ledger": {
+     "rows": 4,
+     "cols": 18,
+     "usedCells": 90,
+     "gridCells": 26000
+    },
+    "Investments": {
+     "rows": 3,
+     "cols": 17,
+     "usedCells": 68,
+     "gridCells": 26000
+    },
+    "Investment Transactions": {
+     "rows": 36,
+     "cols": 19,
+     "usedCells": 703,
+     "gridCells": 26000
+    },
+    "Loan Waivers": {
+     "rows": 0,
+     "cols": 23,
+     "usedCells": 23,
+     "gridCells": 26000
+    },
+    "Waiver Decisions": {
+     "rows": 0,
+     "cols": 7,
+     "usedCells": 7,
+     "gridCells": 26000
+    },
+    "Assets": {
+     "rows": 0,
+     "cols": 28,
+     "usedCells": 28,
+     "gridCells": 28000
+    },
+    "Asset Reviews": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    },
+    "Asset History": {
+     "rows": 0,
+     "cols": 9,
+     "usedCells": 9,
+     "gridCells": 26000
+    },
+    "Terms Acceptance": {
+     "rows": 81,
+     "cols": 8,
+     "usedCells": 656,
+     "gridCells": 26000
+    },
+    "Terms Versions": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    }
+   },
+   "buildMs": 77.08660000000009,
+   "ops": {
+    "approveLoan": {
+     "name": "Final loan approval, issues the loan (approveLoanRequest)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 1012.5695999999994,
+     "cpuMs": 767.6115999999597,
+     "model": {
+      "low": 6717.98819999992,
+      "central": 12893.36479999988,
+      "high": 27690.047999999802
+     },
+     "counters": {
+      "readCalls": 71,
+      "cellsRead": 698262,
+      "writeCalls": 22,
+      "cellsWritten": 28,
+      "appends": 1,
+      "light": 125,
+      "fmtDate": 120593,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 1,
+      "fakeMs": 244.95800000003965
+     },
+     "payload": 48,
+     "lockModel": 12101.365399999882
+    }
+   },
+   "sizes": {
+    "M": 75,
+    "S": 5226,
+    "L": 200,
+    "R": 490,
+    "LR": 200,
+    "F": 148
+   }
+  },
+  {
+   "members": 100,
+   "years": 1,
+   "cells": {
+    "used": 186915,
+    "grid": 920502,
+    "rows": 20758
+   },
+   "savingsRows": 6942,
+   "sheets": {
+    "Members": {
+     "rows": 100,
+     "cols": 9,
+     "usedCells": 909,
+     "gridCells": 26000
+    },
+    "Savings": {
+     "rows": 6942,
+     "cols": 12,
+     "usedCells": 83316,
+     "gridCells": 180518
+    },
+    "Loans": {
+     "rows": 268,
+     "cols": 17,
+     "usedCells": 4573,
+     "gridCells": 26000
+    },
+    "Loan Repayments": {
+     "rows": 648,
+     "cols": 9,
+     "usedCells": 5841,
+     "gridCells": 26000
+    },
+    "Surcharge": {
+     "rows": 198,
+     "cols": 8,
+     "usedCells": 1592,
+     "gridCells": 26000
+    },
+    "Loan Requests": {
+     "rows": 268,
+     "cols": 19,
+     "usedCells": 5111,
+     "gridCells": 26000
+    },
+    "Withdrawal Requests": {
+     "rows": 267,
+     "cols": 14,
+     "usedCells": 3752,
+     "gridCells": 26000
+    },
+    "Audit Log": {
+     "rows": 9662,
+     "cols": 6,
+     "usedCells": 57978,
+     "gridCells": 251238
+    },
+    "Guarantors": {
+     "rows": 536,
+     "cols": 9,
+     "usedCells": 4833,
+     "gridCells": 26000
+    },
+    "Guarantor Notifications": {
+     "rows": 1720,
+     "cols": 10,
+     "usedCells": 17210,
+     "gridCells": 44746
+    },
+    "Loan Fund Ledger": {
+     "rows": 4,
+     "cols": 18,
+     "usedCells": 90,
+     "gridCells": 26000
+    },
+    "Investments": {
+     "rows": 3,
+     "cols": 17,
+     "usedCells": 68,
+     "gridCells": 26000
+    },
+    "Investment Transactions": {
+     "rows": 36,
+     "cols": 19,
+     "usedCells": 703,
+     "gridCells": 26000
+    },
+    "Loan Waivers": {
+     "rows": 0,
+     "cols": 23,
+     "usedCells": 23,
+     "gridCells": 26000
+    },
+    "Waiver Decisions": {
+     "rows": 0,
+     "cols": 7,
+     "usedCells": 7,
+     "gridCells": 26000
+    },
+    "Assets": {
+     "rows": 0,
+     "cols": 28,
+     "usedCells": 28,
+     "gridCells": 28000
+    },
+    "Asset Reviews": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    },
+    "Asset History": {
+     "rows": 0,
+     "cols": 9,
+     "usedCells": 9,
+     "gridCells": 26000
+    },
+    "Terms Acceptance": {
+     "rows": 106,
+     "cols": 8,
+     "usedCells": 856,
+     "gridCells": 26000
+    },
+    "Terms Versions": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    }
+   },
+   "buildMs": 94.44400000000132,
+   "ops": {
+    "approveLoan": {
+     "name": "Final loan approval, issues the loan (approveLoanRequest)",
+     "web": true,
+     "write": true,
+     "n": 3,
+     "nodeMs": 1752.615600000001,
+     "cpuMs": 1380.1214000001928,
+     "model": {
+      "low": 8836.612800000386,
+      "central": 16518.104200000576,
+      "high": 34725.31700000096
+     },
+     "counters": {
+      "readCalls": 71,
+      "cellsRead": 929747,
+      "writeCalls": 22,
+      "cellsWritten": 28,
+      "appends": 1,
+      "light": 125,
+      "fmtDate": 160423,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 1,
+      "fakeMs": 372.4941999998082
+     },
+     "payload": 48,
+     "lockModel": 15721.23830000066
+    }
+   },
+   "sizes": {
+    "M": 100,
+    "S": 6942,
+    "L": 268,
+    "R": 648,
+    "LR": 268,
+    "F": 198
+   }
+  },
+  {
+   "members": 100,
+   "years": 3,
+   "cells": {
+    "used": 562871,
+    "grid": 1931642,
+    "rows": 62544
+   },
+   "savingsRows": 20826,
+   "sheets": {
+    "Members": {
+     "rows": 100,
+     "cols": 9,
+     "usedCells": 909,
+     "gridCells": 26000
+    },
+    "Savings": {
+     "rows": 20826,
+     "cols": 12,
+     "usedCells": 249924,
+     "gridCells": 541502
+    },
+    "Loans": {
+     "rows": 804,
+     "cols": 17,
+     "usedCells": 13685,
+     "gridCells": 26000
+    },
+    "Loan Repayments": {
+     "rows": 2072,
+     "cols": 9,
+     "usedCells": 18657,
+     "gridCells": 53898
+    },
+    "Surcharge": {
+     "rows": 594,
+     "cols": 8,
+     "usedCells": 4760,
+     "gridCells": 26000
+    },
+    "Loan Requests": {
+     "rows": 804,
+     "cols": 19,
+     "usedCells": 15295,
+     "gridCells": 26000
+    },
+    "Withdrawal Requests": {
+     "rows": 801,
+     "cols": 14,
+     "usedCells": 11228,
+     "gridCells": 26000
+    },
+    "Audit Log": {
+     "rows": 29114,
+     "cols": 6,
+     "usedCells": 174690,
+     "gridCells": 756990
+    },
+    "Guarantors": {
+     "rows": 1608,
+     "cols": 9,
+     "usedCells": 14481,
+     "gridCells": 41834
+    },
+    "Guarantor Notifications": {
+     "rows": 5592,
+     "cols": 10,
+     "usedCells": 55930,
+     "gridCells": 145418
+    },
+    "Loan Fund Ledger": {
+     "rows": 12,
+     "cols": 18,
+     "usedCells": 234,
+     "gridCells": 26000
+    },
+    "Investments": {
+     "rows": 3,
+     "cols": 17,
+     "usedCells": 68,
+     "gridCells": 26000
+    },
+    "Investment Transactions": {
+     "rows": 108,
+     "cols": 19,
+     "usedCells": 2071,
+     "gridCells": 26000
+    },
+    "Loan Waivers": {
+     "rows": 0,
+     "cols": 23,
+     "usedCells": 23,
+     "gridCells": 26000
+    },
+    "Waiver Decisions": {
+     "rows": 0,
+     "cols": 7,
+     "usedCells": 7,
+     "gridCells": 26000
+    },
+    "Assets": {
+     "rows": 0,
+     "cols": 28,
+     "usedCells": 28,
+     "gridCells": 28000
+    },
+    "Asset Reviews": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    },
+    "Asset History": {
+     "rows": 0,
+     "cols": 9,
+     "usedCells": 9,
+     "gridCells": 26000
+    },
+    "Terms Acceptance": {
+     "rows": 106,
+     "cols": 8,
+     "usedCells": 856,
+     "gridCells": 26000
+    },
+    "Terms Versions": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    }
+   },
+   "buildMs": 237.34609999999884,
+   "ops": {
+    "approveLoan": {
+     "name": "Final loan approval, issues the loan (approveLoanRequest)",
+     "web": true,
+     "write": true,
+     "n": 1,
+     "nodeMs": 12633.7487,
+     "cpuMs": 11103.977300000613,
+     "model": {
+      "low": 35439.66860000123,
+      "central": 60000.35990000184,
+      "high": 115184.41250000306
+     },
+     "counters": {
+      "readCalls": 71,
+      "cellsRead": 2778455,
+      "writeCalls": 22,
+      "cellsWritten": 28,
+      "appends": 1,
+      "light": 125,
+      "fmtDate": 482267,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 1,
+      "fakeMs": 1529.7713999993866
+     },
+     "payload": 48,
+     "lockModel": 59202.542400001934
+    }
+   },
+   "sizes": {
+    "M": 100,
+    "S": 20826,
+    "L": 804,
+    "R": 2072,
+    "LR": 804,
+    "F": 594
+   }
+  },
+  {
+   "members": 250,
+   "years": 1,
+   "cells": {
+    "used": 506044,
+    "grid": 1765658,
+    "rows": 56275
+   },
+   "savingsRows": 17472,
+   "sheets": {
+    "Members": {
+     "rows": 250,
+     "cols": 9,
+     "usedCells": 2259,
+     "gridCells": 26000
+    },
+    "Savings": {
+     "rows": 17472,
+     "cols": 12,
+     "usedCells": 209676,
+     "gridCells": 454298
+    },
+    "Loans": {
+     "rows": 864,
+     "cols": 17,
+     "usedCells": 14705,
+     "gridCells": 26000
+    },
+    "Loan Repayments": {
+     "rows": 2155,
+     "cols": 9,
+     "usedCells": 19404,
+     "gridCells": 56056
+    },
+    "Surcharge": {
+     "rows": 498,
+     "cols": 8,
+     "usedCells": 3992,
+     "gridCells": 26000
+    },
+    "Loan Requests": {
+     "rows": 864,
+     "cols": 19,
+     "usedCells": 16435,
+     "gridCells": 26000
+    },
+    "Withdrawal Requests": {
+     "rows": 672,
+     "cols": 14,
+     "usedCells": 9422,
+     "gridCells": 26000
+    },
+    "Audit Log": {
+     "rows": 25789,
+     "cols": 6,
+     "usedCells": 154740,
+     "gridCells": 670540
+    },
+    "Guarantors": {
+     "rows": 1728,
+     "cols": 9,
+     "usedCells": 15561,
+     "gridCells": 44954
+    },
+    "Guarantor Notifications": {
+     "rows": 5684,
+     "cols": 10,
+     "usedCells": 56850,
+     "gridCells": 147810
+    },
+    "Loan Fund Ledger": {
+     "rows": 4,
+     "cols": 18,
+     "usedCells": 90,
+     "gridCells": 26000
+    },
+    "Investments": {
+     "rows": 3,
+     "cols": 17,
+     "usedCells": 68,
+     "gridCells": 26000
+    },
+    "Investment Transactions": {
+     "rows": 36,
+     "cols": 19,
+     "usedCells": 703,
+     "gridCells": 26000
+    },
+    "Loan Waivers": {
+     "rows": 0,
+     "cols": 23,
+     "usedCells": 23,
+     "gridCells": 26000
+    },
+    "Waiver Decisions": {
+     "rows": 0,
+     "cols": 7,
+     "usedCells": 7,
+     "gridCells": 26000
+    },
+    "Assets": {
+     "rows": 0,
+     "cols": 28,
+     "usedCells": 28,
+     "gridCells": 28000
+    },
+    "Asset Reviews": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    },
+    "Asset History": {
+     "rows": 0,
+     "cols": 9,
+     "usedCells": 9,
+     "gridCells": 26000
+    },
+    "Terms Acceptance": {
+     "rows": 256,
+     "cols": 8,
+     "usedCells": 2056,
+     "gridCells": 26000
+    },
+    "Terms Versions": {
+     "rows": 0,
+     "cols": 8,
+     "usedCells": 8,
+     "gridCells": 26000
+    }
+   },
+   "buildMs": 254.97739999999612,
+   "ops": {
+    "approveLoan": {
+     "name": "Final loan approval, issues the loan (approveLoanRequest)",
+     "web": true,
+     "write": true,
+     "n": 1,
+     "nodeMs": 12974.720500000003,
+     "cpuMs": 11578.988499999883,
+     "model": {
+      "low": 35398.400999999765,
+      "central": 59442.81349999965,
+      "high": 113165.6684999994
+     },
+     "counters": {
+      "readCalls": 71,
+      "cellsRead": 2519465,
+      "writeCalls": 22,
+      "cellsWritten": 28,
+      "appends": 1,
+      "light": 125,
+      "fmtDate": 439403,
+      "cache": 0,
+      "props": 0,
+      "locks": 1,
+      "emails": 1,
+      "fakeMs": 1395.73200000012
+     },
+     "payload": 48,
+     "lockModel": 58621.33229999955
+    }
+   },
+   "sizes": {
+    "M": 250,
+    "S": 17472,
+    "L": 864,
+    "R": 2155,
+    "LR": 864,
+    "F": 498
+   }
+  }
+ ],
+ "concurrency": []
+}

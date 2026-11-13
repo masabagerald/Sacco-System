@@ -44,6 +44,11 @@ function sendHtmlEmail_(to, subject, html) {
 }
 
 function sendHtmlEmailNow_(to, subject, html) {
+  try { sendViaMailApp_(to, subject, html); }
+  catch (e) { noteMailFailure_(e); throw e; }   // counted for the capacity watch, then handled as before
+}
+
+function sendViaMailApp_(to, subject, html) {
   MailApp.sendEmail({
     to: to, name: SACCO_NAME,
     subject: subject,

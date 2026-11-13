@@ -184,3 +184,19 @@ const INV_TX_TYPES = ['Initial Investment', 'Additional Contribution', 'Redempti
 // Where a fee or tax was paid from: deducted from the investment's balance (lowers its value), or paid separately
 const INV_COST_SOURCES = ['Investment balance', 'Paid separately'];
 const MATURITY_WINDOW_DAYS = 90;  // "upcoming maturities" on the investment dashboard
+
+// ── CAPACITY WATCH (CapacityService.gs) ───────────────────────────────────────
+// A daily check compares the club's size with these limits and warns the admins (email, dashboard banner,
+// audit log) before they are reached. Set the planned limits from the MOU / docs/CAPACITY_AND_SCOPE_REPORT.md.
+const CAPACITY = {
+  activeMembers: 400,          // planned ceiling: active members (about 1 year of data each in the live sheet)
+  liveSavingsRows: 30000,      // savings rows in the live spreadsheet before common screens pass ~10 s (estimated)
+  cells: 10000000,             // Google's limit: cells in one spreadsheet (every tab's full grid)
+  warnAt: 0.80,                // Warning at 80% of a limit
+  criticalAt: 0.95,            // Critical at 95%
+  slowCallMs: 8000,            // a page request taking this long is counted as slow (target: under 10 s)
+  slowCallsWarn: 5,            // slow requests in a day: Warning
+  slowCallsCritical: 20,       // ... Critical
+  jobLimitMs: 6 * 60 * 1000,   // Google's limit: 6 minutes per run (scheduled jobs)
+  remindEveryDays: 7           // while not OK, the admins are reminded this often (and at once when it gets worse)
+};

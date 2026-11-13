@@ -243,7 +243,9 @@ function runOnce(P, op, run, budget) {
     if (C.budgetHit) { aborted = true; error = ''; }
     const wall = performance.now() - t0;
     C.deadline = Infinity;
-    const counters = C.cur;
+    // A copy: the next run's preparation (not timed) must not add to this run's counts
+    const counters = Object.assign({}, C.cur);
+    C.cur = zero();
     const cpu = Math.max(0, wall - counters.fakeMs);
     const payload = res === undefined ? 0 : Buffer.byteLength(JSON.stringify(res) || '');
     return { wall, cpu, counters, aborted, error, payload };
@@ -321,7 +323,8 @@ function main() {
   const tiersArg = (process.argv.find(a => a.startsWith('--tiers=')) || '').slice(8);
   const TIERS = tiersArg ? tiersArg.split(',').map(t => t.split('x').map(Number))
     : QUICK ? [[100, 1], [250, 1]] : [100, 250, 500, 1000, 2000].flatMap(m => [1, 3, 5].map(y => [m, y]));
-  const OUT = path.join(__dirname, 'results', tiersArg ? 'local-' + tiersArg.replace(/[^0-9x.,]/g, '').replace(/,/g, '_') + '.json' : QUICK ? 'local-quick.json' : 'local.json');
+  const outArg = (process.argv.find(a => a.startsWith('--out=')) || '').slice(6);   // --out=name.json
+  const OUT = path.join(__dirname, 'results', outArg || (tiersArg ? 'local-' + tiersArg.replace(/[^0-9x.,]/g, '').replace(/,/g, '_') + '.json' : QUICK ? 'local-quick.json' : 'local.json'));
   const out = { generated: new Date().toISOString(), endYmd: END_YMD, cost: COST, nodeBudgetMs: NODE_BUDGET_MS, tiers: [], concurrency: [] };
   const prevByOp = {};
   for (const [M, Y] of TIERS) {
@@ -337,7 +340,9 @@ function main() {
     const st = P.stats, sz = { M, S: savingsRows, L: st[P.val('SH_LOANS')].rows, R: st[P.val('SH_REPAY')].rows,
       LR: st[P.val('SH_LOAN_REQ')].rows, F: st[P.val('SH_FINES')].rows };
     tier.sizes = sz;
-    for (const op of OPS) {
+    // --ops=approveLoan,requestLoan runs only those operations
+    const onlyOps = (process.argv.find(a => a.startsWith('--ops=')) || '').slice(6).split(',').filter(Boolean);
+    for (const op of OPS.filter(o => !onlyOps.length || onlyOps.indexOf(o.id) > -1)) {
       const runs = [];
       const budget = prevByOp[op.id] ? NODE_BUDGET_MS : NODE_BASELINE_BUDGET_MS;
       for (let r = 0; r < 3; r++) {

@@ -92,7 +92,7 @@ module.exports = {
     assert.throws(() => g.createAllTriggers(), /only be run by its scheduled trigger/, 'a visitor cannot reschedule jobs');
     assert.throws(() => g.sendPendingActionReminders({ triggerUid: 'made-up' }), /only be run/, 'a made-up trigger id is refused');
     fakes.asOwner(() => g.createAllTriggers());
-    assert.strictEqual(fakes.triggers.length, 7);
+    assert.strictEqual(fakes.triggers.length, 8);
     const trigger = { triggerUid: fakes.triggers.find(t => t.fn === 'sendPendingActionReminders').getUniqueId() };
     g.sendPendingActionReminders(trigger);
     g.sendPendingActionReminders(trigger);
@@ -100,7 +100,7 @@ module.exports = {
 
     g.ScriptApp.deleteTrigger(fakes.triggers.find(t => t.fn === 'sendPendingActionReminders'));  // a club set up before this job existed
     eq(g.ensureScheduledJobs_(), ['sendPendingActionReminders'], 'only the missing job is added');
-    assert.strictEqual(fakes.triggers.length, 7);
+    assert.strictEqual(fakes.triggers.length, 8);
     eq(g.ensureScheduledJobs_(), [], 'nothing more on a second run');
     assert.ok(fakes.triggers.find(t => t.fn === 'sendPendingActionReminders').schedule.join(' ').indexOf('everyDays(1)') > -1, 'daily');
   }

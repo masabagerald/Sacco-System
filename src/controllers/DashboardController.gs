@@ -50,7 +50,7 @@ function getAdminDashboard() {
   const issuedThisMonth = loans.filter(l => String(l['Date Issued']||'').indexOf(month) === 0 && String(l['LoanID']||'').trim() !== '');
   const overdueAmount = overdueLoans.reduce((s,l) => s + l.outstandingBalance, 0);
   const unpaidFineCount = unpaidFineItems.length;
-  return { ok:true, totalMembers:active.length, totalSavings:r2(totalSavings),
+  return { ok:true, capacity: lastCapacityStatus_(), totalMembers:active.length, totalSavings:r2(totalSavings),
     month: month, depositsThisMonth: r2(deposits), withdrawalsThisMonth: r2(withdrawals),
     repaymentsThisMonth: r2(repaid), loansIssuedThisMonth: issuedThisMonth.length,
     loansIssuedAmountThisMonth: r2(issuedThisMonth.reduce((s,l) => s + num(l['Principal (UGX)']), 0)),
