@@ -64,9 +64,21 @@ function flatTerms_(principal, fee) {
   return { interest, fee, base, inst1, inst2: r2(base - inst1) };
 }
 
+// The repayment rows of one loan. The rows are grouped by LoanID once per list (and again only if the
+// list grows), so working out every loan costs one pass over the repayments, not one pass per loan.
+const REPAYMENTS_BY_LOAN_ = new WeakMap();
+function repaymentsOf_(allRepayments, loanId) {
+  let ix = REPAYMENTS_BY_LOAN_.get(allRepayments);
+  if (!ix || ix.n !== allRepayments.length) {
+    ix = { n: allRepayments.length, byId: {} };
+    allRepayments.forEach(r => { const id = String(r['LoanID'] || '').trim(); (ix.byId[id] = ix.byId[id] || []).push(r); });
+    REPAYMENTS_BY_LOAN_.set(allRepayments, ix);
+  }
+  return ix.byId[String(loanId || '').trim()] || [];
+}
+
 function computeLoan_(loan, allRepayments) {
-  const reps = allRepayments
-    .filter(r => String(r['LoanID']||'').trim() === String(loan['LoanID']||'').trim())
+  const reps = repaymentsOf_(allRepayments, loan['LoanID'])
     .map(r => ({ date: ymd_(r['Date']), amount: num(pick_(r,['Amount (UGX)','Total Amount Paid'])) }))
     .sort((a,b) => a.date - b.date);
   if (isMemberLoan_(loan)) return computeSingleDue_(loan, reps, 'member', MEMBER_LOAN_RATE, MEMBER_LOAN_FEE);
@@ -215,18 +227,43 @@ function schedule_(principal, ratePct, termMonths) {
   return { monthlyPayment: payment, schedule: sched };
 }
 
-// Loan cap: LOAN_TO_SAVINGS_LIMIT x the member's Principal (individual savings)
-function checkLimit_(memberNo, principal) {
-  const savings = principalBalance_(memberNo);
+// ── LOAN CONTEXT: the tabs the loan rules need, each read at most once per request ──
+// The eligibility, guarantor and limit checks for one request share one context, instead of each
+// re-reading Savings, Loans, Repayments, Guarantors, Loan Requests and Members. Read lazily; only for
+// use within one request, before anything those checks depend on is written.
+function loanCtx_() {
+  const memo = {};
+  const once = (k, f) => () => (k in memo ? memo[k] : (memo[k] = f()));
+  const ctx = {
+    loans: once('loans', () => readSheet_(SH_LOANS, 'loanid').rows),
+    reps: once('reps', () => readSheet_(SH_REPAY, 'loanid').rows),
+    savRows: once('savRows', () => readSheet_(SH_SAVINGS, 'memberno').rows),
+    balances: once('balances', () => memberBalances_(ctx.savRows())),
+    guarantorRows: once('guarantorRows', () => readSheet_(SH_GUARANTORS, 'requestid').rows),
+    requests: once('requests', () => readSheet_(SH_LOAN_REQ, 'requestid').rows),
+    membersByNo: once('membersByNo', () => {
+      const m = {}; readSheet_(SH_MEMBERS, 'memberno').rows.forEach(r => { const no = String(r['MemberNo'] || '').trim(); if (no && !m[no]) m[no] = r; });
+      return m;
+    }),
+    member: no => ctx.membersByNo()[String(no == null ? '' : no).trim()] || null,
+    principal: no => balanceOf_(ctx.balances(), no).Principal,
+    live: null   // liveGuaranteeRows_ result, once worked out
+  };
+  return ctx;
+}
+
+// Loan cap: LOAN_TO_SAVINGS_LIMIT x the member's Principal (individual savings). ctx: optional loanCtx_().
+function checkLimit_(memberNo, principal, ctx) {
+  const savings = ctx ? ctx.principal(memberNo) : principalBalance_(memberNo);
   const maxLoan = r2(savings * LOAN_TO_SAVINGS_LIMIT);
   return { withinLimit: principal <= maxLoan, savings, maxLoan };
 }
 
-// The running (not yet cleared) loan for a member, or null
-function runningLoanOf_(memberNo) {
+// The running (not yet cleared) loan for a member, or null. ctx: optional loanCtx_().
+function runningLoanOf_(memberNo, ctx) {
   const mNo = String(memberNo).trim();
-  const { rows: loans } = readSheet_(SH_LOANS,'loanid');
-  const { rows: reps } = readSheet_(SH_REPAY,'loanid');
+  const loans = ctx ? ctx.loans() : readSheet_(SH_LOANS,'loanid').rows;
+  const reps = ctx ? ctx.reps() : readSheet_(SH_REPAY,'loanid').rows;
   return loans.filter(l => String(l['MemberNo']||'').trim() === mNo)
     .map(l => computeLoan_(l, reps)).find(l => l.status === LOAN_STATUS.ACTIVE) || null;
 }
@@ -234,7 +271,7 @@ function runningLoanOf_(memberNo) {
 // Member-level eligibility for a new loan. Hard rules; the only override is guarantorOverride, an
 // admin's recorded reason for letting a member who is guaranteeing a running loan take one (Sec 8).
 // Non-Members have no savings, so the 12-month savings rule (Founder/Delegate loans only) is skipped for them.
-function loanEligibility_(memberNo, membershipType, guarantorOverride) {
+function loanEligibility_(memberNo, membershipType, guarantorOverride, ctx) {
   const mNo = String(memberNo).trim();
 
   if (String(membershipType||'').trim() !== 'Non-Member') {
@@ -242,13 +279,13 @@ function loanEligibility_(memberNo, membershipType, guarantorOverride) {
     // Joined and their first Principal deposit that has not been reversed (Operations and Welfare are
     // club pools, not savings). Date Joined lets members who saved before the app was in use qualify
     // without their old deposits being entered.
-    const { rows: savRows } = readSheet_(SH_SAVINGS, 'memberno');
+    const savRows = ctx ? ctx.savRows() : readSheet_(SH_SAVINGS, 'memberno').rows;
     const reversed = {};
     savRows.forEach(r => { const o = String(r['Reverses']||'').trim(); if (o) reversed[o] = true; });
     const starts = savRows.filter(r => String(r['MemberNo']||'').trim() === mNo
       && txType_(r).toLowerCase() === 'deposit' && accountOf_(r) === 'Principal'
       && !reversed[String(r['Reference']||'').trim()] && r['Date']).map(r => ymd_(r['Date']).getTime());
-    const joined = dstr_((memberByNo_(mNo) || {})['Date Joined']);
+    const joined = dstr_(((ctx ? ctx.member(mNo) : memberByNo_(mNo)) || {})['Date Joined']);
     if (joined) starts.push(ymd_(joined).getTime());
     if (!starts.length) return { ok: false, error: 'Member has no savings yet. Loans are only available after saving for a minimum of 12 months.' };
     const first = new Date(Math.min(...starts));
@@ -257,12 +294,12 @@ function loanEligibility_(memberNo, membershipType, guarantorOverride) {
   }
 
   // Sec 7: a member with a running loan cannot access another loan (all membership types)
-  const running = runningLoanOf_(mNo);
+  const running = runningLoanOf_(mNo, ctx);
   if (running) return { ok: false, error: 'Member already has a running loan (' + running.loanId + '). A new loan can only be accessed after it is fully cleared. (Art. 4, Sec. 7)' };
 
   // Sec 8: a member who is guaranteeing another loan cannot access a loan until that one is fully
   // serviced, unless an admin has recorded an override reason
-  if (!String(guarantorOverride||'').trim() && liveGuaranteesOf_(mNo, '') > 0)
+  if (!String(guarantorOverride||'').trim() && liveGuaranteesOf_(mNo, '', ctx) > 0)
     return { ok: false, guarantorBlock: true, error: 'Member is currently guaranteeing another loan. A loan can only be accessed once that loan is fully serviced, unless an admin proposes it with an override reason. (Art. 4, Sec. 8)' };
 
   return { ok: true };
@@ -270,45 +307,40 @@ function loanEligibility_(memberNo, membershipType, guarantorOverride) {
 
 // Creates a loan row from a loanSpecFor_() spec (Member: months; Term: days).
 function createLoanRow_(memberNo, principal, purpose, issuedBy, overrideReason, spec) {
-  const { sh, headers, hRow } = readSheet_(SH_LOANS,'loanid');
+  const rd = readSheet_(SH_LOANS,'loanid');
+  const { sh, headers } = rd;
   const needed = ['loan model','processing fee','interest rate','due date'];
   if (needed.some(n => ci(headers, n) < 0))
     throw new Error('Loans sheet is missing one of these columns: Loan Model, Processing Fee (UGX), Interest Rate (%), Due Date. Run setupGuaranteeSchema() once from the script editor.');
-  const newId = nextId_(SH_LOANS,'loanid','loan');
-  const row = emptyRow_(sh, hRow, ci(headers,'loanid'));
-  const s = (c,v) => { if(c>-1) sh.getRange(row,c+1).setValue(v); };
+  const newId = nextId_(SH_LOANS,'loanid','loan', rd);
+  const row = freeRowFinder_(rd, ci(headers,'loanid'))();
   const issued = new Date();
-  s(ci(headers,'loanid'),newId); s(ci(headers,'timestamp'),now_ts());
-  s(ci(headers,'memberno'),memberNo); s(ci(headers,'date issued'),fmt_date(issued));
-  s(ci(headers,'principal'),principal); s(ci(headers,'status'),LOAN_STATUS.ACTIVE);
-  s(ci(headers,'issued by'),issuedBy); s(ci(headers,'purpose'),purpose||'');
-  s(ci(headers,'override'),overrideReason||'');
-  s(ci(headers,'loan model'),spec.model); s(ci(headers,'processing fee'),spec.fee);
-  s(ci(headers,'interest rate'),r2(spec.rate*100));
+  const cells = [[ci(headers,'loanid'),newId], [ci(headers,'timestamp'),now_ts()],
+    [ci(headers,'memberno'),memberNo], [ci(headers,'date issued'),fmt_date(issued)],
+    [ci(headers,'principal'),principal], [ci(headers,'status'),LOAN_STATUS.ACTIVE],
+    [ci(headers,'issued by'),issuedBy], [ci(headers,'purpose'),purpose||''],
+    [ci(headers,'override'),overrideReason||''],
+    [ci(headers,'loan model'),spec.model], [ci(headers,'processing fee'),spec.fee],
+    [ci(headers,'interest rate'),r2(spec.rate*100)]];
   if (spec.model === MEMBER_LOAN_MODEL) {
-    s(ci(headers,'term (months)'),spec.months);
-    s(ci(headers,'due date'),fmt_date(addMonths_(issued, spec.months)));
+    cells.push([ci(headers,'term (months)'),spec.months], [ci(headers,'due date'),fmt_date(addMonths_(issued, spec.months))]);
   } else {
-    s(ci(headers,'term (days)'),spec.days);
-    s(ci(headers,'due date'),fmt_date(addDays_(issued, spec.days)));
+    cells.push([ci(headers,'term (days)'),spec.days], [ci(headers,'due date'),fmt_date(addDays_(issued, spec.days))]);
   }
+  writeCells_(sh, row, headers.length, cells);
   return newId;
 }
 
-function setLoanStatus_(loanId, status) {
-  const { sh, headers, hRow } = readSheet_(SH_LOANS,'loanid');
-  const cId=ci(headers,'loanid'), cSt=ci(headers,'status');
-  const data=sh.getDataRange().getValues();
-  for (let r=hRow+1;r<data.length;r++)
-    if (String(data[r][cId]).trim()===String(loanId).trim()) { if(cSt>-1)sh.getRange(r+1,cSt+1).setValue(status); break; }
+// Sets one cell of the first Loans row with this LoanID. rd: the Loans tab as already read (optional).
+function setLoanCell_(loanId, header, value, rd) {
+  const { sh, headers, rows } = rd || readSheet_(SH_LOANS,'loanid');
+  const c = ci(headers, header), idH = headers[ci(headers,'loanid')];
+  const row = rows.find(r => String(r[idH] == null ? '' : r[idH]).trim() === String(loanId).trim());
+  if (row && c > -1) sh.getRange(row._row, c + 1).setValue(value);
 }
+
+function setLoanStatus_(loanId, status, rd) { setLoanCell_(loanId, 'status', status, rd); }
 
 // Persists the one-time 10% overdue surcharge on a loan. Reading it back (in computeSingleDue_)
 // is what makes it idempotent -- once a nonzero value is stored, it is never recalculated.
-function setLoanOverdueSurcharge_(loanId, amount) {
-  const { sh, headers, hRow } = readSheet_(SH_LOANS,'loanid');
-  const cId=ci(headers,'loanid'), cS=ci(headers,'overdue surcharge');
-  const data=sh.getDataRange().getValues();
-  for (let r=hRow+1;r<data.length;r++)
-    if (String(data[r][cId]).trim()===String(loanId).trim()) { if(cS>-1)sh.getRange(r+1,cS+1).setValue(amount); break; }
-}
+function setLoanOverdueSurcharge_(loanId, amount, rd) { setLoanCell_(loanId, 'overdue surcharge', amount, rd); }

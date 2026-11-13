@@ -5,12 +5,11 @@ function sendMonthlyStatements(e) { ownerOrTrigger_(e);
   const { rows: loans }   = readSheet_(SH_LOANS,'loanid');
   const { rows: reps }    = readSheet_(SH_REPAY,'loanid');
   const { rows: fines }   = readSheet_(SH_FINES,'fineid');
+  const per = memberPositions_(readSheet_(SH_SAVINGS,'memberno').rows, loans, reps, fines);   // ReportController.gs
   members.filter(m=>String(m['Status']||'').toLowerCase()==='active').forEach(m=>{
     const memberNo=String(m['MemberNo']).trim();
-    const savings=savingsBalance_(memberNo);
-    const myLoans=loans.filter(l=>String(l['MemberNo']||'').trim()===memberNo).map(l=>computeLoan_(l,reps)).filter(l=>l.status==='Active');
-    const outstanding=myLoans.reduce((s,l)=>s+l.outstandingBalance,0);
-    const unpaid=fines.filter(f=>String(f['MemberNo']||'').trim()===memberNo&&String(f['Status']||'').toLowerCase()==='unpaid').reduce((s,f)=>s+num(f['Amount (UGX)']),0);
+    const p=per(memberNo);
+    const savings=p.savings, myLoans=p.activeLoans, outstanding=p.outstanding, unpaid=p.unpaid;
     sendEmail_(m['Email'],'Monthly Statement',[
       ['Savings Balance',fmtUGX(savings)],['Active Loans',String(myLoans.length)],
       ['Total Outstanding',fmtUGX(outstanding)],['Unpaid Surcharges',fmtUGX(unpaid)]
@@ -76,9 +75,11 @@ function sendRepaymentReminders_() {
 // sheet rather than recalculating it. Each loan's "Last Notice" cell records the day it was last
 // emailed, so re-running this job on the same day (a retry) sends nothing twice.
 function processLoanDueDates(e) { ownerOrTrigger_(e);
-  const { rows: loans } = readSheet_(SH_LOANS,'loanid');
+  const loanRd = readSheet_(SH_LOANS,'loanid');
+  const { rows: loans, sh: loanSh, headers } = loanRd;
   const { rows: reps }  = readSheet_(SH_REPAY,'loanid');
-  const { sh: loanSh, headers } = readSheet_(SH_LOANS,'loanid');
+  const memberOf = {};
+  readSheet_(SH_MEMBERS,'memberno').rows.forEach(m => { const no = String(m['MemberNo']||'').trim(); if (no && !memberOf[no]) memberOf[no] = m; });
   if (ci(headers,'overdue surcharge') < 0) { Logger.log('Loans sheet has no "Overdue Surcharge (UGX)" column; run setupGuaranteeSchema().'); return; }
   const cNotice = ci(headers,'last notice');
   if (cNotice < 0) Logger.log('Loans sheet has no "Last Notice" column; run setupGuaranteeSchema() so retried runs cannot send duplicate notices.');
@@ -92,7 +93,7 @@ function processLoanDueDates(e) { ownerOrTrigger_(e);
     const c = computeLoan_(l, reps);
     if (c.status !== LOAN_STATUS.ACTIVE) return;
     if (noticedToday(l)) return;
-    const m = memberByNo_(c.memberNo);
+    const m = memberOf[String(c.memberNo).trim()] || null;
     if (!m || !m['Email']) return;
     const due = ymd_(c.dueDate);
     const daysUntilDue = Math.round((due - todayYmd) / 86400000);
@@ -115,7 +116,7 @@ function processLoanDueDates(e) { ownerOrTrigger_(e);
         const rate = num(l['Interest Rate (%)']) ? num(l['Interest Rate (%)']) / 100 : (c.monthlyRate / 100);
         const interest = r2(principal * rate);
         const surcharge = r2((principal + interest) * OVERDUE_SURCHARGE_RATE);
-        setLoanOverdueSurcharge_(c.loanId, surcharge);
+        setLoanOverdueSurcharge_(c.loanId, surcharge, loanRd);
         auditLog_('Overdue Surcharge Applied', c.memberNo, 'System',
           'UGX '+fmtUGX(surcharge)+' (10% of loan + interest) applied automatically -- overdue since '+human_date(c.dueDate)+'.', c.loanId);
         sendEmail_(m['Email'],'Loan Overdue: '+c.loanId,[

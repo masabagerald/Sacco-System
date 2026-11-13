@@ -3,9 +3,10 @@
 function getAllMembersSummary() {
   const auth = adminCaller_(); if (!auth.ok) return auth;
   const { rows } = readSheet_(SH_MEMBERS,'memberno');
+  const balances = memberBalances_(readSheet_(SH_SAVINGS,'memberno').rows);   // one pass over the ledger for everyone
   return { ok:true, members: rows
     .filter(m=>String(m['MemberNo']||'').trim()!=='')
-    .map(m=>{ const b=accountBalances_(m['MemberNo']); return {...makeMemberRecord(m), savingsBalance:b.total, principalBalance:b.Principal}; }) };
+    .map(m=>{ const b=balanceOf_(balances, m['MemberNo']); return {...makeMemberRecord(m), savingsBalance:b.total, principalBalance:b.Principal}; }) };
 }
 
 function addMember(name, email, phone, role, membershipType, dateJoined) {
@@ -28,15 +29,15 @@ function addMember(name, email, phone, role, membershipType, dateJoined) {
     if (rows.some(r=>String(r['Email']||'').trim().toLowerCase()===email)) return {ok:false,field:'email',error:'Email already registered to another member.'};
     // Member numbers are generated: MSIC-0001, MSIC-0002, ... (continues from the highest existing number)
     const memberNo = nextMemberNo_();
-    const { sh, headers, hRow } = readSheet_(SH_MEMBERS,'memberno');
-    const row=emptyRow_(sh,hRow,ci(headers,'full name'));
-    const s=(c,v)=>{if(c>-1)sh.getRange(row,c+1).setValue(v);};
-    s(ci(headers,'memberno'),memberNo); s(ci(headers,'full name'),name);
-    s(ci(headers,'email'),email);
+    const rd = readSheet_(SH_MEMBERS,'memberno');
+    const { sh, headers } = rd;
+    const row = freeRowFinder_(rd, ci(headers,'full name'))();
+    ensureRows_(sh, row);
     // Plain-text cell, so Sheets keeps the leading + instead of reading the number as a value
-    const cPh=ci(headers,'phone'); if(cPh>-1) sh.getRange(row,cPh+1).setNumberFormat('@').setValue(phone);
-    s(ci(headers,'role'),role||'Member'); s(ci(headers,'membership type'),membershipType||'');
-    s(ci(headers,'date joined'),jv.date); s(ci(headers,'status'),'Active');
+    const cPh=ci(headers,'phone'); if(cPh>-1) sh.getRange(row,cPh+1).setNumberFormat('@');
+    writeCells_(sh, row, headers.length, [[ci(headers,'memberno'),memberNo], [ci(headers,'full name'),name],
+      [ci(headers,'email'),email], [cPh,phone], [ci(headers,'role'),role||'Member'],
+      [ci(headers,'membership type'),membershipType||''], [ci(headers,'date joined'),jv.date], [ci(headers,'status'),'Active']]);
     auditLog_('Member Added', memberNo, auth.member.memberNo, name+' ('+email+(phone?', '+phone:'')+'), '+(membershipType||'membership type not set')+', joined '+jv.date, memberNo);
     return { ok:true, memberNo: memberNo };
   } finally { lock.releaseLock(); }

@@ -19,11 +19,16 @@ class FakeRange {
 }
 
 class FakeSheet {
-  constructor(name, rows) { this.name = name; this.data = (rows || []).map(r => r.slice()); this.formats = {}; }
+  // maxRows: the grid's last row. null (the default) lets the sheet grow on any write; a test sets a
+  // number to behave like Apps Script, where writing below the grid fails until rows are inserted.
+  constructor(name, rows) { this.name = name; this.data = (rows || []).map(r => r.slice()); this.formats = {}; this.maxRows = null; }
   getName() { return this.name; }
   _width() { return this.data.reduce((w, r) => Math.max(w, r.length), 0); }
   _get(row, col) { const r = this.data[row - 1]; return r && r[col - 1] !== undefined ? r[col - 1] : ''; }
+  getMaxRows() { return this.maxRows === null ? Math.max(1000, this.data.length) : this.maxRows; }
+  insertRowsAfter(after, n) { if (this.maxRows !== null) this.maxRows += n; return this; }
   _set(row, col, v) {
+    if (this.maxRows !== null && row > this.maxRows) throw new Error('The coordinates of the range are outside the dimensions of the sheet.');
     while (this.data.length < row) this.data.push([]);
     const r = this.data[row - 1];
     while (r.length < col) r.push('');
@@ -36,7 +41,7 @@ class FakeSheet {
   getRange(row, col, numRows, numCols) { return new FakeRange(this, row, col, numRows || 1, numCols || 1); }
   getLastRow() { return this.data.length; }
   getLastColumn() { return this._width(); }
-  appendRow(vals) { this.data.push(vals.slice()); return this; }
+  appendRow(vals) { this.data.push(vals.slice()); if (this.maxRows !== null && this.data.length > this.maxRows) this.maxRows = this.data.length; return this; }
   // Test helper: rows below the header row as objects keyed by header
   records(headerHint) {
     const h = this.data.findIndex(r => r.some(v => String(v).trim().toLowerCase() === headerHint.toLowerCase()));
@@ -88,6 +93,7 @@ function createGasFakes() {
   const cache = {};
   let currentUser = '';
   let hostUser = '';            // the account the web app runs as (Session.getEffectiveUser)
+  let lockCount = 0;            // script-lock acquisitions
   const triggers = [];
 
   const spreadsheet = {
@@ -114,7 +120,7 @@ function createGasFakes() {
       createTemplateFromFile: file => ({ file, evaluate() { return { file, setTitle() { return this; }, addMetaTag() { return this; } }; } }) },
     Session: { getActiveUser: () => ({ getEmail: () => currentUser }), getEffectiveUser: () => ({ getEmail: () => hostUser }),
       getScriptTimeZone: () => 'Africa/Nairobi' },
-    LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
+    LockService: { getScriptLock: () => ({ waitLock() { lockCount++; }, releaseLock() {} }) },
     PropertiesService: {
       getScriptProperties: () => ({ getProperty: k => props[k] || null, setProperty: (k, v) => { props[k] = v; }, deleteProperty: k => { delete props[k]; } }),
       getUserProperties: () => ({ getProperty: () => null, setProperty() {}, deleteProperty() {} })
@@ -142,7 +148,8 @@ function createGasFakes() {
       hostUser = hostUser || 'host@club.org'; currentUser = hostUser;
       try { return fn(); } finally { [currentUser, hostUser] = was; }
     },
-    triggers
+    triggers,
+    locks: () => lockCount
   };
 }
 

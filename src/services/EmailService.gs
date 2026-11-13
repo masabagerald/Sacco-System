@@ -33,7 +33,17 @@ function emailRows_(rows) {
 }
 
 // Sends a finished HTML email with the club seal attached inline. Errors are thrown to the caller.
+// While the script lock is held the email is queued and sent right after the lock is released
+// (withScriptLock_, SheetService.gs); a failure then is logged, as the callers inside locks expect.
 function sendHtmlEmail_(to, subject, html) {
+  if (typeof LOCK_DEPTH_ !== 'undefined' && LOCK_DEPTH_ > 0) {
+    AFTER_LOCK_.push(() => sendHtmlEmailNow_(to, subject, html));
+    return;
+  }
+  sendHtmlEmailNow_(to, subject, html);
+}
+
+function sendHtmlEmailNow_(to, subject, html) {
   MailApp.sendEmail({
     to: to, name: SACCO_NAME,
     subject: subject,

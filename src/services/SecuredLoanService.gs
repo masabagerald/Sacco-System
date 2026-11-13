@@ -52,12 +52,13 @@ function appendByHeaders_(name, hint, obj) {
 // The two constitutional savings coverage checks, as figures for the applicant, the admins and the
 // audit trail. spec: from loanSpecFor_ (the applicant cap applies only where spec.savingsLimit).
 // Returns { applicant, guarantors, failed: [text], waive: { applicantLimit, guarantors: [memberNo] } }.
-function coverageCheck_(memberNo, amount, spec, guarantorNos) {
+function coverageCheck_(memberNo, amount, spec, guarantorNos, ctx) {
+  ctx = ctx || loanCtx_();
   amount = num(amount);
   const pct = v => amount > 0 ? r2(v / amount * 100) : 0;
   const out = { applicant: null, guarantors: [], failed: [], waive: { applicantLimit: false, guarantors: [] } };
   if (spec && spec.savingsLimit) {
-    const lc = checkLimit_(memberNo, amount);
+    const lc = checkLimit_(memberNo, amount, ctx);
     out.applicant = { savings: r2(lc.savings), maxLoan: r2(lc.maxLoan), coveragePct: pct(lc.savings),
       limitPct: r2(LOAN_TO_SAVINGS_LIMIT * 100), ok: !!lc.withinLimit };
     if (!lc.withinLimit) {
@@ -68,8 +69,8 @@ function coverageCheck_(memberNo, amount, spec, guarantorNos) {
   }
   const needed = r2(amount * GUARANTOR_SAVINGS_RATIO);
   [...new Set((guarantorNos || []).map(g => String(g).trim()).filter(Boolean))].forEach(g => {
-    const m = memberByNo_(g);
-    const sav = m ? r2(principalBalance_(g)) : 0;
+    const m = ctx.member(g);
+    const sav = m ? r2(ctx.principal(g)) : 0;
     const ok = sav >= needed;
     out.guarantors.push({ memberNo: g, name: m ? (m['Full Name'] || g) : g, savings: sav, needed, coveragePct: pct(sav),
       requiredPct: r2(GUARANTOR_SAVINGS_RATIO * 100), ok });

@@ -2,10 +2,14 @@
 
 function getMyLoans() {
   const auth = caller_(); if (!auth.ok) return auth;
+  return myLoansFor_(auth.member);
+}
+
+function myLoansFor_(member) {
   const { rows: loans } = readSheet_(SH_LOANS,'loanid');
   const { rows: reps }  = readSheet_(SH_REPAY,'loanid');
   const result = loans
-    .filter(l => String(l['MemberNo']||'').trim()===auth.member.memberNo)
+    .filter(l => String(l['MemberNo']||'').trim()===member.memberNo)
     .map(l => computeLoan_(l,reps));
   return { ok: true, loans: result };
 }
@@ -80,11 +84,11 @@ function recordRepayment(loanId, amount, notes, txDate, opts) {
   const saved = withScriptLock_(() => {
     const loan = readSheet_(SH_LOANS,'loanid').rows.find(l => String(l['LoanID']||'').trim() === loanId);
     if (!loan) return {ok:false,error:'Loan not found.'};
-    const reps = readSheet_(SH_REPAY,'loanid').rows;
+    const repRd = readSheet_(SH_REPAY,'loanid'), reps = repRd.rows;
     const refused = repaymentCheckError_(loan, reps, amount, dv.date, opts); if (refused) return refused;
     const wasActive = computeLoan_(loan, reps).status === LOAN_STATUS.ACTIVE;
     const reference = appendRepaymentRow_({ date: dv.date, loanId, memberNo: loan['MemberNo'], amount,
-      recordedBy: auth.member.memberNo, notes: notes||'' });
+      recordedBy: auth.member.memberNo, notes: notes||'' }, repRd);
     return { ok: true, loan, wasActive, reference };
   });
   if (!saved.ok) return saved;
@@ -117,12 +121,12 @@ function reverseRepayment(reference, reason) {
   const rv = validateReason(reason); if (!rv.ok) return rv;
   reference = String(reference||'').trim(); reason = String(reason).trim();
   const res = withScriptLock_(() => {
-    const { rows } = readSheet_(SH_REPAY,'loanid');
+    const repRd = readSheet_(SH_REPAY,'loanid'), rows = repRd.rows;
     const err = repaymentReversalError_(rows, reference); if (err) return { ok: false, error: err };
     const orig = rows.find(r => String(r['Reference']||'').trim() === reference);
     const amount = num(pick_(orig,['Amount (UGX)','Total Amount Paid']));
     const ref = appendRepaymentRow_({ date: today(), loanId: String(orig['LoanID']).trim(), memberNo: orig['MemberNo'], amount: -amount,
-      recordedBy: auth.member.memberNo, notes: 'Reversal of '+reference+': '+reason, reverses: reference });
+      recordedBy: auth.member.memberNo, notes: 'Reversal of '+reference+': '+reason, reverses: reference }, repRd);
     return { ok: true, orig, amount, reference: ref };
   });
   if (!res.ok) return res;

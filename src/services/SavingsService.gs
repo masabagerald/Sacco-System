@@ -42,6 +42,32 @@ function accountBalancesFromRows_(rows, memberNo) {
   return b;
 }
 
+// Every member's balances from one pass over the ledger: { memberNo: { Principal, Operations, Welfare, total } }.
+// Same figures as accountBalancesFromRows_ for each member; use it instead of that in a loop over members.
+function memberBalances_(rows) {
+  const out = {};
+  rows.forEach(r => {
+    const no = String(r['MemberNo'] || '').trim(); if (!no) return;
+    const sign = txSign_(txType_(r)); if (!sign) return;
+    const b = out[no] || (out[no] = { Principal: 0, Operations: 0, Welfare: 0 });
+    b[accountOf_(r)] += sign * num(r['Amount (UGX)']);
+  });
+  Object.keys(out).forEach(no => {
+    const b = out[no];
+    DEPOSIT_ACCOUNTS.forEach(a => { b[a] = r2(b[a]); });
+    b.total = r2(DEPOSIT_ACCOUNTS.reduce((s, a) => s + b[a], 0));
+  });
+  return out;
+}
+
+// One member's balances from memberBalances_ (zero for a member with no ledger rows)
+function balanceOf_(balances, memberNo) {
+  const b = balances[String(memberNo == null ? '' : memberNo).trim()];
+  if (b) return b;
+  const z = { total: 0 }; DEPOSIT_ACCOUNTS.forEach(a => { z[a] = 0; });
+  return z;
+}
+
 function accountBalances_(memberNo) {
   return accountBalancesFromRows_(readSheet_(SH_SAVINGS, 'memberno').rows, memberNo);
 }
@@ -172,33 +198,32 @@ function nextSavingsRef_(rows, type) {
 // Appends ledger rows under the script lock, re-checking the ledger rules against the latest rows
 // first so two admins cannot overdraw an account at the same time. Rows are only ever appended.
 // Each tx: { memberNo, type, amount, account, category, surchargeReason, date, notes, recordedBy, reverses }
-// Returns { ok, references } or { ok:false, error }.
+// Returns { ok, references, rows } or { ok:false, error }. rows: the ledger including the new rows, so the
+// caller can work out the new balances without reading the sheet again.
 function appendSavingsTxs_(txs) { return withScriptLock_(() => appendSavingsTxsLocked_(txs)); }
 
 // Same as appendSavingsTxs_, for callers that already hold the script lock.
 function appendSavingsTxsLocked_(txs) {
-  const { sh, headers, hRow, rows } = readSheet_(SH_SAVINGS, 'memberno');
+  const rd = readSheet_(SH_SAVINGS, 'memberno');
+  const { sh, headers, rows } = rd;
   if (ci(headers, 'payment category') < 0 || ci(headers, 'deposit account') < 0 || ci(headers, 'reverses') < 0)
     throw new Error('Savings sheet needs the Payment Category, Deposit Account and Reverses columns. Run setupGuaranteeSchema() once from the script editor.');
   const err = checkSavingsTxs_(rows, txs); if (err) return { ok: false, error: err };
+  const nextRow = freeRowFinder_(rd, ci(headers, 'memberno'));
   const references = txs.map(tx => {
     const ref = nextSavingsRef_(rows, tx.type);
-    const row = emptyRow_(sh, hRow, ci(headers, 'memberno'));
-    const s = (c, v) => { if (c > -1) sh.getRange(row, c + 1).setValue(v); };
-    s(ci(headers, 'date'), tx.date || today()); s(ci(headers, 'timestamp'), now_ts());
-    s(ci(headers, 'memberno'), tx.memberNo);
-    s(ci(headers, 'deposit type') > -1 ? ci(headers, 'deposit type') : ci(headers, 'type'), tx.type);
-    s(ci(headers, 'amount'), tx.amount); s(ci(headers, 'recorded'), tx.recordedBy);
-    s(ci(headers, 'reference'), ref); s(ci(headers, 'notes'), tx.notes || '');
-    s(ci(headers, 'payment category'), tx.category || '');
-    s(ci(headers, 'surcharge reason'), tx.surchargeReason || '');
-    s(ci(headers, 'deposit account'), tx.account);
-    s(ci(headers, 'reverses'), tx.reverses || '');
+    writeCells_(sh, nextRow(), headers.length, [
+      [ci(headers, 'date'), tx.date || today()], [ci(headers, 'timestamp'), now_ts()], [ci(headers, 'memberno'), tx.memberNo],
+      [ci(headers, 'deposit type') > -1 ? ci(headers, 'deposit type') : ci(headers, 'type'), tx.type],
+      [ci(headers, 'amount'), tx.amount], [ci(headers, 'recorded'), tx.recordedBy], [ci(headers, 'reference'), ref],
+      [ci(headers, 'notes'), tx.notes || ''], [ci(headers, 'payment category'), tx.category || ''],
+      [ci(headers, 'surcharge reason'), tx.surchargeReason || ''], [ci(headers, 'deposit account'), tx.account],
+      [ci(headers, 'reverses'), tx.reverses || '']]);
     rows.push({ MemberNo: tx.memberNo, Reference: ref, 'Deposit Type': tx.type, 'Amount (UGX)': tx.amount,
       'Deposit Account': tx.account, 'Payment Category': tx.category || '', Reverses: tx.reverses || '' });
     return ref;
   });
-  return { ok: true, references };
+  return { ok: true, references, rows };
 }
 
 // ── WITHDRAWAL RULES ──────────────────────────────────────────────────────────

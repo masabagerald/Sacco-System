@@ -110,8 +110,7 @@ function loanBreakdown_(loan, allRepayments) {
   const id = String(loan['LoanID'] || '').trim();
   const issued = dstr_(loan['Date Issued']);
   const charges = loanCharges_(loan, c);
-  const payments = allRepayments
-    .filter(r => String(r['LoanID'] || '').trim() === id)
+  const payments = repaymentsOf_(allRepayments, id)
     .map(r => ({ date: dstr_(r['Date']), ref: String(r['Reference'] || '').trim() || id + ' / row ' + r._row,
       reverses: String(r['Reverses'] || '').trim(), amount: num(pick_(r, ['Amount (UGX)', 'Total Amount Paid'])) }))
     .filter(p => p.date && p.amount);

@@ -11,7 +11,8 @@ function getAdminDashboard() {
   const { rows: savRows }  = readSheet_(SH_SAVINGS,'memberno');
   const month = fmt_date(new Date()).slice(0,7);  // yyyy-MM
   const active = members.filter(m=>String(m['MemberNo']||'').trim()!=='');
-  const totalSavings = active.reduce((s,m)=>s+accountBalancesFromRows_(savRows,m['MemberNo']).total,0);
+  const balances = memberBalances_(savRows);
+  const totalSavings = active.reduce((s,m)=>s+balanceOf_(balances,m['MemberNo']).total,0);
   const nameOf = {}; active.forEach(m => { nameOf[String(m['MemberNo']).trim()] = m['Full Name'] || ''; });
   const computedLoans = loans.filter(l=>String(l['LoanID']||'').trim()!=='').map(l=>computeLoan_(l,reps));
   const activeLoans = computedLoans.filter(l=>l.status==='Active');
@@ -59,7 +60,7 @@ function getAdminDashboard() {
     totalLoansOutstanding:r2(totalOutstanding), activeLoanCount:activeLoans.length,
     unpaidFinesTotal:r2(unpaidFines), paidFinesTotal:r2(paidFines), paidSurchargeCount:paidFineItems.length, pendingLoanRequests:pendingLoanReqs, pendingWithdrawalRequests:pendingWdReqs,
     overdueLoans:overdueLoans.map(l=>({loanId:l.loanId,memberNo:l.memberNo,
-      memberName:(memberByNo_(l.memberNo)||{})['Full Name']||l.memberNo,
+      memberName:nameOf[String(l.memberNo||'').trim()]||l.memberNo,
       outstandingBalance:l.outstandingBalance,progressLabel:l.progressLabel})) };
 }
 

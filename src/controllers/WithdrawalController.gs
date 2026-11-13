@@ -27,7 +27,8 @@ function requestWithdrawal(amount, reason, otherText, account) {
     return {ok:false,error:'Withdrawal requests are open to '+WITHDRAWAL_MEMBERSHIP_TYPES.join(' and ')+'s only.'};
   const memberNo = String(auth.member.memberNo).trim();
   return withScriptLock_(() => {
-    const { sh, headers, hRow, rows: reqs } = readSheet_(SH_WD_REQ,'requestid');
+    const rd = readSheet_(SH_WD_REQ,'requestid');
+    const { sh, headers, rows: reqs } = rd;
     if (ci(headers,'initiated by') < 0 || ci(headers,'deposit account') < 0)
       throw new Error('Withdrawal Requests sheet is missing the "Initiated By" or "Deposit Account" column. Run setupGuaranteeSchema() once from the script editor.');
     const { rows: savRows } = readSheet_(SH_SAVINGS,'memberno');
@@ -36,14 +37,10 @@ function requestWithdrawal(amount, reason, otherText, account) {
     const avail = withdrawalAvailable_(savRows, reqs, memberNo, account);
     if (amount > avail) return {ok:false,error:'Amount exceeds the available '+(pooled?'club ':'')+account+' balance ('+fmtUGX(Math.max(avail,0))
       +(avail < bal ? ', after requests still awaiting approval' : '')+').'};
-    const newId=nextId_(SH_WD_REQ,'requestid','withdrawal');
-    const row=emptyRow_(sh,hRow,ci(headers,'memberno'));
-    const s=(c,v)=>{if(c>-1)sh.getRange(row,c+1).setValue(v);};
-    s(ci(headers,'requestid'),newId); s(ci(headers,'timestamp'),now_ts());
-    s(ci(headers,'memberno'),memberNo); s(ci(headers,'amount'),amount);
-    s(ci(headers,'deposit account'),account);
-    s(ci(headers,'reason'),reason); s(ci(headers,'status'),'Pending');
-    s(ci(headers,'initiated by'),memberNo);
+    const newId=nextId_(SH_WD_REQ,'requestid','withdrawal', rd);
+    writeCells_(sh, freeRowFinder_(rd, ci(headers,'memberno'))(), headers.length, [
+      [ci(headers,'requestid'),newId], [ci(headers,'timestamp'),now_ts()], [ci(headers,'memberno'),memberNo], [ci(headers,'amount'),amount],
+      [ci(headers,'deposit account'),account], [ci(headers,'reason'),reason], [ci(headers,'status'),'Pending'], [ci(headers,'initiated by'),memberNo]]);
     // Withdrawal emails carry no savings balances; admins check the balance on the Withdrawal Approvals screen
     notifyAdmins_('Withdrawal Request: '+newId,withdrawalEmailRows_(newId, auth.member.name+' ('+memberNo+')', account, amount, [['Reason',reason]]),
       'A withdrawal request is pending two different admin approvals. Review the available balance in the app before approving.');
@@ -55,9 +52,13 @@ function requestWithdrawal(amount, reason, otherText, account) {
 
 function getMyWithdrawalRequests() {
   const auth = caller_(); if (!auth.ok) return auth;
+  return myWithdrawalRequestsFor_(auth.member);
+}
+
+function myWithdrawalRequestsFor_(member) {
   const { rows } = readSheet_(SH_WD_REQ,'requestid');
   return { ok: true, requests: rows
-    .filter(r=>String(r['MemberNo']||'').trim()===String(auth.member.memberNo).trim())
+    .filter(r=>String(r['MemberNo']||'').trim()===String(member.memberNo).trim())
     .map(r=>({requestId:r['RequestID'],account:requestAccount_(r),amount:num(r['Amount (UGX)']),reason:r['Reason']||'',
       status:r['Status']||'',decisionNotes:r['Decision Notes']||'',date:r['Timestamp']}))
     .sort((a,b)=>String(b.date).localeCompare(String(a.date))) };
@@ -70,6 +71,7 @@ function getWithdrawalRequests() {
   const { rows: savRows } = readSheet_(SH_SAVINGS,'memberno');
   const nameOf = {}; members.forEach(m => { nameOf[String(m['MemberNo']||'').trim()] = m['Full Name'] || ''; });
   const poolBal = {}; POOLED_ACCOUNTS.forEach(a => { poolBal[a] = poolBalanceFromRows_(savRows, a); });
+  const balances = memberBalances_(savRows);   // one pass over the ledger for every request
   return { ok: true, requests: rows
     .filter(r=>String(r['RequestID']||'').trim()!=='')
     .map(r=>{
@@ -82,7 +84,7 @@ function getWithdrawalRequests() {
       return {requestId:r['RequestID'],memberNo,memberName:nameOf[memberNo]||memberNo,account,pooled,
         amount:num(r['Amount (UGX)']),reason:r['Reason']||'',status:r['Status']||'',
         decisionNotes:r['Decision Notes']||'',date:r['Timestamp'],
-        currentBalance: pooled ? poolBal[account] : accountBalancesFromRows_(savRows,memberNo)[account],
+        currentBalance: pooled ? poolBal[account] : balanceOf_(balances,memberNo)[account],
         initiatedBy, initiatedByName: nameOf[initiatedBy]||initiatedBy,
         approver1, approver1Name: approver1 ? (nameOf[approver1]||approver1) : '',
         approver2, approver2Name: approver2 ? (nameOf[approver2]||approver2) : ''};})
@@ -132,7 +134,7 @@ function approveWithdrawalLocked_(auth, requestId) {
   if (!res.ok) return res;
   setApprover_(sh, headers, hRow, requestId, 2, auth.member.memberNo);
   updateReqStatus_(sh,headers,hRow,requestId,'Approved','Approved by '+approver1+' and '+auth.member.memberNo,auth.member.memberNo);
-  const newBal=accountBalances_(memberNo);
+  const newBal=accountBalancesFromRows_(res.rows, memberNo);
   sendEmail_(m['Email'],'Withdrawal Approved: '+requestId,withdrawalEmailRows_(requestId, '', account, amount, [['Ledger reference',res.references[0]]]),
     'Your withdrawal request has received both required admin approvals and your '+account+' balance has been updated. Sign in to see your balance.');
   auditLog_('Withdrawal Fully Approved', memberNo, auth.member.memberNo,
@@ -143,6 +145,10 @@ function approveWithdrawalLocked_(auth, requestId) {
 function rejectWithdrawal(requestId, reason) {
   const auth = adminCaller_(); if (!auth.ok) return auth;
   const rv = validateReason(reason); if (!rv.ok) return rv;
+  return withScriptLock_(() => rejectWithdrawalLocked_(auth, requestId, reason));
+}
+
+function rejectWithdrawalLocked_(auth, requestId, reason) {
   const { sh, headers, hRow, rows } = readSheet_(SH_WD_REQ,'requestid');
   const req=rows.find(r=>String(r['RequestID']||'').trim()===String(requestId).trim());
   if (!req) return {ok:false,error:'Request not found.'};

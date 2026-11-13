@@ -88,11 +88,16 @@ function termsMissing_(member) {
   return termsRequiredDocs_(member).filter(k => !done[k + '|' + docs[k].version]);
 }
 
-function recordTerms_(member, keys, decision) {
+// Under the script lock: two members accepting at the same moment must not write to the same row.
+function recordTerms_(member, keys, decision) { return withScriptLock_(() => recordTermsLocked_(member, keys, decision)); }
+
+function recordTermsLocked_(member, keys, decision) {
   setupTermsSchema();
   const docs = termsDocuments_(), ts = now_ts();
   const { sh, headers } = readSheet_(SH_TERMS, 'memberno');
-  sh.getRange(sh.getLastRow() + 1, 1, keys.length, headers.length).setValues(keys.map(k => headers.map(h => ({
+  const first = sh.getLastRow() + 1;
+  ensureRows_(sh, first + keys.length - 1);
+  sh.getRange(first, 1, keys.length, headers.length).setValues(keys.map(k => headers.map(h => ({
     'Timestamp': ts, 'MemberNo': member.memberNo, 'Email': member.email, 'Role': member.role, 'Document': k,
     'Title': docs[k].title, 'Version': docs[k].version, 'Decision': decision })[h] || '')));
 }

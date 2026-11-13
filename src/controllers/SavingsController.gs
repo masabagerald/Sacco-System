@@ -1,9 +1,14 @@
-// ── SAVINGS ───────────────────────────────────────────────────────────────────
+// â”€â”€ SAVINGS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function getMySavings() {
   const auth = caller_(); if (!auth.ok) return auth;
-  if (auth.member.membershipType === 'Non-Member') return { ok: false, nonMember: true, error: 'Non-Members do not use the savings/deposit function.' };
-  const no = String(auth.member.memberNo).trim();
+  return mySavingsFor_(auth.member);
+}
+
+// The signed-in member's savings (the caller has checked who they are)
+function mySavingsFor_(member) {
+  if (member.membershipType === 'Non-Member') return { ok: false, nonMember: true, error: 'Non-Members do not use the savings/deposit function.' };
+  const no = String(member.memberNo).trim();
   const { rows } = readSheet_(SH_SAVINGS, 'memberno');
   const history = rows
     .filter(r => String(r['MemberNo']||'').trim() === no)
@@ -14,7 +19,7 @@ function getMySavings() {
   const available = {};
   DEPOSIT_ACCOUNTS.forEach(a => { available[a] = withdrawalAvailable_(rows, reqs, no, a); });
   return { ok: true, balance: accounts.total, accounts, contributions: contributionsFromRows_(rows, no), pooled: POOLED_ACCOUNTS,
-    available, canWithdraw: canWithdraw_(auth.member.membershipType), history };
+    available, canWithdraw: canWithdraw_(member.membershipType), history };
 }
 
 // Admin records a deposit into, or a withdrawal from, one of a member's deposit accounts.
@@ -29,7 +34,7 @@ function recordSavings(memberNo, type, amount, account, category, surchargeReaso
   const res = appendSavingsTxs_([Object.assign({ memberNo, recordedBy: auth.member.memberNo }, tx)]);
   if (!res.ok) return res;
   const reference = res.references[0];
-  const bal = accountBalances_(memberNo);
+  const bal = accountBalancesFromRows_(res.rows, memberNo);
   // Withdrawal emails never show savings balances (the member sees them after signing in)
   const isDeposit = tx.type === TX_DEPOSIT;
   sendEmail_(m['Email'], tx.type + ' Confirmation', [
@@ -66,7 +71,7 @@ function reverseSavingsTransaction(reference, reason) {
     amount, account, category: orig['Payment Category']||'', surchargeReason: orig['Surcharge Reason']||'', date: today(),
     notes: 'Reversal of ' + reference + ': ' + reason, recordedBy: auth.member.memberNo, reverses: reference }]);
   if (!res.ok) return res;
-  const bal = accountBalances_(memberNo);
+  const bal = accountBalancesFromRows_(res.rows, memberNo);
   const m = memberByNo_(memberNo);
   const wasWithdrawal = origType.toLowerCase() === 'withdrawal';  // withdrawal emails show no savings balances
   sendEmail_(m?.['Email'], 'Savings Transaction Reversed', [
@@ -107,7 +112,7 @@ function correctContribution(reference, amount, account, category, surchargeReas
   if (!res.ok) return res;
   const reversalRef = res.references[0], newRef = res.references[1];
   const describe = d => fmtUGX(d.amount) + ' in ' + d.account + ' (' + (d.category||'-') + (d.surchargeReason ? ': ' + d.surchargeReason : '') + ', dated ' + d.date + ')';
-  const bal = accountBalances_(memberNo);
+  const bal = accountBalancesFromRows_(res.rows, memberNo);
   const m = memberByNo_(memberNo);
   sendEmail_(m?.['Email'], 'Contribution Corrected', [
     ['Original', reference + ': ' + describe(before)], ['Corrected', newRef + ': ' + describe(tx)], ['Reason', reason],

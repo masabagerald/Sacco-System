@@ -3,27 +3,34 @@ const GUARANTOR_HEADERS = ['Timestamp','RequestID','LoanID','ApplicantNo','Guara
 
 // A guarantor row is "live" while the loan it backs is still running. Before the loan exists
 // it backs a pending request. Live guarantors can't guarantee anyone else (Sec 5).
-function liveGuaranteeRows_() {
-  const { rows: g } = readSheet_(SH_GUARANTORS, 'requestid');
-  if (!g.length) return [];
-  const { rows: reqs } = readSheet_(SH_LOAN_REQ, 'requestid');
+// ctx: optional loanCtx_() (LoanService.gs); the result is kept on it, so one request works it out once.
+function liveGuaranteeRows_(ctx) {
+  if (ctx && ctx.live) return ctx.live;
+  const g = ctx ? ctx.guarantorRows() : readSheet_(SH_GUARANTORS, 'requestid').rows;
+  if (!g.length) return ctx ? (ctx.live = []) : [];
+  const reqs = ctx ? ctx.requests() : readSheet_(SH_LOAN_REQ, 'requestid').rows;
   const reqStatus = {};
   reqs.forEach(r => { reqStatus[String(r['RequestID']||'').trim()] = String(r['Status']||'').trim(); });
-  const { rows: loans } = readSheet_(SH_LOANS, 'loanid');
-  const { rows: reps } = readSheet_(SH_REPAY, 'loanid');
+  // Only the loans someone guarantees need working out
+  const guaranteed = {};
+  g.forEach(r => { const lid = String(r['LoanID']||'').trim(); if (lid) guaranteed[lid] = true; });
+  const loans = ctx ? ctx.loans() : readSheet_(SH_LOANS, 'loanid').rows;
+  const reps = ctx ? ctx.reps() : readSheet_(SH_REPAY, 'loanid').rows;
   const loanStatus = {};
-  loans.forEach(l => { loanStatus[String(l['LoanID']||'').trim()] = computeLoan_(l, reps).status; });
-  return g.filter(r => {
+  loans.forEach(l => { const id = String(l['LoanID']||'').trim(); if (guaranteed[id]) loanStatus[id] = computeLoan_(l, reps).status; });
+  const live = g.filter(r => {
     const lid = String(r['LoanID']||'').trim();
     if (lid) return loanStatus[lid] === LOAN_STATUS.ACTIVE;
     return isOpenRequest_({ Status: reqStatus[String(r['RequestID']||'').trim()] });
   });
+  if (ctx) ctx.live = live;
+  return live;
 }
 
 // How many live guarantees a member holds, ignoring the request being decided (excludeRequestId)
-function liveGuaranteesOf_(memberNo, excludeRequestId) {
+function liveGuaranteesOf_(memberNo, excludeRequestId, ctx) {
   const mNo = String(memberNo).trim(), ex = String(excludeRequestId||'').trim();
-  return liveGuaranteeRows_().filter(r =>
+  return liveGuaranteeRows_(ctx).filter(r =>
     String(r['GuarantorNo']||'').trim() === mNo &&
     (!ex || String(r['RequestID']||'').trim() !== ex)).length;
 }
@@ -32,7 +39,8 @@ function liveGuaranteesOf_(memberNo, excludeRequestId) {
 // coverageWaived: guarantor numbers whose 25% savings coverage was waived by an approved secured-loan
 // waiver (ISS-11). Only that one check is skipped for them; every other guarantor rule still applies.
 // A failure of the coverage check alone is marked coverageFailed, so the form can offer a secured loan.
-function guarantorChecks_(applicantNo, amount, guarantorNos, excludeRequestId, coverageWaived) {
+function guarantorChecks_(applicantNo, amount, guarantorNos, excludeRequestId, coverageWaived, ctx) {
+  ctx = ctx || loanCtx_();
   const waived = (coverageWaived || []).map(g => String(g).trim());
   const applicant = String(applicantNo).trim();
   const list = [...new Set((guarantorNos||[]).map(g => String(g).trim()).filter(Boolean))];
@@ -40,15 +48,15 @@ function guarantorChecks_(applicantNo, amount, guarantorNos, excludeRequestId, c
   if (list.includes(applicant)) return { ok: false, error: 'A member cannot guarantee their own loan.' };
   const needed = r2(num(amount) * GUARANTOR_SAVINGS_RATIO);
   for (const g of list) {
-    const m = memberByNo_(g);
+    const m = ctx.member(g);
     if (!m) return { ok: false, error: 'Guarantor ' + g + ' was not found.' };
     if (String(m['Status']||'').trim().toLowerCase() !== 'active') return { ok: false, error: 'Guarantor ' + g + ' is not an active member.' };
     if (String(m['Membership Type']||'').trim() !== 'Founder Member') return { ok: false, error: 'Guarantor ' + g + ' must be a Founder Member.' };
-    const running = runningLoanOf_(g);
+    const running = runningLoanOf_(g, ctx);
     if (running) return { ok: false, error: 'Guarantor ' + g + ' has a running loan (' + running.loanId + ') and cannot guarantee anyone. (Art. 4, Sec. 6)' };
-    if (liveGuaranteesOf_(g, excludeRequestId) > 0) return { ok: false, error: 'Guarantor ' + g + ' is already guaranteeing another loan. A member can guarantee only one member at a time. (Art. 4, Sec. 5)' };
+    if (liveGuaranteesOf_(g, excludeRequestId, ctx) > 0) return { ok: false, error: 'Guarantor ' + g + ' is already guaranteeing another loan. A member can guarantee only one member at a time. (Art. 4, Sec. 5)' };
     if (waived.indexOf(g) > -1) continue;
-    const sav = principalBalance_(g);
+    const sav = ctx.principal(g);
     if (sav < needed) return { ok: false, coverageFailed: true, error: 'Guarantor ' + g + ' has Principal savings of ' + fmtUGX(sav) + ' but needs at least ' + fmtUGX(needed) + ' (25% of the loan). (Art. 4, Sec. 3)' };
   }
   return { ok: true, guarantors: list };
@@ -80,7 +88,9 @@ function appendGuarantors_(requestId, loanId, applicantNo, guarantorNos) {
     set('token', tokens[i]); set('response', loanId ? 'Admin issued' : 'Pending');
     return arr;
   });
-  sh.getRange(sh.getLastRow() + 1, 1, out.length, headers.length).setValues(out);
+  const first = sh.getLastRow() + 1;
+  ensureRows_(sh, first + out.length - 1);
+  sh.getRange(first, 1, out.length, headers.length).setValues(out);
   return guarantorNos.map((g, i) => ({ guarantorNo: g, token: tokens[i] }));
 }
 

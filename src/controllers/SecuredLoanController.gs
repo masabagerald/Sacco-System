@@ -12,7 +12,7 @@ function checkLoanCoverage(amount, termInput, guarantorNos, forMemberNo) {
   const membershipType = String(m['Membership Type'] || '').trim();
   if (!(num(amount) > 0)) return { ok: true, membershipType, failed: [], securedAvailable: false, applicant: null, guarantors: [] };
   const sr = loanSpecFor_(membershipType, termInput);
-  const cov = coverageCheck_(who, amount, sr.ok ? sr.spec : null, guarantorNos);
+  const cov = coverageCheck_(who, amount, sr.ok ? sr.spec : null, guarantorNos, loanCtx_());
   return { ok: true, membershipType, applicant: cov.applicant, guarantors: cov.guarantors, failed: cov.failed,
     securedAvailable: cov.failed.length > 0 && SECURED_LOAN_MEMBERSHIP_TYPES.indexOf(membershipType) > -1 };
 }
@@ -27,7 +27,8 @@ function requestSecuredLoan(amount, termInput, purpose, guarantorNos, security) 
 function submitSecuredLoanRequest_(memberNo, initiatedBy, initiatorName, amount, termInput, purpose, guarantorNos, security) {
   amount = r2(num(amount));
   const av = validatePositiveAmount(amount); if (!av.ok) return av;
-  const member = memberByNo_(memberNo);
+  const ctx = loanCtx_();   // one read of each tab for every check below
+  const member = ctx.member(memberNo);
   if (!member) return { ok: false, error: 'Member not found.' };
   const membershipType = String(member['Membership Type'] || '').trim();
   if (SECURED_LOAN_MEMBERSHIP_TYPES.indexOf(membershipType) < 0)
@@ -35,13 +36,13 @@ function submitSecuredLoanRequest_(memberNo, initiatedBy, initiatorName, amount,
   const sr = loanSpecFor_(membershipType, termInput); if (!sr.ok) return sr;
   const spec = sr.spec;
   // Rules a waiver does not lift: 12-month saving period, one running loan, not guaranteeing a running loan
-  const el = loanEligibility_(memberNo, membershipType, ''); if (!el.ok) return el;
+  const el = loanEligibility_(memberNo, membershipType, '', ctx); if (!el.ok) return el;
   const sv = validateSecurity_(security); if (!sv.ok) return sv;
   const sec = sv.security;
   // Every guarantor rule except savings coverage: exactly two, Founder Members, active, free to guarantee
   const picked = [...new Set((guarantorNos || []).map(g => String(g).trim()).filter(Boolean))];
-  const gc = guarantorChecks_(memberNo, amount, picked, '', picked); if (!gc.ok) return gc;
-  const cov = coverageCheck_(memberNo, amount, spec, gc.guarantors);
+  const gc = guarantorChecks_(memberNo, amount, picked, '', picked, ctx); if (!gc.ok) return gc;
+  const cov = coverageCheck_(memberNo, amount, spec, gc.guarantors, ctx);
   if (!cov.failed.length)
     return { ok: false, error: 'You and your guarantors meet the savings requirements, so no waiver is needed. Submit a normal loan request instead.' };
 

@@ -87,16 +87,65 @@ function nextRef_(kind, refs) {
   return formatRef_(kind, refs.reduce((max, r) => Math.max(max, refSerial_(kind, r)), 0) + 1);
 }
 
-// Next reference for the ID column of a sheet, e.g. nextId_(SH_LOANS, 'loanid', 'loan') -> 'LN-000008'
-function nextId_(sheetName, headerHint, kind) {
-  const { sh, headers, hRow } = readSheet_(sheetName, headerHint);
-  const c = ci(headers, headerHint);
-  return nextRef_(kind, sh.getDataRange().getValues().slice(hRow + 1).map(r => r[c]));
+// Next reference for the ID column of a sheet, e.g. nextId_(SH_LOANS, 'loanid', 'loan') -> 'LN-000008'.
+// rd: the sheet as already read by readSheet_ (saves reading it again).
+function nextId_(sheetName, headerHint, kind, rd) {
+  const { headers, rows } = rd || readSheet_(sheetName, headerHint);
+  const h = headers[ci(headers, headerHint)];
+  return nextRef_(kind, rows.map(r => r[h]));
 }
 
-// Runs fn while holding the script lock (one writer at a time across all users).
+// ── WRITING NEW ROWS ──────────────────────────────────────────────────────────
+
+// Free rows of a sheet already read by readSheet_: the first row (below the header) whose key column is
+// blank, then the next, ... -- the same rows emptyRow_() finds, without reading the sheet again.
+// Returns a function; each call gives the next free row (1-based).
+function freeRowFinder_(rd, keyCol) {
+  const key = rd.headers[keyCol];
+  const taken = {};
+  rd.rows.forEach(r => { if (String(r[key] == null ? '' : r[key]).trim()) taken[r._row] = true; });
+  let cur = rd.hRow + 2;
+  return () => { while (taken[cur]) cur++; taken[cur] = true; return cur++; };
+}
+
+// Makes sure the sheet's grid reaches row `row`. A range below the last grid row cannot be written,
+// so a tab that is full (a new tab has 1,000 rows) is extended first.
+function ensureRows_(sh, row) {
+  if (typeof sh.getMaxRows !== 'function') return;
+  const max = sh.getMaxRows();
+  if (row > max) sh.insertRowsAfter(max, row - max);
+}
+
+// Writes several cells of one row in a single call. cells: [[0-based column, value], ...]; columns
+// below 0 (a header the sheet lacks) are skipped. Other cells of the row keep their values.
+function writeCells_(sh, row, width, cells) {
+  ensureRows_(sh, row);
+  const range = sh.getRange(row, 1, 1, width);
+  const vals = range.getValues()[0];
+  cells.forEach(([c, v]) => { if (c > -1 && c < width) vals[c] = v; });
+  range.setValues([vals]);
+}
+
+// ── THE SCRIPT LOCK ───────────────────────────────────────────────────────────
+// One writer at a time across all users. Emails asked for while the lock is held are sent after it is
+// released (sendHtmlEmail_ queues them), so other writers do not wait for the mail server. Re-entrant:
+// a function that already holds the lock can call another that takes it.
+var LOCK_DEPTH_ = 0;
+var AFTER_LOCK_ = [];
+
 function withScriptLock_(fn) {
+  if (LOCK_DEPTH_ > 0) return fn();
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
-  try { return fn(); } finally { lock.releaseLock(); }
+  LOCK_DEPTH_++;
+  try { return fn(); }
+  finally {
+    LOCK_DEPTH_--; lock.releaseLock();
+    runAfterLock_();   // also when fn threw: emails for what was already done still go out, as before
+  }
+}
+
+function runAfterLock_() {
+  const queued = AFTER_LOCK_.splice(0, AFTER_LOCK_.length);
+  queued.forEach(f => { try { f(); } catch (e) { Logger.log('After-lock task failed: ' + e); } });
 }

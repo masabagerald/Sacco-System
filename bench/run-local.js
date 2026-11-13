@@ -1,4 +1,4 @@
-﻿// Capacity benchmark, run locally: node --max-old-space-size=8192 bench/run-local.js [--quick]
+// Capacity benchmark, run locally: node --max-old-space-size=8192 bench/run-local.js [--quick]
 //
 // Loads every src/**/*.gs file (the real server code) into one VM context with the in-memory Apps Script
 // fakes from tests/gas-fakes.js, fills the fake spreadsheet with synthetic data (bench/gas/BenchData.gs)

@@ -7,19 +7,19 @@ function nextRepaymentRef_(rows) { return nextRef_('repayment', rows.map(r => r[
 
 // Appends one row. tx: { date, loanId, memberNo, amount, recordedBy, notes, reverses }. Caller holds the
 // script lock. Returns the new reference ('' on a sheet that has no Reference column yet).
-function appendRepaymentRow_(tx) {
-  const { sh, headers, hRow, rows } = readSheet_(SH_REPAY,'loanid');
+// rd: the Loan Repayments tab as already read in this request (optional; saves reading it again).
+function appendRepaymentRow_(tx, rd) {
+  rd = rd || readSheet_(SH_REPAY,'loanid');
+  const { sh, headers, rows } = rd;
   const hasRef = ci(headers,'reference') > -1;
   if (tx.reverses && (!hasRef || ci(headers,'reverses') < 0))
     throw new Error('Loan Repayments needs the Reference and Reverses columns. Run setupFinanceSchema() once from the script editor.');
   const ref = hasRef ? nextRepaymentRef_(rows) : '';
-  const row = emptyRow_(sh, hRow, ci(headers,'loanid'));
-  const s = (c,v) => { if (c > -1) sh.getRange(row, c+1).setValue(v); };
-  s(ci(headers,'date'), tx.date); s(ci(headers,'timestamp'), now_ts());
-  s(ci(headers,'loanid'), tx.loanId); s(ci(headers,'memberno'), tx.memberNo);
-  s(ci(headers,'amount'), tx.amount); s(ci(headers,'total amount'), tx.amount); s(ci(headers,'recorded'), tx.recordedBy);
-  s(ci(headers,'notes'), tx.notes || '');
-  s(ci(headers,'reference'), ref); s(ci(headers,'reverses'), tx.reverses || '');
+  writeCells_(sh, freeRowFinder_(rd, ci(headers,'loanid'))(), headers.length, [
+    [ci(headers,'date'), tx.date], [ci(headers,'timestamp'), now_ts()],
+    [ci(headers,'loanid'), tx.loanId], [ci(headers,'memberno'), tx.memberNo],
+    [ci(headers,'amount'), tx.amount], [ci(headers,'total amount'), tx.amount], [ci(headers,'recorded'), tx.recordedBy],
+    [ci(headers,'notes'), tx.notes || ''], [ci(headers,'reference'), ref], [ci(headers,'reverses'), tx.reverses || '']]);
   return ref;
 }
 
@@ -66,10 +66,7 @@ function setupRepaymentReferences_() {
 const REPAYMENT_PARTS = ['principal', 'interest', 'fee', 'penalty'];  // display order
 const REPAYMENT_DUPLICATE_WINDOW_MS = 10 * 60 * 1000;  // same loan, amount and date this recently: likely a double entry
 
-function loanRepaymentRows_(reps, loanId) {
-  const id = String(loanId||'').trim();
-  return reps.filter(r => String(r['LoanID']||'').trim() === id);
-}
+function loanRepaymentRows_(reps, loanId) { return repaymentsOf_(reps, loanId).slice(); }
 
 // Charged and paid so far for each part, and the credit held on the loan (negative: a reversal took
 // back credit that had already been used, so it is owed again)

@@ -1,12 +1,31 @@
 // ── REPORTS & EXPORTS ─────────────────────────────────────────────────────────
 
+// Each member's position from rows already read, indexed once: savings total, active loans with their
+// outstanding balance, and unpaid surcharges. Returns memberNo -> { savings, activeLoans, outstanding, unpaid }.
+// Used by the ledger PDF, the CSV export and the monthly statements job instead of re-reading per member.
+function memberPositions_(savRows, loans, reps, fines) {
+  const balances = memberBalances_(savRows);
+  const loansOf = {}, unpaidOf = {};
+  loans.forEach(l => { const no = String(l['MemberNo']||'').trim(); (loansOf[no] = loansOf[no] || []).push(l); });
+  fines.forEach(f => {
+    const no = String(f['MemberNo']||'').trim();
+    if (String(f['Status']||'').toLowerCase() === 'unpaid') unpaidOf[no] = (unpaidOf[no] || 0) + num(f['Amount (UGX)']);
+  });
+  return no => {
+    const activeLoans = (loansOf[no] || []).map(l => computeLoan_(l, reps)).filter(l => l.status === 'Active');
+    return { savings: balanceOf_(balances, no).total, activeLoans,
+      outstanding: activeLoans.reduce((s, l) => s + l.outstandingBalance, 0), unpaid: unpaidOf[no] || 0 };
+  };
+}
+
 function getMemberStatementData() {
   const auth = caller_(); if (!auth.ok) return auth;
-  const savings  = getMySavings();
-  const loans    = getMyLoans();
-  const fines    = getMyFines();
-  const loanReqs = getMyLoanRequests();
-  const wdReqs   = getMyWithdrawalRequests();
+  const me = auth.member;   // checked once; the parts below do not check again
+  const savings  = mySavingsFor_(me);
+  const loans    = myLoansFor_(me);
+  const fines    = myFinesFor_(me);
+  const loanReqs = myLoanRequestsFor_(me);
+  const wdReqs   = myWithdrawalRequestsFor_(me);
   return { ok:true, generatedOn:today(), member:auth.member,
     savingsBalance:savings.ok?savings.balance:0, savingsAccounts:savings.ok?savings.accounts:null, savingsHistory:savings.ok?savings.history:[],
     loans:loans.ok?loans.loans:[], fines:fines.ok?fines.fines:[], unpaidFinesTotal:fines.ok?fines.unpaidTotal:0,
@@ -92,13 +111,10 @@ function generateAdminReportPdf() {
   const { rows: savings } = readSheet_(SH_SAVINGS,'memberno');
   const { rows: fines }   = readSheet_(SH_FINES,'fineid');
 
+  const per = memberPositions_(savings, loans, reps, fines);
   const memberRows = members.filter(m => String(m['MemberNo']||'').trim() !== '').map(m => {
-    const no = String(m['MemberNo']).trim();
-    const bal = savingsBalance_(no);
-    const myLoans = loans.filter(l => String(l['MemberNo']||'').trim() === no).map(l => computeLoan_(l, reps)).filter(l => l.status === 'Active');
-    const out = myLoans.reduce((s,l) => s + l.outstandingBalance, 0);
-    const unpaid = fines.filter(f => String(f['MemberNo']||'').trim() === no && String(f['Status']||'').toLowerCase() === 'unpaid').reduce((s,f) => s + num(f['Amount (UGX)']), 0);
-    return { no, name: m['Full Name']||'', role: m['Role']||'', status: m['Status']||'', bal, activeCount: myLoans.length, out, unpaid };
+    const no = String(m['MemberNo']).trim(), p = per(no);
+    return { no, name: m['Full Name']||'', role: m['Role']||'', status: m['Status']||'', bal: p.savings, activeCount: p.activeLoans.length, out: p.outstanding, unpaid: p.unpaid };
   });
   const loanRows = loans.filter(l => String(l['LoanID']||'').trim() !== '').map(l => ({ l, c: computeLoan_(l, reps) }));
   const savingRows = savings.filter(r => String(r['MemberNo']||'').trim() !== '');
@@ -161,12 +177,10 @@ function exportAdminCSV() {
   lines.push('');
   lines.push('MEMBERS');
   lines.push(['MemberNo','Name','Email','Role','Status','Savings (UGX)','Active Loans','Outstanding (UGX)','Unpaid Surcharges (UGX)'].join(','));
+  const per = memberPositions_(savings, loans, reps, fines);
   members.filter(m=>String(m['MemberNo']||'').trim()!=='').forEach(m=>{
-    const bal=savingsBalance_(m['MemberNo']);
-    const myLoans=loans.filter(l=>String(l['MemberNo']||'').trim()===String(m['MemberNo']).trim()).map(l=>computeLoan_(l,reps)).filter(l=>l.status==='Active');
-    const out=myLoans.reduce((s,l)=>s+l.outstandingBalance,0);
-    const unpaid=fines.filter(f=>String(f['MemberNo']||'').trim()===String(m['MemberNo']).trim()&&String(f['Status']||'').toLowerCase()==='unpaid').reduce((s,f)=>s+num(f['Amount (UGX)']),0);
-    lines.push([csvQ(m['MemberNo']),csvQ(m['Full Name']),csvQ(m['Email']),csvQ(m['Role']),csvQ(m['Status']),Math.round(bal),myLoans.length,Math.round(out),Math.round(unpaid)].join(','));
+    const p = per(String(m['MemberNo']).trim());
+    lines.push([csvQ(m['MemberNo']),csvQ(m['Full Name']),csvQ(m['Email']),csvQ(m['Role']),csvQ(m['Status']),Math.round(p.savings),p.activeLoans.length,Math.round(p.outstanding),Math.round(p.unpaid)].join(','));
   });
   lines.push(''); lines.push('SAVINGS TRANSACTIONS');
   lines.push(['Date','MemberNo','Type','Account','Category','Amount (UGX)','Reference','Reverses','Recorded By'].join(','));
